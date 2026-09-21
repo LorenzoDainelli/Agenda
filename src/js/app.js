@@ -94,7 +94,7 @@ function applyTheme() {
     : window.matchMedia("(prefers-color-scheme: dark)").matches;
   document.documentElement.dataset.theme = dark ? "dark" : "light";
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = dark ? "#0d1117" : "#ffffff";
+  if (meta) meta.content = dark ? "#0b1118" : "#ffffff";
 }
 
 /* ── La schermata Da fare ─────────────────────────────────────────── */

@@ -46,6 +46,12 @@ jobs:
           diff -q design_handoff/components.css src/css/components.css \
             || { echo "src/css/components.css non è uguale alla sorgente in design_handoff/"; exit 1; }
 
+      - name: Controlla i colori costretti a stare fuori dai token
+        # Il manifest è JSON e il <meta name="theme-color"> è HTML: nessuno dei
+        # due legge una variabile CSS, quindi quei valori sono scritti a mano e
+        # restano indietro da soli. È già successo.
+        run: python3 tools/colori-fuori-dai-token.py
+
       - name: Controlla che ogni file .js sia nella cache del service worker
         # Un modulo dimenticato in CORE_ASSETS non si nota provando l'app
         # online: si nota solo in aereo, cioè quando è troppo tardi.
