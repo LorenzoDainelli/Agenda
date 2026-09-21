@@ -12,7 +12,7 @@ import { t, getLang, LANGS } from "./i18n.js";
 import { newId, AREA_PRIVATE } from "./model.js";
 import { COLORS, newSubject, colorStyle, suggestShort, findSubject, countUsing, nextColor } from "./subjects.js";
 import {
-  createNext, timetableFor, blocksOf, setBlock, countHours, emptyGrid,
+  createNext, timetableFor, blocksOf, setBlock, countHours,
 } from "./timetable.js";
 import { countInArea, moveArea } from "./tasks.js";
 import {

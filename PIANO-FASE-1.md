@@ -138,6 +138,8 @@ Il progetto sta **alla radice della repo** (decisione dell'utente): la repo
     model.mjs                   la finestra, lo stato, le parti, il peso
     timetable.mjs               orari nel tempo, blocchi, proposta scadenza
     tasks.mjs                   sezioni, ordinamenti, archivio
+    browser/                    prove che guidano l'app in un browser vero
+                                (servono Playwright: vedi test/browser/LEGGIMI.md)
   .github/workflows/deploy.yml  pubblica src/ su GitHub Pages
 ```
 

@@ -19,12 +19,12 @@ import { today as todayISO, addDays, dowShort, dayMonth, dayNumber } from "./day
 import { t, getLang } from "./i18n.js";
 import {
   newTask, newPart, KINDS, WEIGHTS, AREA_SCHOOL, AREA_PRIVATE,
-  progress, isPartDone, setPartDone, reschedule, isOpen, isDone,
+  progress, isPartDone, setPartDone, reschedule, isOpen,
 } from "./model.js";
-import { findSubject, colorStyle, subjectLabel } from "./subjects.js";
+import { findSubject, colorStyle } from "./subjects.js";
 import { nextLessons, subjectsOn } from "./timetable.js";
 import {
-  el, esc, node, openLayer, closeLayer, toast, confirmSheet, datePickerSheet, onEach,
+  el, esc, openLayer, closeLayer, toast, confirmSheet, datePickerSheet, onEach,
   dot, checkIcon,
 } from "./ui.js";
 import * as planner from "./planner.js";

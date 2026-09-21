@@ -13,7 +13,7 @@
  */
 
 import {
-  today as todayISO, addDays, full, dayMonth, dowShort, dayNumber, monthYear, diffDays,
+  today as todayISO, full, dayMonth, dowShort, dayNumber, monthYear, diffDays,
 } from "./days.js";
 import { t, setLang, deviceLang, getLang, apply as applyI18n } from "./i18n.js";
 import {
@@ -29,7 +29,7 @@ import {
 import { subjectLabel, subjectColor, colorStyle } from "./subjects.js";
 import {
   el, esc, toast, openLayer, closeLayer, topLayer, closeSheet, isSheetOpen,
-  onEach, dot, weightTicks, checkIcon, emptyState, chevron,
+  onEach, dot, weightTicks, checkIcon, emptyState,
 } from "./ui.js";
 import * as compose from "./compose.js";
 import * as calendar from "./calendar.js";

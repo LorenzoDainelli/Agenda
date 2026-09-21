@@ -266,9 +266,13 @@ button { cursor: pointer; touch-action: manipulation; }
 
 .ag-section--late .ag-section__title { color: var(--ag-late); }
 
+/* Il conto delle cose in una sezione. Usa `muted` e non `faint`: `faint` è
+   dichiarato "solo elementi spenti, mai testo da leggere" (2.72:1 nel tema
+   chiaro), e questo numero è informazione — lo si legge. Trovato misurando i
+   contrasti sulla pagina renderizzata, non sui token. */
 .ag-section__n {
   font-size: var(--ag-size-2xs);
-  color: var(--ag-text-faint);
+  color: var(--ag-text-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1132,13 +1136,15 @@ button { cursor: pointer; touch-action: manipulation; }
   gap: var(--ag-space-1);
 }
 
+/* Il numero dell'ora nella griglia. Come sopra: dice quale ora è, quindi è
+   testo da leggere e non un elemento spento. */
 .ag-tt__hour {
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: var(--ag-size-2xs);
   font-weight: var(--ag-weight-semibold);
-  color: var(--ag-text-faint);
+  color: var(--ag-text-muted);
   font-variant-numeric: tabular-nums;
 }
 

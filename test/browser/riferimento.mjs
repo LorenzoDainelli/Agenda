@@ -1,0 +1,18 @@
+import { chromium } from "playwright";
+const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
+const p = await b.newPage({ viewport: { width: 1180, height: 1400 } });
+const errs = [];
+p.on("console", m => { if (m.type() === "error") errs.push(m.text()); });
+p.on("pageerror", e => errs.push(e.message));
+await p.goto("http://localhost:8098/reference.html", { waitUntil: "networkidle" });
+await p.waitForTimeout(400);
+console.log("tavolozze materie:", await p.locator("#subj-swatches .sw").count(), "(attese 11)");
+console.log("gradini peso     :", await p.locator("#load-swatches .sw").count(), "(attesi 6)");
+console.log("caselle orario   :", await p.locator("#tt-grid .ag-tt__cell").count(), "(attese 34: 36 ore - 2 fuse)");
+console.log("componenti        :", await p.locator(".bits > *").count());
+await p.screenshot({ path: "/tmp/shots/20-reference-chiaro.png", fullPage: true });
+await p.click("#toggle"); await p.waitForTimeout(300);
+console.log("tema dopo il tocco:", await p.getAttribute("html","data-theme"));
+await p.screenshot({ path: "/tmp/shots/21-reference-scuro.png", fullPage: true });
+console.log("errori in console :", errs.length ? errs.join(" | ") : "nessuno");
+await b.close();

@@ -12,7 +12,7 @@
  */
 
 import {
-  today as todayISO, addDays, mondayOf, dow, dayNumber, monthKey, firstOfMonth,
+  today as todayISO, addDays, mondayOf, dow, dayNumber, firstOfMonth,
   addMonths, daysInMonth, dowShort, monthYear, dayMonth, weekdayInitials,
 } from "./days.js";
 import { t, getLang } from "./i18n.js";

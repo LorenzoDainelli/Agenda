@@ -54,11 +54,19 @@
   --ag-primary-softer: #f1f6fe;
   --ag-on-primary: #ffffff;
 
-  /* Blocco riepilogo in cima */
+  /* Blocco riepilogo in cima.
+     Il fondo è un gradiente, e i contrasti scritti qui sono misurati
+     sull'estremo CHIARO (--ag-hero-to), che è il caso peggiore: misurarli
+     sull'estremo scuro è l'errore che questi token contenevano, e si vedeva
+     solo verificando i contrasti sulla pagina renderizzata invece che sui
+     token (il testo secondario stava a 2.94:1 sulla parte chiara).
+     Per questo il gradiente è contenuto: più i due estremi si allontanano,
+     più il testo secondario deve avvicinarsi al bianco per restare
+     leggibile, e a quel punto non è più "secondario". */
   --ag-hero-from: #0066cc;
-  --ag-hero-to: #2f8ae8;
-  --ag-on-hero: #ffffff;
-  --ag-on-hero-muted: #dbecfd;   /*  4.62:1 su --ag-hero-from */
+  --ag-hero-to: #0a6ace;
+  --ag-on-hero: #ffffff;         /*  5.30:1 su --ag-hero-to · 5.57:1 su --ag-hero-from */
+  --ag-on-hero-muted: #eaf3fe;   /*  4.73:1 su --ag-hero-to · 4.97:1 su --ag-hero-from */
 
   /* ── Semantici ─────────────────────────────────────────────────── */
   /* Verifica: non è un errore e non è un'azione distruttiva. È la cosa che non
@@ -161,8 +169,8 @@
 
   --ag-hero-from: #10375e;
   --ag-hero-to: #1d5d9c;
-  --ag-on-hero: #ffffff;
-  --ag-on-hero-muted: #b6d4f2;   /*  7.91:1 su --ag-hero-from */
+  --ag-on-hero: #ffffff;         /*  6.78:1 su --ag-hero-to · 12.14:1 su --ag-hero-from */
+  --ag-on-hero-muted: #cfe4f8;   /*  5.20:1 su --ag-hero-to ·  9.31:1 su --ag-hero-from */
 
   --ag-test: #fbbf24;            /* 11.34:1 su --ag-bg */
   --ag-test-soft: #2e2005;
