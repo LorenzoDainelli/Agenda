@@ -60,6 +60,17 @@ eq("il giorno dello studio", Q.onDay(conVerifica, "2026-09-24").map(t => t.title
 eq("il giorno della verifica", Q.onDay(conVerifica, "2026-09-25").map(t => t.title), ["verifica storia"]);
 eq("diviso per momento", Q.onDayBySlot(conVerifica, "2026-09-24").evening.map(t => t.title), ["studia storia"]);
 eq("una verifica non pianificata va di mattina", Q.onDayBySlot(conVerifica, "2026-09-25").morning.map(t => t.title), ["verifica storia"]);
+// Un momento che l'app non conosce può arrivare da una copia ripristinata o
+// scritta da una versione successiva. Prima faceva saltare l'intera griglia
+// della settimana, che restava vuota: non sembrava un errore, sembrava che
+// non ci fosse niente da fare.
+const inventato = { ...studio, plan: { skip: [], pick: { "2026-09-24": "sera" } } };
+eq("un momento sconosciuto non svuota il calendario",
+   Q.onDayBySlot([inventato], "2026-09-24").afternoon.map(t => t.title), ["studia storia"]);
+eq("e non finisce in nessun altro momento",
+   [Q.onDayBySlot([inventato], "2026-09-24").morning.length,
+    Q.onDayBySlot([inventato], "2026-09-24").evening.length], [0, 0]);
+
 eq("da pianificare nel giorno della scadenza",
    Q.unplannedOn([mk("non pianificato", { due: "2026-09-25" })], "2026-09-25").length, 1);
 eq("se l'ha pianificato non è più da pianificare", Q.unplannedOn([studio], "2026-09-25").length, 0);

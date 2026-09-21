@@ -66,19 +66,6 @@
   --ag-primary-softer: #f4f7fa;
   --ag-on-primary: #ffffff;
 
-  /* Blocco riepilogo in cima.
-     Il fondo è un gradiente, e i contrasti scritti qui sono misurati
-     sull'estremo CHIARO (--ag-hero-to), che è il caso peggiore: misurarli
-     sull'estremo scuro è l'errore che questi token contenevano, e si vedeva
-     solo verificando i contrasti sulla pagina renderizzata invece che sui
-     token (il testo secondario stava a 2.94:1 sulla parte chiara).
-     Per questo il gradiente è contenuto: più i due estremi si allontanano,
-     più il testo secondario deve avvicinarsi al bianco per restare
-     leggibile, e a quel punto non è più "secondario". */
-  --ag-hero-from: #16405c;
-  --ag-hero-to: #1d5170;
-  --ag-on-hero: #ffffff;         /*  8.53:1 su --ag-hero-to · 10.93:1 su --ag-hero-from */
-  --ag-on-hero-muted: #c8dae6;   /*  5.94:1 su --ag-hero-to ·  7.61:1 su --ag-hero-from */
 
   /* ── Semantici ─────────────────────────────────────────────────── */
   /* Verifica: non è un errore e non è un'azione distruttiva. È la cosa che non
@@ -206,10 +193,6 @@
   --ag-primary-softer: #0f1f2c;
   --ag-on-primary: #04121c;      /*  8.35:1 sopra --ag-primary */
 
-  --ag-hero-from: #102c3e;
-  --ag-hero-to: #1a4a66;
-  --ag-on-hero: #ffffff;         /*  9.48:1 su --ag-hero-to · 14.30:1 su --ag-hero-from */
-  --ag-on-hero-muted: #c0d8e6;   /*  6.41:1 su --ag-hero-to ·  9.68:1 su --ag-hero-from */
 
   /* I semantici restano più saturi dei colori delle materie, e va bene: non
      sono decorazione, sono l'unico modo di sapere che una cosa è una verifica

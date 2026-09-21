@@ -91,8 +91,17 @@ riscrivere l'app.
 | righe dei compiti | al posto di «0 di 2», il **nome** di quello che resta da fare |
 | calendario settimana | rifatto da zero con la forma della griglia dell'orario: giorni in colonna, momenti in riga, la settimana intera in una schermata |
 
-Rimaste aperte e **non** decise: il nome definitivo dell'app (provvisorio:
-"Agenda") e la forma definitiva dell'ambito privato (vedi §6.4).
+### Decise dall'utente il 21 settembre 2026, nel secondo giro di domande
+
+| cosa | decisione |
+|---|---|
+| nome dell'app | **Agenda**, definitivo. Non era più provvisorio da qui in avanti: è il nome sotto l'icona |
+| pubblicazione | la repo diventa **pubblica**. GitHub Pages su una repo privata richiede un piano a pagamento, e nella repo non c'è un solo dato personale (regola 1): renderla pubblica costa niente e non espone niente |
+| palette | nessuna delle tre direzioni è stata scelta a scatola chiusa: sono state **generate tutte e tre e messe a confronto sulla schermata vera** (`design_handoff/palette-alternative/confronto.html`). La scelta arriva dopo averle guardate sul telefono |
+| ambito privato | **ancora non deciso**: resta come sta (un compito senza materia, con la scadenza che può mancare) e si decide quando l'uso reale avrà detto cosa serve |
+
+Rimasta aperta e **non** decisa: la forma definitiva dell'ambito privato
+(vedi §6.4). Il nome dell'app non è più in questa lista.
 
 ---
 
@@ -149,8 +158,25 @@ Il progetto sta **alla radice della repo** (decisione dell'utente): la repo
     tasks.mjs                   sezioni, ordinamenti, archivio
     browser/                    prove che guidano l'app in un browser vero
                                 (servono Playwright: vedi test/browser/LEGGIMI.md)
+      audit.mjs                 il controllo dei contrasti sulla pagina renderizzata
+      contrasti.mjs             lo passa su cinque schermate dell'app, nei due temi
+      cattura-schermate.mjs     salva il markup vero dell'app, per il confronto palette
+      confronto-palette.mjs     guarda le palette candidate e le verifica
+      percorso-base.mjs         il giro completo: creare, pianificare, spuntare
+      archivio-copia-offline.mjs  archivio, copia di sicurezza, funzionamento offline
+      riferimento.mjs           la pagina di riferimento dei componenti
+  tools/                        strumenti di progetto, non finiscono nell'app
+    colore.py                   matematica del colore: contrasti WCAG, CIELAB, ΔE
+    genera-palette.py           genera una palette intera dai suoi vincoli
+    confronto-palette.py        costruisce la pagina di confronto delle palette
+    colori-fuori-dai-token.py   controlla i pochi colori che stanno fuori dai token
   .github/workflows/deploy.yml  pubblica src/ su GitHub Pages
 ```
+
+Dentro `design_handoff/` c'è anche `palette-alternative/`, che contiene i
+candidati da guardare e la pagina che li confronta. **Non è una cartella
+definitiva**: quando una palette viene scelta diventa `tokens/colors.css` e
+tutta la cartella si butta.
 
 > **Due file in più rispetto alla prima stesura di questo piano**, aggiunti in
 > corso d'opera e scritti qui perché il piano resti la verità: `ui.js` (i

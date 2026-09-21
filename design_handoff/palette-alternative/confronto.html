@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="it" data-theme="light" data-palette="notte">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Palette a confronto</title>
+<!-- GENERATO da tools/confronto-palette.py — non si modifica a mano.
+     Il markup delle due schermate è quello vero dell'app, catturato da
+     test/browser/cattura-schermate.mjs: fra un candidato e l'altro cambiano
+     solo i token, e quindi solo i colori. I comandi non fanno niente: qui si
+     guarda, non si usa. -->
+<link rel="stylesheet" href="../tokens/typography.css">
+<link rel="stylesheet" href="../tokens/space.css">
+<link rel="stylesheet" href="confronto-token.css">
+<link rel="stylesheet" href="../components.css">
+<style>
+/* La pagina di confronto ha un vestito suo, fatto con gli stessi token:
+   cambiando palette cambia anche lui, che è voluto — si vede il colore
+   d'azione applicato a un comando vero, non a un quadratino. */
+* { box-sizing: border-box; }
+/* Questa regola nell'app sta in app.css, che qui non si carica (porterebbe
+   anche l'altezza fissa e lo scorrimento interno, che in una pagina di
+   confronto sono d'impiccio). Senza di lei tutto ciò che nell'app è nascosto
+   — l'avviso della rassegna, i livelli chiusi — si vedrebbe come un riquadro
+   vuoto, ed era esattamente quello che si vedeva. */
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--ag-surface);
+  color: var(--ag-text);
+  font-family: var(--ag-font);
+  -webkit-text-size-adjust: 100%;
+}
+.cf-barra {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; flex-direction: column; gap: var(--ag-space-2);
+  padding: var(--ag-space-3) var(--ag-gutter);
+  background: var(--ag-bg);
+  border-bottom: 1px solid var(--ag-hairline);
+}
+.cf-riga { display: flex; gap: var(--ag-space-2); align-items: center; }
+.cf-riga--scelte { overflow-x: auto; scrollbar-width: none; }
+.cf-btn {
+  flex: 1 0 auto;
+  min-height: var(--ag-touch-min);
+  padding: 0 var(--ag-space-4);
+  border: 1px solid var(--ag-hairline);
+  border-radius: var(--ag-radius-pill);
+  background: var(--ag-surface);
+  color: var(--ag-text);
+  font: inherit;
+  font-size: var(--ag-size-sm);
+  font-weight: var(--ag-weight-semibold);
+}
+.cf-btn[aria-pressed="true"] {
+  background: var(--ag-primary);
+  border-color: var(--ag-primary);
+  color: var(--ag-on-primary);
+}
+.cf-nota {
+  margin: 0;
+  font-size: var(--ag-size-xs);
+  color: var(--ag-text-muted);
+}
+.cf-schermo {
+  margin: var(--ag-space-5) auto;
+  max-width: var(--ag-app-max-width);
+  /* Le due schermate stanno una sotto l'altra e scorre la pagina, non
+     l'elenco: nell'app il corpo scorre da sé, qui no. */
+  pointer-events: none;
+}
+.cf-schermo .ag-app { height: auto; overflow: visible; box-shadow: var(--ag-shadow-md); }
+.cf-schermo .ag-app__body { overflow: visible; padding-top: var(--ag-space-4); }
+.cf-titolo {
+  max-width: var(--ag-app-max-width);
+  margin: var(--ag-space-6) auto var(--ag-space-2);
+  padding-inline: var(--ag-gutter);
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-semibold);
+  letter-spacing: var(--ag-tracking-wide);
+  text-transform: uppercase;
+  color: var(--ag-text-muted);
+}
+.cf-pannello {
+  background: var(--ag-bg);
+  box-shadow: var(--ag-shadow-md);
+  padding: var(--ag-space-4) var(--ag-gutter) var(--ag-space-6);
+  display: flex; flex-direction: column; gap: var(--ag-space-6);
+}
+.cf-materie {
+  max-width: var(--ag-app-max-width);
+  margin: 0 auto var(--ag-space-8);
+  padding: var(--ag-space-4) var(--ag-gutter);
+  background: var(--ag-bg);
+  box-shadow: var(--ag-shadow-md);
+}
+.cf-griglia { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--ag-space-2); }
+.cf-mat { display: flex; align-items: center; gap: var(--ag-space-2); font-size: var(--ag-size-sm); }
+.cf-pallino { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+</style>
+</head>
+<body>
+
+<div class="cf-barra">
+  <div class="cf-riga cf-riga--scelte"><button class="cf-btn" type="button" data-imposta="palette" data-valore="notte" aria-pressed="false">Notte</button><button class="cf-btn" type="button" data-imposta="palette" data-valore="carta" aria-pressed="false">Carta</button><button class="cf-btn" type="button" data-imposta="palette" data-valore="bosco" aria-pressed="false">Bosco</button></div>
+  <div class="cf-riga">
+    <button class="cf-btn" type="button" data-imposta="theme" data-valore="light" aria-pressed="false">Chiaro</button>
+    <button class="cf-btn" type="button" data-imposta="theme" data-valore="dark" aria-pressed="false">Scuro</button>
+  </div>
+  <p class="cf-nota"><span data-per-palette="notte" hidden>quella che hai ora: bianco freddo, blu notte</span><span data-per-palette="carta" hidden>carta calda, colore d'azione quasi nero</span><span data-per-palette="bosco" hidden>grigio neutro, verde profondo — l'unica non blu</span></p>
+</div>
+
+<p class="cf-titolo">La schermata di tutti i giorni</p>
+<div class="cf-schermo">
+  <div class="ag-app">
+    <header class="ag-header">
+    <div>
+      <span class="ag-header__eyebrow" data-i18n="todo.eyebrow">Da fare</span>
+      <h1 class="ag-header__title" id="today-title">lunedì 21 settembre</h1>
+    </div>
+    <div class="ag-header__actions">
+      <button class="ag-iconbtn" type="button" id="open-calendar" data-i18n-label="cal.title" aria-label="Calendario">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M3.5 9.5h17M8 3v3.5M16 3v3.5"></path></svg>
+      </button>
+      <button class="ag-iconbtn" type="button" id="open-archive" data-i18n-label="archive.title" aria-label="Archivio">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5h17v3.5h-17zM5 11v8.5a1 1 0 001 1h12a1 1 0 001-1V11M10 15h4"></path></svg>
+      </button>
+      <button class="ag-iconbtn" type="button" id="open-settings" data-i18n-label="settings.title" aria-label="Impostazioni">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8.5h16M4 15.5h16"></path><circle cx="15" cy="8.5" r="2.4" fill="currentColor" stroke="none"></circle><circle cx="9" cy="15.5" r="2.4" fill="currentColor" stroke="none"></circle></svg>
+      </button>
+    </div>
+  </header>
+    <div class="ag-app__body">
+
+    <!-- L'avviso compare SOLO quando c'è qualcosa che non aspetta: un
+         arretrato, o una verifica entro domani. Nelle giornate in pari non
+         c'è, e lo spazio va all'elenco. -->
+    <div class="ag-urgent" id="urgent">
+      <span class="ag-urgent__text" id="urgent-text">1 in ritardo</span>
+    </div>
+
+    <!-- I prossimi giorni col loro peso: dice dove c'è spazio per mettere un
+         compito, che è la cosa che l'elenco sotto non dice. -->
+    <div class="ag-group">
+      <span class="ag-group__label" data-i18n="todo.next">Prossimi giorni</span>
+      <div class="ag-next" id="next-days">
+      <button class="ag-nday ag-nday--today " type="button" data-next-day="2026-09-21" style="--ag-load:var(--ag-load-0);--ag-load-ink:var(--ag-load-ink-0)" aria-label="lunedì 21 settembre">
+        <span class="ag-nday__dow">Oggi</span>
+        <span class="ag-nday__n">21</span>
+        <span class="ag-nday__n2"></span>
+      </button>
+      <button class="ag-nday  " type="button" data-next-day="2026-09-22" style="--ag-load:var(--ag-load-3);--ag-load-ink:var(--ag-load-ink-3)" aria-label="martedì 22 settembre">
+        <span class="ag-nday__dow">mar</span>
+        <span class="ag-nday__n">22</span>
+        <span class="ag-nday__n2">2</span>
+      </button>
+      <button class="ag-nday  " type="button" data-next-day="2026-09-23" style="--ag-load:var(--ag-load-2);--ag-load-ink:var(--ag-load-ink-2)" aria-label="mercoledì 23 settembre">
+        <span class="ag-nday__dow">mer</span>
+        <span class="ag-nday__n">23</span>
+        <span class="ag-nday__n2">1</span>
+      </button>
+      <button class="ag-nday  " type="button" data-next-day="2026-09-24" style="--ag-load:var(--ag-load-2);--ag-load-ink:var(--ag-load-ink-2)" aria-label="giovedì 24 settembre">
+        <span class="ag-nday__dow">gio</span>
+        <span class="ag-nday__n">24</span>
+        <span class="ag-nday__n2">1</span>
+      </button>
+      <button class="ag-nday  ag-nday--test" type="button" data-next-day="2026-09-25" style="--ag-load:var(--ag-load-2);--ag-load-ink:var(--ag-load-ink-2)" aria-label="venerdì 25 settembre">
+        <span class="ag-nday__dow">ven</span>
+        <span class="ag-nday__n">25</span>
+        <span class="ag-nday__n2">1</span>
+      </button>
+      <button class="ag-nday  " type="button" data-next-day="2026-09-26" style="--ag-load:var(--ag-load-0);--ag-load-ink:var(--ag-load-ink-0)" aria-label="sabato 26 settembre">
+        <span class="ag-nday__dow">sab</span>
+        <span class="ag-nday__n">26</span>
+        <span class="ag-nday__n2"></span>
+      </button>
+      <button class="ag-nday  " type="button" data-next-day="2026-09-27" style="--ag-load:var(--ag-load-0);--ag-load-ink:var(--ag-load-ink-0)" aria-label="domenica 27 settembre">
+        <span class="ag-nday__dow">dom</span>
+        <span class="ag-nday__n">27</span>
+        <span class="ag-nday__n2"></span>
+      </button></div>
+    </div>
+
+    <!-- I filtri per ambito. Scorrono in orizzontale: gli ambiti possono
+         essere più di quanti ne stiano sullo schermo. -->
+    <div class="ag-filters" id="filters" role="group" data-i18n-label="settings.areas" aria-label="Ambiti">
+    <button class="ag-filter" type="button" data-filter="all" aria-pressed="true">
+      <span>Tutto</span>
+      <span class="ag-filter__n">7</span>
+    </button>
+    <button class="ag-filter" type="button" data-filter="school" aria-pressed="false">
+      <span>Scuola</span>
+      <span class="ag-filter__n">6</span>
+    </button>
+    <button class="ag-filter" type="button" data-filter="private" aria-pressed="false">
+      <span>Privato</span>
+      <span class="ag-filter__n">1</span>
+    </button></div>
+
+    <!-- L'avviso della rassegna degli arretrati. Sta sulla strada, fra i
+         filtri e l'elenco, e non si chiude da sé: se ne va solo quando gli
+         arretrati sono stati sistemati o quando la rassegna è già stata fatta
+         oggi. -->
+    <div class="ag-alert ag-alert--late" id="review-alert" hidden="">
+      <div class="ag-alert__text">
+        <span class="ag-alert__title" id="review-alert-title"></span>
+        <span class="ag-alert__note" id="review-alert-note"></span>
+      </div>
+      <button class="ag-alert__btn" type="button" id="review-open"></button>
+    </div>
+
+    <div class="ag-list" id="list">
+    <section class="ag-section ag-section--late">
+      <header class="ag-section__head">
+        <span class="ag-section__title">In ritardo</span>
+        <span class="ag-section__n">1</span>
+      </header>
+      
+    <div class="ag-task ag-task--late">
+      <button class="ag-task__main" type="button" data-open="t-9kkjju">
+        <span class="ag-task__title">Schede di inglese</span>
+        <span class="ag-task__meta"><span class="ag-task__subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-petrolio);--ag-chip-soft:var(--ag-subj-petrolio-soft);--ag-chip-ink:var(--ag-subj-petrolio-ink)" aria-hidden="true"></span>Inglese</span><span class="ag-task__due--late">in ritardo di 3 giorni</span><span class="ag-weight" role="img" aria-label="Medio"><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick "></span></span></span>
+        
+      </button>
+      <button class="ag-check" type="button" data-check="t-9kkjju" aria-pressed="false" aria-label="Fatto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></button>
+    </div>
+    </section>
+    <section class="ag-section ">
+      <header class="ag-section__head">
+        <span class="ag-section__title">Domani</span>
+        <span class="ag-section__n">3</span>
+      </header>
+      
+    <div class="ag-task">
+      <button class="ag-task__main" type="button" data-open="t-7yzk5g">
+        <span class="ag-task__title">Esercizi di matematica</span>
+        <span class="ag-task__meta"><span class="ag-task__subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-mattone);--ag-chip-soft:var(--ag-subj-mattone-soft);--ag-chip-ink:var(--ag-subj-mattone-ink)" aria-hidden="true"></span>Matematica</span><span class="">gio 24</span><span class="ag-weight" role="img" aria-label="Pesante"><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick ag-weight__tick--on"></span></span></span>
+        
+      </button>
+      <button class="ag-check" type="button" data-check="t-7yzk5g" aria-pressed="false" aria-label="Fatto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></button>
+    </div>
+    <div class="ag-task">
+      <button class="ag-task__main" type="button" data-open="t-ocmegm">
+        <span class="ag-task__title">Compiti di inglese</span>
+        <span class="ag-task__meta"><span class="ag-task__subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-petrolio);--ag-chip-soft:var(--ag-subj-petrolio-soft);--ag-chip-ink:var(--ag-subj-petrolio-ink)" aria-hidden="true"></span>Inglese</span><span class="">gio 24</span><span>restano: esercizi sul libro</span><span class="ag-weight" role="img" aria-label="Medio"><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick "></span></span></span>
+        
+          <span class="ag-progress"><span class="ag-progress__fill" style="width:50%"></span></span>
+      </button>
+      <button class="ag-check" type="button" data-check="t-ocmegm" aria-pressed="false" aria-label="Fatto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></button>
+    </div>
+    <div class="ag-task">
+      <button class="ag-task__main" type="button" data-open="t-rsry83">
+        <span class="ag-task__title">Riassunto di italiano</span>
+        <span class="ag-task__meta"><span class="ag-task__subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-oliva);--ag-chip-soft:var(--ag-subj-oliva-soft);--ag-chip-ink:var(--ag-subj-oliva-ink)" aria-hidden="true"></span>Italiano</span><span class="ag-task__due--soon">Domani</span><span class="ag-task__flag ag-task__flag--plan">Da pianificare</span><span class="ag-weight" role="img" aria-label="Leggero"><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick "></span><span class="ag-weight__tick "></span></span></span>
+        
+      </button>
+      <button class="ag-check" type="button" data-check="t-rsry83" aria-pressed="false" aria-label="Fatto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></button>
+    </div>
+    </section>
+    <section class="ag-section ">
+      <header class="ag-section__head">
+        <span class="ag-section__title">Questa settimana</span>
+        <span class="ag-section__n">1</span>
+      </header>
+      
+    <div class="ag-task ag-task--test">
+      <button class="ag-task__main" type="button" data-open="t-tgt196">
+        <span class="ag-task__title">Verifica di storia</span>
+        <span class="ag-task__meta"><span class="ag-task__subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-prugna);--ag-chip-soft:var(--ag-subj-prugna-soft);--ag-chip-ink:var(--ag-subj-prugna-ink)" aria-hidden="true"></span>Storia</span><span class="ag-task__flag ag-task__flag--test">Verifica</span><span class="">ven 25</span><span class="ag-weight" role="img" aria-label="Pesante"><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick ag-weight__tick--on"></span></span></span>
+        
+      </button>
+      <button class="ag-check" type="button" data-check="t-tgt196" aria-pressed="false" aria-label="Fatto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></button>
+    </div>
+    </section>
+    <section class="ag-section ">
+      <header class="ag-section__head">
+        <span class="ag-section__title">Più avanti</span>
+        <span class="ag-section__n">1</span>
+      </header>
+      
+    <div class="ag-task">
+      <button class="ag-task__main" type="button" data-open="t-7akc63">
+        <span class="ag-task__title">Relazione di informatica</span>
+        <span class="ag-task__meta"><span class="ag-task__subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-muschio);--ag-chip-soft:var(--ag-subj-muschio-soft);--ag-chip-ink:var(--ag-subj-muschio-ink)" aria-hidden="true"></span>Informatica</span><span class="">5 ott</span><span class="ag-task__flag ag-task__flag--plan">Da pianificare</span><span class="ag-weight" role="img" aria-label="Pesante"><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick ag-weight__tick--on"></span></span></span>
+        
+      </button>
+      <button class="ag-check" type="button" data-check="t-7akc63" aria-pressed="false" aria-label="Fatto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></button>
+    </div>
+    </section>
+    <section class="ag-section ">
+      <header class="ag-section__head">
+        <span class="ag-section__title">Senza data</span>
+        <span class="ag-section__n">1</span>
+      </header>
+      
+    <div class="ag-task">
+      <button class="ag-task__main" type="button" data-open="t-lmq3rs">
+        <span class="ag-task__title">Comprare le cuffie</span>
+        <span class="ag-task__meta"><span class="ag-weight" role="img" aria-label="Leggero"><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick "></span><span class="ag-weight__tick "></span></span></span>
+        
+      </button>
+      <button class="ag-check" type="button" data-check="t-lmq3rs" aria-pressed="false" aria-label="Fatto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></button>
+    </div>
+    </section></div>
+
+  </div>
+    <footer class="ag-actionbar">
+    <button class="ag-btn" type="button" id="add">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+      <span data-i18n="todo.add">Aggiungi</span>
+    </button>
+  </footer>
+  </div>
+</div>
+
+<p class="cf-titolo">La settimana</p>
+<div class="cf-schermo">
+  <div class="cf-pannello">
+    <div class="ag-week">
+      <div class="ag-week__nav">
+        <button class="ag-iconbtn" type="button" data-week="-1" aria-label="Indietro">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+        </button>
+        <span class="ag-week__range">21 set – 27 set</span>
+        <button class="ag-iconbtn" type="button" data-week="1" aria-label="Settimana">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+        </button>
+      </div>
+      
+      
+    <div class="ag-wgrid">
+      <span></span>
+      <button class="ag-wgrid__head ag-wgrid__head--today" type="button" data-pick-day="2026-09-21" style="--ag-load:var(--ag-load-0);--ag-load-ink:var(--ag-load-ink-0)" aria-label="lunedì 21 settembre">
+        <span class="ag-wgrid__dow">lun</span>
+        <span class="ag-wgrid__n">21</span>
+      </button>
+      <button class="ag-wgrid__head" type="button" data-pick-day="2026-09-22" style="--ag-load:var(--ag-load-3);--ag-load-ink:var(--ag-load-ink-3)" aria-label="martedì 22 settembre">
+        <span class="ag-wgrid__dow">mar</span>
+        <span class="ag-wgrid__n">22</span>
+      </button>
+      <button class="ag-wgrid__head" type="button" data-pick-day="2026-09-23" style="--ag-load:var(--ag-load-2);--ag-load-ink:var(--ag-load-ink-2)" aria-label="mercoledì 23 settembre">
+        <span class="ag-wgrid__dow">mer</span>
+        <span class="ag-wgrid__n">23</span>
+      </button>
+      <button class="ag-wgrid__head" type="button" data-pick-day="2026-09-24" style="--ag-load:var(--ag-load-2);--ag-load-ink:var(--ag-load-ink-2)" aria-label="giovedì 24 settembre">
+        <span class="ag-wgrid__dow">gio</span>
+        <span class="ag-wgrid__n">24</span>
+      </button>
+      <button class="ag-wgrid__head" type="button" data-pick-day="2026-09-25" style="--ag-load:var(--ag-load-2);--ag-load-ink:var(--ag-load-ink-2)" aria-label="venerdì 25 settembre">
+        <span class="ag-wgrid__dow">ven</span>
+        <span class="ag-wgrid__n">25</span>
+      </button>
+      <button class="ag-wgrid__head" type="button" data-pick-day="2026-09-26" style="--ag-load:var(--ag-load-0);--ag-load-ink:var(--ag-load-ink-0)" aria-label="sabato 26 settembre">
+        <span class="ag-wgrid__dow">sab</span>
+        <span class="ag-wgrid__n">26</span>
+      </button>
+      <button class="ag-wgrid__head" type="button" data-pick-day="2026-09-27" style="--ag-load:var(--ag-load-0);--ag-load-ink:var(--ag-load-ink-0)" aria-label="domenica 27 settembre">
+        <span class="ag-wgrid__dow">dom</span>
+        <span class="ag-wgrid__n">27</span>
+      </button>
+      <span class="ag-wgrid__slot" title="Mattina">MATT</span><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><div class="ag-wgrid__cell "><button class="ag-wblock ag-wblock--test" type="button" data-task="t-tgt196" style="" aria-label="Verifica di storia">STOR</button></div><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><span class="ag-wgrid__slot" title="Pomeriggio">POM</span><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><div class="ag-wgrid__cell "><button class="ag-wblock" type="button" data-task="t-7yzk5g" style="--ag-dot:var(--ag-subj-mattone);--ag-chip-soft:var(--ag-subj-mattone-soft);--ag-chip-ink:var(--ag-subj-mattone-ink)" aria-label="Esercizi di matematica">MATE</button></div><div class="ag-wgrid__cell "><button class="ag-wblock" type="button" data-task="t-tgt196" style="--ag-dot:var(--ag-subj-prugna);--ag-chip-soft:var(--ag-subj-prugna-soft);--ag-chip-ink:var(--ag-subj-prugna-ink)" aria-label="Verifica di storia">STOR</button></div><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><span class="ag-wgrid__slot" title="Sera">SERA</span><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><div class="ag-wgrid__cell "><button class="ag-wblock" type="button" data-task="t-ocmegm" style="--ag-dot:var(--ag-subj-petrolio);--ag-chip-soft:var(--ag-subj-petrolio-soft);--ag-chip-ink:var(--ag-subj-petrolio-ink)" aria-label="Compiti di inglese">INGL</button></div><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><div class="ag-wgrid__cell "><button class="ag-wblock" type="button" data-task="t-tgt196" style="--ag-dot:var(--ag-subj-prugna);--ag-chip-soft:var(--ag-subj-prugna-soft);--ag-chip-ink:var(--ag-subj-prugna-ink)" aria-label="Verifica di storia">STOR</button></div><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><span class="ag-wgrid__slot" title="Da pianificare">SCADE</span><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><div class="ag-wgrid__cell "><button class="ag-wblock" type="button" data-task="t-rsry83" style="--ag-dot:var(--ag-subj-oliva);--ag-chip-soft:var(--ag-subj-oliva-soft);--ag-chip-ink:var(--ag-subj-oliva-ink)" aria-label="Riassunto di italiano">ITAL</button></div><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div><div class="ag-wgrid__cell ag-wgrid__cell--empty"></div>
+    </div>
+      
+    <div class="ag-wday-detail">
+      <div class="ag-wday-detail__head">
+        <span class="ag-wday-detail__title">lunedì 21 settembre</span>
+        
+      </div>
+      <p class="ag-group__note">Niente per questo giorno</p>
+    </div>
+      <p class="ag-group__note">Tocca un giorno per vedere cosa c'è. Tocca una cosa per aprirla.</p>
+    </div></div>
+</div>
+
+<p class="cf-titolo">I dodici colori delle materie</p>
+<div class="cf-materie" data-per-palette="notte" hidden><div class="cf-griglia"><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-petrolio)"></span><span>petrolio</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-petrolio-2)"></span><span>petrolio 2</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-oltremare)"></span><span>oltremare</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-oltremare-2)"></span><span>oltremare 2</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-prugna)"></span><span>prugna</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-prugna-2)"></span><span>prugna 2</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-mattone)"></span><span>mattone</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-mattone-2)"></span><span>mattone 2</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-oliva)"></span><span>oliva</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-oliva-2)"></span><span>oliva 2</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-muschio)"></span><span>muschio</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-muschio-2)"></span><span>muschio 2</span></div></div></div><div class="cf-materie" data-per-palette="carta" hidden><div class="cf-griglia"><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-vinaccia)"></span><span>vinaccia</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-vinaccia-2)"></span><span>vinaccia 2</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-granata)"></span><span>granata</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-granata-2)"></span><span>granata 2</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-cuoio)"></span><span>cuoio</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-cuoio-2)"></span><span>cuoio 2</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-oliva)"></span><span>oliva</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-oliva-2)"></span><span>oliva 2</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-smeraldo)"></span><span>smeraldo</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-smeraldo-2)"></span><span>smeraldo 2</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-ottanio)"></span><span>ottanio</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-ottanio-2)"></span><span>ottanio 2</span></div></div></div><div class="cf-materie" data-per-palette="bosco" hidden><div class="cf-griglia"><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-ottanio)"></span><span>ottanio</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-ottanio-2)"></span><span>ottanio 2</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-indaco)"></span><span>indaco</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-indaco-2)"></span><span>indaco 2</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-malva)"></span><span>malva</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-malva-2)"></span><span>malva 2</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-granata)"></span><span>granata</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-granata-2)"></span><span>granata 2</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-cuoio)"></span><span>cuoio</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-cuoio-2)"></span><span>cuoio 2</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-oliva)"></span><span>oliva</span></div><div class="cf-mat"><span class="cf-pallino" style="background:var(--ag-subj-oliva-2)"></span><span>oliva 2</span></div></div></div>
+
+<script>
+(function () {
+  var radice = document.documentElement;
+  function scegli(attributo, valore) {
+    radice.dataset[attributo] = valore;
+    document.querySelectorAll('[data-imposta="' + attributo + '"]').forEach(function (b) {
+      b.setAttribute("aria-pressed", b.dataset.valore === valore ? "true" : "false");
+    });
+    try { localStorage.setItem("confronto:" + attributo, valore); } catch (e) {}
+  }
+  document.querySelectorAll("[data-imposta]").forEach(function (b) {
+    b.addEventListener("click", function () { scegli(b.dataset.imposta, b.dataset.valore); });
+  });
+  // Il tema di partenza è quello del telefono, la palette è quella in uso:
+  // così la prima cosa che si vede è lo stato attuale, e il confronto parte
+  // da lì invece che da una preferenza inventata.
+  var temaSalvato, palSalvata;
+  try {
+    temaSalvato = localStorage.getItem("confronto:theme");
+    palSalvata = localStorage.getItem("confronto:palette");
+  } catch (e) {}
+  var scuro = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  scegli("theme", temaSalvato || (scuro ? "dark" : "light"));
+  scegli("palette", palSalvata || "notte");
+})();
+</script>
+<script>
+/* La riga sotto ai pulsanti dice in una frase cosa distingue il candidato
+   scelto: tre palette si confondono in fretta, e senza la frase si finisce a
+   toccare i pulsanti senza sapere più quale si sta guardando. */
+(function () {
+  function aggiorna() {
+    var attuale = document.documentElement.dataset.palette;
+    document.querySelectorAll("[data-per-palette]").forEach(function (n) {
+      n.hidden = n.dataset.perPalette !== attuale;
+    });
+  }
+  document.querySelector(".cf-barra").addEventListener("click", function () {
+    setTimeout(aggiorna, 0);
+  });
+  aggiorna();
+})();
+</script>
+</body>
+</html>

@@ -8,7 +8,7 @@
 
 import { today as todayISO, addDays, mondayOf, monthKey } from "./days.js";
 import {
-  isOpen, isDone, isDropped, isLate, workDate, progress, AREA_PRIVATE,
+  isOpen, isDone, isDropped, isLate, workDate, progress, AREA_PRIVATE, SLOTS,
 } from "./model.js";
 
 /** Le sezioni dell'elenco, nell'ordine in cui si mostrano. */
@@ -123,8 +123,15 @@ export function onDay(tasks, day) {
 export function onDayBySlot(tasks, day) {
   const out = { morning: [], afternoon: [], evening: [] };
   for (const task of onDay(tasks, day)) {
-    const slot = task.plan?.pick?.[day]
+    const scelto = task.plan?.pick?.[day]
       || (task.kind === "test" && task.due === day ? "morning" : "afternoon");
+    // Un momento che non conosciamo finisce nel pomeriggio invece di far
+    // saltare tutto. Non è una cortesia: i dati possono arrivare da una copia
+    // ripristinata, scritta da una versione futura o modificata a mano, e un
+    // valore inatteso lì dentro lascerebbe il calendario della settimana
+    // completamente vuoto — cioè il difetto peggiore possibile, perché non
+    // sembra un errore, sembra che non ci sia niente da fare.
+    const slot = SLOTS.includes(scelto) ? scelto : "afternoon";
     out[slot].push(task);
   }
   return out;

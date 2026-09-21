@@ -229,63 +229,6 @@ button { cursor: pointer; touch-action: manipulation; }
 .ag-urgent--test { background: var(--ag-test-soft); color: var(--ag-test-ink); }
 .ag-urgent__text { flex: 1; min-width: 0; }
 
-/* ── 3-bis. Blocco riepilogo (non più usato nella schermata principale,
- *   tenuto perché reference.html lo mostra e perché una fase successiva
- *   potrebbe riusarlo altrove) ──────────────────────────────────────── */
-
-.ag-hero {
-  border-radius: var(--ag-radius-lg);
-  padding: var(--ag-space-4) var(--ag-space-5) var(--ag-space-5);
-  background: linear-gradient(140deg, var(--ag-hero-from), var(--ag-hero-to));
-  color: var(--ag-on-hero);
-  box-shadow: var(--ag-shadow-hero);
-}
-
-.ag-hero__top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--ag-space-3);
-}
-
-.ag-hero__label {
-  font-size: var(--ag-size-2xs);
-  font-weight: var(--ag-weight-semibold);
-  letter-spacing: var(--ag-tracking-wide);
-  text-transform: uppercase;
-  color: var(--ag-on-hero-muted);
-}
-
-.ag-hero__count {
-  display: flex;
-  align-items: baseline;
-  gap: var(--ag-space-2);
-  margin-top: var(--ag-space-2);
-  font-size: var(--ag-size-3xl);
-  font-weight: var(--ag-weight-bold);
-  letter-spacing: var(--ag-tracking-tighter);
-  line-height: var(--ag-leading-tight);
-  font-variant-numeric: tabular-nums;
-}
-
-.ag-hero__unit {
-  font-size: var(--ag-size-md);
-  font-weight: var(--ag-weight-medium);
-  letter-spacing: 0;
-  color: var(--ag-on-hero-muted);
-}
-
-.ag-hero__meta {
-  margin-top: var(--ag-space-2);
-  font-size: var(--ag-size-sm);
-  color: var(--ag-on-hero-muted);
-}
-
-/* Il conto degli arretrati dentro il blocco. Non usa il rosso: sul blu del
-   blocco un rosso non passerebbe il contrasto, e comunque là dentro non c'è
-   niente da toccare. Il rosso sta sulle righe, dove serve. */
-.ag-hero__late { font-weight: var(--ag-weight-semibold); color: var(--ag-on-hero); }
-
 /* ── 4. Filtro degli ambiti ───────────────────────────────────────── */
 
 .ag-filters {

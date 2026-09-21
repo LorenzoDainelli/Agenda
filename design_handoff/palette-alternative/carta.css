@@ -1,0 +1,208 @@
+/* Agenda — candidato palette «Carta».
+ *
+ * NON è un file in uso: è uno dei candidati da guardare in
+ * palette-alternative/confronto.html. Quello scelto diventa
+ * design_handoff/tokens/colors.css e gli altri si buttano.
+ *
+ * Superfici di carta calda e un colore d'azione quasi nero, come
+ * l'inchiostro di una penna su un quaderno. La serietà qui non viene da un
+ * colore serio: viene dal non avere un colore d'azione acceso. Le materie
+ * sono inchiostri diluiti, che su carta calda è il loro posto naturale.
+ *
+ * Generato da tools/genera-palette.py: ogni rapporto di contrasto scritto qui
+ * è calcolato dal programma che ha scelto il valore, non stimato a mano
+ * (regola 3 di CLAUDE.md). Si modifica la ricetta nel generatore, non questo
+ * file — e poi si rigenera.
+ *
+ * Tema light: 81 controlli, tutti passati. Materie, su 66 coppie: ΔE minimo 17.8 fra tonalità diverse (si distinguono senza sforzo) e 9.8 fra i chip, che è il prezzo di restare desaturati — accettabile perché dentro un chip c'è sempre la sigla. Fra le due intensità della stessa tonalità ΔE è 12.8, ma è tutta differenza di CHIAREZZA: la tonalità è identica, quindi si leggono come due versioni dello stesso colore, che è lo scopo.
+ * Tema dark: 81 controlli, tutti passati. Materie, su 66 coppie: ΔE minimo 16.0 fra tonalità diverse (si distinguono senza sforzo) e 8.0 fra i chip, che è il prezzo di restare desaturati — accettabile perché dentro un chip c'è sempre la sigla. Fra le due intensità della stessa tonalità ΔE è 24.8, ma è tutta differenza di CHIAREZZA: la tonalità è identica, quindi si leggono come due versioni dello stesso colore, che è lo scopo.
+ */
+
+/* ══ TEMA CHIARO ══════════════════════════════════════════════════════════ */
+
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  /* ── Superfici ───────────────────────────────────────────────── */
+  --ag-bg: #fffaf5;
+  --ag-surface: #f8f3ec;          /* righe, campi, giorni senza niente */
+  --ag-surface-strong: #ede8e1;   /* premuto, tracce */
+  --ag-hairline: #eae4de;         /* con parsimonia, solo separatori */
+
+  /* ── Testo ───────────────────────────────────────────────────── */
+  --ag-text: #28231d;             /* 15.01:1 su --ag-bg · 14.11:1 su --ag-surface */
+  --ag-text-muted: #6f6456;       /* 5.57:1 su --ag-bg · 5.24:1 su --ag-surface · 4.74:1 su --ag-surface-strong */
+  --ag-text-faint: #968c80;       /* 2.71:1 su --ag-surface-strong — SOTTO SOGLIA, e va bene: SOLO cose che non portano informazione (frecce ›, tacca spenta del peso, puntino separatore). Mai testo da leggere, mai un segnaposto */
+
+  /* ── Colore d'azione ─────────────────────────────────────────── */
+  --ag-primary: #223245;          /* 12.57:1 su --ag-bg · l'inchiostro sopra 13.04:1 */
+  --ag-primary-pressed: #0e2032;
+  --ag-primary-ink: #223245;      /* 11.21:1 su --ag-primary-soft */
+  --ag-primary-soft: #eaeef5;     /* chip e righe scelte */
+  --ag-primary-softer: #f5f8fc;
+  --ag-on-primary: #ffffff;
+
+  /* ── Semantici ───────────────────────────────────────────────── */
+  --ag-test: #975900;             /* 5.41:1 su --ag-bg · 5.08:1 su --ag-surface */
+  --ag-test-soft: #ffeedf;
+  --ag-test-ink: #7f4a00;         /* 6.44:1 su --ag-test-soft */
+  --ag-late: #c23023;             /* 5.41:1 su --ag-bg · 5.09:1 su --ag-surface */
+  --ag-late-soft: #ffede9;
+  --ag-late-ink: #ac1714;         /* 6.42:1 su --ag-late-soft */
+  --ag-done: #247548;             /* 5.45:1 su --ag-bg · 5.12:1 su --ag-surface */
+  --ag-done-soft: #e4f5e9;
+  --ag-done-ink: #0b6438;         /* 6.40:1 su --ag-done-soft */
+  --ag-danger: #c23023;
+  --ag-danger-soft: #ffede9;
+
+  /* ── Spenti ──────────────────────────────────────────────────── */
+  --ag-disabled-bg: #ebe5de;
+  --ag-disabled-text: #8e8579;    /* 2.91:1 — sotto soglia perché un comando spento non si deve leggere come attivo */
+
+  /* ── Peso del giorno ─────────────────────────────────────────── */
+  --ag-load-0: #f1f4f9;   --ag-load-ink-0: #28231d;           /* 14.13:1 */
+  --ag-load-1: #c3c9d4;   --ag-load-ink-1: #28231d;           /* 9.36:1 · stacco 1.51 dal gradino precedente */
+  --ag-load-2: #98a0ae;   --ag-load-ink-2: #28231d;           /* 5.91:1 · stacco 1.58 dal gradino precedente */
+  --ag-load-3: #6b7686;   --ag-load-ink-3: #ffffff;           /* 4.60:1 · stacco 1.75 dal gradino precedente */
+  --ag-load-4: #475467;   --ag-load-ink-4: #ffffff;           /* 7.69:1 · stacco 1.67 dal gradino precedente */
+  --ag-load-5: #223245;   --ag-load-ink-5: #ffffff;           /* 13.04:1 · stacco 1.70 dal gradino precedente */
+
+  /* ── Ombre ───────────────────────────────────────────────────── */
+  --ag-shadow-color: 60 45% 14%;
+  --ag-shadow-a-sm: 0.05;
+  --ag-shadow-a-md: 0.18;
+  --ag-shadow-a-lg: 0.42;
+
+  /* ── Materie: sei tonalità, due intensità ───────────────────────── */
+  --ag-subj-vinaccia: #664f6e;
+  --ag-subj-vinaccia-soft: #eadbee;
+  --ag-subj-vinaccia-ink: #553f5d;   /* 6.54:1 su --ag-surface · 7.03:1 l'inchiostro sul chip */
+  --ag-subj-vinaccia-2: #876f8f;
+  --ag-subj-vinaccia-2-soft: #d6c7da;
+  --ag-subj-vinaccia-2-ink: #48324f;   /* 4.05:1 su --ag-surface · 7.07:1 l'inchiostro sul chip */
+  --ag-subj-granata: #784a52;
+  --ag-subj-granata-soft: #f7d8dc;
+  --ag-subj-granata-ink: #663a42;   /* 6.56:1 su --ag-surface · 7.03:1 l'inchiostro sul chip */
+  --ag-subj-granata-2: #9b6a72;
+  --ag-subj-granata-2-soft: #e3c5c9;
+  --ag-subj-granata-2-ink: #592e36;   /* 4.05:1 su --ag-surface · 7.01:1 l'inchiostro sul chip */
+  --ag-subj-cuoio: #70513a;
+  --ag-subj-cuoio-soft: #f2dbcc;
+  --ag-subj-cuoio-ink: #5e402a;   /* 6.50:1 su --ag-surface · 7.04:1 l'inchiostro sul chip */
+  --ag-subj-cuoio-2: #927058;
+  --ag-subj-cuoio-2-soft: #dec8b9;
+  --ag-subj-cuoio-2-ink: #50341f;   /* 4.06:1 su --ag-surface · 7.06:1 l'inchiostro sul chip */
+  --ag-subj-oliva: #555a38;
+  --ag-subj-oliva-soft: #dfe2cb;
+  --ag-subj-oliva-ink: #454a29;   /* 6.55:1 su --ag-surface · 7.01:1 l'inchiostro sul chip */
+  --ag-subj-oliva-2: #757a56;
+  --ag-subj-oliva-2-soft: #cbceb8;
+  --ag-subj-oliva-2-ink: #373d1d;   /* 4.07:1 su --ag-surface · 7.07:1 l'inchiostro sul chip */
+  --ag-subj-smeraldo: #32604e;
+  --ag-subj-smeraldo-soft: #cbe6da;
+  --ag-subj-smeraldo-ink: #214f3f;   /* 6.52:1 su --ag-surface · 7.04:1 l'inchiostro sul chip */
+  --ag-subj-smeraldo-2: #52806e;
+  --ag-subj-smeraldo-2-soft: #b7d2c6;
+  --ag-subj-smeraldo-2-ink: #134232;   /* 4.07:1 su --ag-surface · 7.04:1 l'inchiostro sul chip */
+  --ag-subj-ottanio: #1b5f6b;
+  --ag-subj-ottanio-soft: #c5e5ed;
+  --ag-subj-ottanio-ink: #004e5a;   /* 6.57:1 su --ag-surface · 7.06:1 l'inchiostro sul chip */
+  --ag-subj-ottanio-2: #41808c;
+  --ag-subj-ottanio-2-soft: #b1d2d9;
+  --ag-subj-ottanio-2-ink: #00414b;   /* 4.06:1 su --ag-surface · 7.05:1 l'inchiostro sul chip */
+}
+
+/* ══ TEMA SCURO ═══════════════════════════════════════════════════════════ */
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* ── Superfici ───────────────────────────────────────────────── */
+  --ag-bg: #1a1713;
+  --ag-surface: #28241f;          /* righe, campi, giorni senza niente */
+  --ag-surface-strong: #34302b;   /* premuto, tracce */
+  --ag-hairline: #2f2b26;         /* con parsimonia, solo separatori */
+
+  /* ── Testo ───────────────────────────────────────────────────── */
+  --ag-text: #f3eae0;             /* 15.02:1 su --ag-bg · 12.96:1 su --ag-surface */
+  --ag-text-muted: #a6998a;       /* 6.42:1 su --ag-bg · 5.54:1 su --ag-surface · 4.70:1 su --ag-surface-strong */
+  --ag-text-faint: #7a7065;       /* 2.70:1 su --ag-surface-strong — SOTTO SOGLIA, e va bene: SOLO cose che non portano informazione (frecce ›, tacca spenta del peso, puntino separatore). Mai testo da leggere, mai un segnaposto */
+
+  /* ── Colore d'azione ─────────────────────────────────────────── */
+  --ag-primary: #a5afbd;          /* 8.05:1 su --ag-bg · l'inchiostro sopra 7.01:1 */
+  --ag-primary-pressed: #bcc5d2;  /* nel tema scuro il premuto schiarisce */
+  --ag-primary-ink: #a4b6cd;      /* 7.02:1 su --ag-primary-soft */
+  --ag-primary-soft: #1e2a39;     /* chip e righe scelte */
+  --ag-primary-softer: #131d2a;
+  --ag-on-primary: #172534;
+
+  /* ── Semantici ───────────────────────────────────────────────── */
+  --ag-test: #c5952a;             /* 6.55:1 su --ag-bg · 5.66:1 su --ag-surface */
+  --ag-test-soft: #302100;
+  --ag-test-ink: #e4b96c;         /* 8.53:1 su --ag-test-soft */
+  --ag-late: #eb7c75;             /* 6.52:1 su --ag-bg · 5.63:1 su --ag-surface */
+  --ag-late-soft: #391b19;
+  --ag-late-ink: #ffa9a1;         /* 8.51:1 su --ag-late-soft */
+  --ag-done: #4eae7b;             /* 6.52:1 su --ag-bg · 5.63:1 su --ag-surface */
+  --ag-done-soft: #0f291a;
+  --ag-done-ink: #8acfa6;         /* 8.55:1 su --ag-done-soft */
+  --ag-danger: #eb7c75;
+  --ag-danger-soft: #391b19;
+
+  /* ── Spenti ──────────────────────────────────────────────────── */
+  --ag-disabled-bg: #36322d;
+  --ag-disabled-text: #81786c;    /* 2.93:1 — sotto soglia perché un comando spento non si deve leggere come attivo */
+
+  /* ── Peso del giorno ─────────────────────────────────────────── */
+  --ag-load-0: #1a1d20;   --ag-load-ink-0: #f3eae0;           /* 14.23:1 */
+  --ag-load-1: #31363f;   --ag-load-ink-1: #f3eae0;           /* 10.21:1 · stacco 1.39 dal gradino precedente */
+  --ag-load-2: #4a525f;   --ag-load-ink-2: #f3eae0;           /* 6.63:1 · stacco 1.54 dal gradino precedente */
+  --ag-load-3: #5f6a7a;   --ag-load-ink-3: #f3eae0;           /* 4.61:1 · stacco 1.44 dal gradino precedente */
+  --ag-load-4: #818fa3;   --ag-load-ink-4: #172534;           /* 4.73:1 · stacco 1.67 dal gradino precedente */
+  --ag-load-5: #9fafc7;   --ag-load-ink-5: #172534;           /* 6.98:1 · stacco 1.48 dal gradino precedente */
+
+  /* ── Ombre ───────────────────────────────────────────────────── */
+  --ag-shadow-color: 60 60% 2%;
+  --ag-shadow-a-sm: 0.3;
+  --ag-shadow-a-md: 0.55;
+  --ag-shadow-a-lg: 0.7;
+
+  /* ── Materie: sei tonalità, due intensità ───────────────────────── */
+  --ag-subj-vinaccia: #e7cfef;
+  --ag-subj-vinaccia-soft: #2f2632;
+  --ag-subj-vinaccia-ink: #c9bdcc;   /* 10.69:1 su --ag-surface · 8.06:1 l'inchiostro sul chip */
+  --ag-subj-vinaccia-2: #a28caa;
+  --ag-subj-vinaccia-2-soft: #433946;
+  --ag-subj-vinaccia-2-ink: #e5d8e8;   /* 5.04:1 su --ag-surface · 8.01:1 l'inchiostro sul chip */
+  --ag-subj-granata: #fdcbd2;
+  --ag-subj-granata-soft: #362427;
+  --ag-subj-granata-ink: #d3babd;   /* 10.75:1 su --ag-surface · 8.01:1 l'inchiostro sul chip */
+  --ag-subj-granata-2: #b6878e;
+  --ag-subj-granata-2-soft: #4b373a;
+  --ag-subj-granata-2-ink: #efd6d9;   /* 5.02:1 su --ag-surface · 8.02:1 l'inchiostro sul chip */
+  --ag-subj-cuoio: #f4d0b8;
+  --ag-subj-cuoio-soft: #33261d;
+  --ag-subj-cuoio-ink: #cfbdb1;   /* 10.69:1 su --ag-surface · 8.06:1 l'inchiostro sul chip */
+  --ag-subj-cuoio-2: #ad8d76;
+  --ag-subj-cuoio-2-soft: #483a30;
+  --ag-subj-cuoio-2-ink: #ecdacd;   /* 5.03:1 su --ag-surface · 8.05:1 l'inchiostro sul chip */
+  --ag-subj-oliva: #d6dab6;
+  --ag-subj-oliva-soft: #282a1c;
+  --ag-subj-oliva-ink: #c0c2b0;   /* 10.69:1 su --ag-surface · 8.06:1 l'inchiostro sul chip */
+  --ag-subj-oliva-2: #929674;
+  --ag-subj-oliva-2-soft: #3c3e2f;
+  --ag-subj-oliva-2-ink: #dddfcc;   /* 5.02:1 su --ag-surface · 8.06:1 l'inchiostro sul chip */
+  --ag-subj-smeraldo: #b4e1ce;
+  --ag-subj-smeraldo-soft: #1b2c25;
+  --ag-subj-smeraldo-ink: #afc5bb;   /* 10.72:1 su --ag-surface · 8.04:1 l'inchiostro sul chip */
+  --ag-subj-smeraldo-2: #719c8b;
+  --ag-subj-smeraldo-2-soft: #2e4039;
+  --ag-subj-smeraldo-2-ink: #cbe1d7;   /* 5.01:1 su --ag-surface · 8.01:1 l'inchiostro sul chip */
+  --ag-subj-ottanio: #a9e0ed;
+  --ag-subj-ottanio-soft: #152c31;
+  --ag-subj-ottanio-ink: #abc5ca;   /* 10.70:1 su --ag-surface · 8.05:1 l'inchiostro sul chip */
+  --ag-subj-ottanio-2: #659ca7;
+  --ag-subj-ottanio-2-soft: #294045;
+  --ag-subj-ottanio-2-ink: #c6e1e7;   /* 5.04:1 su --ag-surface · 8.01:1 l'inchiostro sul chip */
+}
