@@ -1,0 +1,90 @@
+# Pubblica l'Agenda su GitHub Pages.
+#
+# Prende SOLO il contenuto di src/ e lo mette sulla root del branch gh-pages,
+# così l'indirizzo resta pulito (niente /src/ nell'URL). Il resto del repo —
+# il piano, il pacchetto di design, questo file — non viene pubblicato.
+#
+# Da fare una volta sola su GitHub: Settings → Pages → Source = "Deploy from a
+# branch", branch "gh-pages", cartella "/ (root)". La voce compare solo dopo
+# che il workflow è girato almeno una volta, perché è lui a creare il branch.
+
+name: Deploy Agenda
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch: # per ripubblicare a mano dalla scheda Actions
+
+permissions:
+  contents: write
+
+# Se arrivano due push ravvicinati, pubblica solo l'ultimo.
+concurrency:
+  group: deploy-agenda
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Controlla che i token e i componenti siano copie fedeli
+        # src/css/tokens/ e src/css/components.css sono COPIE di
+        # design_handoff/. Se qualcuno modifica la copia invece della sorgente,
+        # la modifica se ne va al primo ricopiaggio — senza un errore e senza
+        # un test rosso. Qui diventa rossa.
+        run: |
+          set -euo pipefail
+          for f in colors typography space; do
+            diff -q "design_handoff/tokens/$f.css" "src/css/tokens/$f.css" \
+              || { echo "src/css/tokens/$f.css non è uguale alla sorgente in design_handoff/"; exit 1; }
+          done
+          diff -q design_handoff/components.css src/css/components.css \
+            || { echo "src/css/components.css non è uguale alla sorgente in design_handoff/"; exit 1; }
+
+      - name: Controlla che ogni file .js sia nella cache del service worker
+        # Un modulo dimenticato in CORE_ASSETS non si nota provando l'app
+        # online: si nota solo in aereo, cioè quando è troppo tardi.
+        run: |
+          set -euo pipefail
+          missing=0
+          for f in src/js/*.js; do
+            name="./js/$(basename "$f")"
+            grep -q "\"$name\"" src/service-worker.js || { echo "manca in CORE_ASSETS: $name"; missing=1; }
+          done
+          exit $missing
+
+      - name: Marca la versione dell'app
+        # Il service worker riconosce una versione nuova dal numero di versione
+        # della cache. Lo si scrive qui con l'identificativo del commit, così
+        # nessuno può dimenticarsi di aggiornarlo a mano: senza questo, sul
+        # telefono resterebbe per sempre la versione vecchia.
+        run: |
+          set -euo pipefail
+          version="${GITHUB_SHA::7}"
+          file="src/service-worker.js"
+          sed -i -E "s|^const CACHE_VERSION = \".*\";|const CACHE_VERSION = \"$version\";|" "$file"
+          grep -q "const CACHE_VERSION = \"$version\";" "$file" \
+            || { echo "Versione non applicata: controllare $file"; exit 1; }
+
+      - name: Pubblica src/ sulla root di gh-pages
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd src
+
+          # Senza .nojekyll, GitHub Pages passerebbe i file da Jekyll.
+          touch .nojekyll
+
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Deploy da ${GITHUB_SHA::7}"
+          git push -q --force \
+            "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages

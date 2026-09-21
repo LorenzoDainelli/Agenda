@@ -1,0 +1,49 @@
+/* Agenda — token spaziature, raggi, ombre, movimento. */
+
+:root {
+  /* Spaziature — scala da 4px */
+  --ag-space-1: 0.25rem;   /*  4px */
+  --ag-space-2: 0.5rem;    /*  8px */
+  --ag-space-3: 0.75rem;   /* 12px */
+  --ag-space-4: 1rem;      /* 16px */
+  --ag-space-5: 1.25rem;   /* 20px */
+  --ag-space-6: 1.5rem;    /* 24px */
+  --ag-space-7: 1.75rem;   /* 28px */
+  --ag-space-8: 2rem;      /* 32px */
+
+  /* Raggi — generosi: è quello che distingue una card da un riquadro */
+  --ag-radius-xs: 0.5rem;    /*  8px — chip piccoli, caselle dell'orario */
+  --ag-radius-sm: 0.75rem;   /* 12px */
+  --ag-radius-md: 1.125rem;  /* 18px — righe dei compiti */
+  --ag-radius-lg: 1.5rem;    /* 24px — blocco in cima, pannelli aperti */
+  --ag-radius-pill: 999px;
+
+  /* Ombre — quasi invisibili, servono solo a staccare ciò che è "sopra".
+     L'opacità viene dai token del tema: nel tema scuro un'ombra leggera non
+     si vede affatto, quindi là sono più forti. */
+  --ag-shadow-sm: 0 1px 2px hsl(var(--ag-shadow-color) / var(--ag-shadow-a-sm));
+  --ag-shadow-md: 0 6px 20px -6px hsl(var(--ag-shadow-color) / var(--ag-shadow-a-md));
+  --ag-shadow-hero: 0 12px 28px -12px hsl(var(--ag-shadow-color) / var(--ag-shadow-a-lg));
+  --ag-shadow-bar: 0 -8px 24px -12px hsl(var(--ag-shadow-color) / var(--ag-shadow-a-md));
+
+  /* Target di tocco — minimo iOS, mai scendere sotto */
+  --ag-touch-min: 44px;
+  --ag-row-min: 60px;        /* altezza minima di una riga-compito */
+  --ag-check-size: 28px;     /* parte visibile del cerchio della spunta */
+
+  /* Layout */
+  --ag-app-max-width: 460px;
+  --ag-gutter: var(--ag-space-5);
+
+  /* Movimento — breve, mai vistoso */
+  --ag-motion-fast: 140ms;
+  --ag-motion-normal: 240ms;
+  --ag-motion-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ag-motion-fast: 0ms;
+    --ag-motion-normal: 0ms;
+  }
+}

@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="it" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agenda — riferimento dei componenti</title>
+<link rel="stylesheet" href="tokens/colors.css">
+<link rel="stylesheet" href="tokens/typography.css">
+<link rel="stylesheet" href="tokens/space.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  /* Solo per questa pagina: non è un componente e non va in components.css. */
+  body { padding: 0 0 var(--ag-space-8); }
+  .ref { max-width: 1100px; margin-inline: auto; padding: var(--ag-space-5); }
+  .ref h1 { font-size: var(--ag-size-xl); margin: 0 0 var(--ag-space-2); }
+  .ref h2 {
+    font-size: var(--ag-size-2xs); font-weight: var(--ag-weight-semibold);
+    letter-spacing: var(--ag-tracking-wide); text-transform: uppercase;
+    color: var(--ag-text-muted); margin: var(--ag-space-8) 0 var(--ag-space-3);
+    padding-bottom: var(--ag-space-2); border-bottom: 1px solid var(--ag-hairline);
+  }
+  .ref p.lead { color: var(--ag-text-muted); font-size: var(--ag-size-sm); margin: 0 0 var(--ag-space-4); }
+  .bits { display: flex; flex-direction: column; gap: var(--ag-space-3); max-width: 460px; }
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--ag-space-2); }
+  .sw { border-radius: var(--ag-radius-sm); padding: var(--ag-space-3); font-size: var(--ag-size-2xs); font-weight: var(--ag-weight-semibold); }
+  .screens { display: flex; gap: var(--ag-space-6); flex-wrap: wrap; }
+  .screen { width: 393px; height: 760px; border-radius: var(--ag-radius-lg); overflow: hidden;
+            box-shadow: var(--ag-shadow-md); background: var(--ag-bg); }
+  .screen > .ag-app { height: 100%; max-width: none; }
+  .bar { display: flex; gap: var(--ag-space-2); align-items: center; margin-bottom: var(--ag-space-5); }
+  .note { font-size: var(--ag-size-xs); color: var(--ag-text-muted); max-width: 60ch; }
+</style>
+</head>
+<body>
+<div class="ref">
+
+  <div class="bar">
+    <button class="ag-btn ag-btn--secondary ag-btn--auto ag-btn--sm" type="button" id="toggle">
+      Passa al tema scuro
+    </button>
+    <span class="note">La pagina carica gli stessi token e lo stesso
+      <code>components.css</code> che gira sull'app. Se un componente qui non si
+      vede giusto, non si vedrà giusto nemmeno là.</span>
+  </div>
+
+  <h1>Agenda — riferimento dei componenti</h1>
+  <p class="lead">Fase 1. Ogni pezzo dell'interfaccia, in entrambi i temi, alla
+    larghezza di un iPhone.</p>
+
+  <h2>1 · Colori delle materie</h2>
+  <p class="lead">Undici, ognuno con il pieno, il chip e l'inchiostro sul chip.
+    I rapporti di contrasto sono scritti nei commenti di
+    <code>tokens/colors.css</code>, e sono calcolati.</p>
+  <div class="swatches" id="subj-swatches"></div>
+
+  <h2>2 · Peso di una giornata</h2>
+  <p class="lead">Sei gradini fissi. L'inchiostro di ogni gradino è già
+    verificato: il salto al bianco cade fra il 4 e il 5.</p>
+  <div class="swatches" id="load-swatches"></div>
+
+  <h2>3 · Righe dei compiti</h2>
+  <div class="bits">
+    <div class="ag-task">
+      <button class="ag-task__main" type="button">
+        <span class="ag-task__title">Esercizi di matematica</span>
+        <span class="ag-task__meta">
+          <span class="ag-task__subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-amber)"></span>Matematica</span>
+          <span>gio 24</span>
+          <span class="ag-weight"><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick"></span></span>
+        </span>
+      </button>
+      <button class="ag-check" type="button" aria-pressed="false" aria-label="Fatto">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+      </button>
+    </div>
+
+    <div class="ag-task ag-task--test">
+      <button class="ag-task__main" type="button">
+        <span class="ag-task__title">Verifica di storia</span>
+        <span class="ag-task__meta">
+          <span class="ag-task__subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-violet)"></span>Storia</span>
+          <span class="ag-task__flag ag-task__flag--test">Verifica</span>
+          <span class="ag-task__due--soon">Domani</span>
+        </span>
+      </button>
+      <button class="ag-check" type="button" aria-pressed="false" aria-label="Fatto">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+      </button>
+    </div>
+
+    <div class="ag-task ag-task--late">
+      <button class="ag-task__main" type="button">
+        <span class="ag-task__title">Compiti di inglese</span>
+        <span class="ag-task__meta">
+          <span class="ag-task__subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-sky)"></span>Inglese</span>
+          <span class="ag-task__due--late">in ritardo di 3 giorni</span>
+          <span>1 di 2</span>
+        </span>
+        <span class="ag-progress"><span class="ag-progress__fill" style="width:50%"></span></span>
+      </button>
+      <button class="ag-check" type="button" aria-pressed="false" aria-label="Fatto">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+      </button>
+    </div>
+
+    <div class="ag-task ag-task--done">
+      <button class="ag-task__main" type="button">
+        <span class="ag-task__title">Relazione di informatica</span>
+        <span class="ag-task__meta"><span>fatto oggi</span></span>
+      </button>
+      <button class="ag-check" type="button" aria-pressed="true" aria-label="Fatto">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <h2>4 · La fila dei giorni</h2>
+  <p class="lead">Dentro la finestra, escluso, scelto, e il giorno della
+    scadenza che la chiude e non si tocca.</p>
+  <div class="bits">
+    <div class="ag-window">
+      <div class="ag-window__days">
+        <button class="ag-day ag-day--in" type="button"><span class="ag-day__dow">lun</span><span class="ag-day__n">21</span><span class="ag-day__slot"></span></button>
+        <button class="ag-day ag-day--picked" type="button"><span class="ag-day__dow">mar</span><span class="ag-day__n">22</span><span class="ag-day__slot">sera</span></button>
+        <button class="ag-day ag-day--out" type="button"><span class="ag-day__dow">mer</span><span class="ag-day__n">23</span><span class="ag-day__slot"></span></button>
+        <span class="ag-day ag-day--due"><span class="ag-day__dow">gio</span><span class="ag-day__n">24</span><span class="ag-day__slot">Per quando</span></span>
+      </div>
+      <p class="ag-window__hint">Tocca un giorno per escluderlo, tienilo premuto per dire che lo farai lì.</p>
+    </div>
+  </div>
+
+  <h2>5 · Parti</h2>
+  <div class="bits">
+    <div class="ag-parts">
+      <div class="ag-part ag-part--done">
+        <span class="ag-part__main"><span class="ag-part__title">frasi da tradurre</span></span>
+        <span class="ag-counter">
+          <button class="ag-counter__btn" type="button" aria-label="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+          <span class="ag-counter__value">5/5</span>
+          <button class="ag-counter__btn" type="button" disabled aria-label="+1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        </span>
+        <button class="ag-iconbtn ag-iconbtn--plain ag-iconbtn--tight" type="button" aria-label="Elimina"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="ag-part">
+        <span class="ag-part__main"><span class="ag-part__title">esercizi sul libro</span></span>
+        <span class="ag-counter">
+          <button class="ag-counter__btn" type="button" disabled aria-label="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+          <span class="ag-counter__value">0/2</span>
+          <button class="ag-counter__btn" type="button" aria-label="+1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        </span>
+        <button class="ag-iconbtn ag-iconbtn--plain ag-iconbtn--tight" type="button" aria-label="Elimina"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="ag-part">
+        <span class="ag-part__main"><span class="ag-part__title">ripassare il capitolo 4</span></span>
+        <button class="ag-check" type="button" aria-pressed="false" aria-label="Fatto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+        <button class="ag-iconbtn ag-iconbtn--plain ag-iconbtn--tight" type="button" aria-label="Elimina"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <h2>6 · Chip, segmenti, filtri</h2>
+  <div class="bits">
+    <div class="ag-filters">
+      <button class="ag-filter" type="button" aria-pressed="true">Tutto <span class="ag-filter__n">6</span></button>
+      <button class="ag-filter" type="button" aria-pressed="false">Scuola <span class="ag-filter__n">5</span></button>
+      <button class="ag-filter" type="button" aria-pressed="false">Privato <span class="ag-filter__n">1</span></button>
+    </div>
+    <div class="ag-chips">
+      <button class="ag-chip ag-chip--subject" type="button" aria-pressed="true" style="--ag-dot:var(--ag-subj-sky);--ag-chip-soft:var(--ag-subj-sky-soft);--ag-chip-ink:var(--ag-subj-sky-ink)"><span class="ag-dot" style="--ag-dot:var(--ag-subj-sky)"></span>Inglese</button>
+      <button class="ag-chip ag-chip--subject" type="button" aria-pressed="false" style="--ag-dot:var(--ag-subj-amber)"><span class="ag-dot" style="--ag-dot:var(--ag-subj-amber)"></span>Matematica</button>
+      <button class="ag-chip ag-chip--ghost" type="button">Altro</button>
+    </div>
+    <div class="ag-chips">
+      <button class="ag-chip" type="button" aria-pressed="true">gio 24 <span class="ag-chip__sub">prossima lezione</span></button>
+      <button class="ag-chip" type="button" aria-pressed="false">Domani</button>
+    </div>
+    <div class="ag-seg">
+      <button class="ag-seg__opt" type="button" aria-pressed="true">Compito</button>
+      <button class="ag-seg__opt ag-seg__opt--test" type="button" aria-pressed="false">Verifica</button>
+    </div>
+    <div class="ag-seg">
+      <button class="ag-seg__opt" type="button" aria-pressed="false">Leggero</button>
+      <button class="ag-seg__opt" type="button" aria-pressed="true">Medio</button>
+      <button class="ag-seg__opt" type="button" aria-pressed="false">Pesante</button>
+    </div>
+  </div>
+
+  <h2>7 · Pulsanti</h2>
+  <div class="bits">
+    <button class="ag-btn" type="button">Aggiungi</button>
+    <button class="ag-btn ag-btn--secondary" type="button">Nuova settimana</button>
+    <button class="ag-btn ag-btn--done" type="button">Fatto</button>
+    <button class="ag-btn ag-btn--danger" type="button">Elimina</button>
+    <button class="ag-btn ag-btn--ghost" type="button">Lascia stare</button>
+    <button class="ag-btn" type="button" disabled>Spento</button>
+  </div>
+
+  <h2>8 · Avvisi, notifiche, stati vuoti</h2>
+  <div class="bits">
+    <div class="ag-alert ag-alert--late">
+      <div class="ag-alert__text">
+        <span class="ag-alert__title">Che fine hanno fatto?</span>
+        <span class="ag-alert__note">3 cose sono passate di scadenza.</span>
+      </div>
+      <button class="ag-alert__btn" type="button">Fatto</button>
+    </div>
+    <div class="ag-toast" style="position:static">
+      <span class="ag-toast__text">Fatto</span>
+      <button class="ag-toast__undo" type="button">Annulla</button>
+    </div>
+    <div class="ag-empty">
+      <span class="ag-empty__icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="16" rx="3"/><path d="M8 9.5h8M8 14h5"/></svg></span>
+      <span class="ag-empty__title">Non c'è niente da fare</span>
+      <span class="ag-empty__note">Tocca il + per aggiungere un compito o una cosa da fare.</span>
+    </div>
+  </div>
+
+  <h2>9 · Giorni del calendario</h2>
+  <div class="bits">
+    <section class="ag-wday ag-wday--today" style="--ag-load:var(--ag-load-0);--ag-load-ink:var(--ag-load-ink-0)">
+      <header class="ag-wday__head"><span class="ag-wday__dow">lun</span><span class="ag-wday__n">21</span></header>
+      <span class="ag-slot__label">niente</span>
+    </section>
+    <section class="ag-wday" style="--ag-load:var(--ag-load-3);--ag-load-ink:var(--ag-load-ink-3)">
+      <header class="ag-wday__head"><span class="ag-wday__dow">mar</span><span class="ag-wday__n">22</span><span class="ag-wday__load">peso 5</span></header>
+      <div class="ag-wday__slots">
+        <div class="ag-slot">
+          <span class="ag-slot__label">Sera</span>
+          <button class="ag-pellet" type="button"><span class="ag-dot" style="--ag-dot:var(--ag-subj-sky)"></span><span class="ag-pellet__title">Compiti di inglese</span></button>
+        </div>
+      </div>
+    </section>
+    <section class="ag-wday" style="--ag-load:var(--ag-load-5);--ag-load-ink:var(--ag-load-ink-5)">
+      <header class="ag-wday__head"><span class="ag-wday__dow">ven</span><span class="ag-wday__n">25</span><span class="ag-wday__load">peso 10</span></header>
+      <div class="ag-wday__slots">
+        <div class="ag-slot">
+          <span class="ag-slot__label">Mattina</span>
+          <button class="ag-pellet ag-pellet--test" type="button"><span class="ag-pellet__title">Verifica di storia</span></button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <h2>10 · Griglia dell'orario</h2>
+  <div class="bits">
+    <div class="ag-tt" style="--ag-tt-days:6">
+      <div class="ag-tt__head"><span></span><span>lun</span><span>mar</span><span>mer</span><span>gio</span><span>ven</span><span>sab</span></div>
+      <div class="ag-tt__grid" id="tt-grid"></div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+/* Tavolozze e griglia generate qui invece che scritte a mano: se un token
+   cambia nome, questa pagina se ne accorge (la casella resta vuota) invece di
+   continuare a mostrare un colore vecchio incollato nel markup. */
+const SUBJ = ["sky","teal","green","lime","amber","orange","rose","fuchsia","violet","indigo","slate"];
+document.getElementById("subj-swatches").innerHTML = SUBJ.map((c) => `
+  <div class="sw" style="background:var(--ag-subj-${c}-soft);color:var(--ag-subj-${c}-ink)">
+    <span class="ag-dot" style="--ag-dot:var(--ag-subj-${c})"></span> ${c}
+  </div>`).join("");
+
+document.getElementById("load-swatches").innerHTML = [0,1,2,3,4,5].map((n) => `
+  <div class="sw" style="background:var(--ag-load-${n});color:var(--ag-load-ink-${n})">gradino ${n}</div>`).join("");
+
+/* Un orario finto: lunedì ha due ore di Inglese di fila, fuse in un blocco. */
+const cells = [];
+for (let r = 0; r < 6; r += 1) cells.push(`<span class="ag-tt__hour" style="grid-row:${r+2}">${r+1}</span>`);
+const filled = [
+  [1, 0, 2, "INGL", "sky"], [1, 2, 1, "MATE", "amber"],
+  [2, 0, 1, "STOR", "violet"], [3, 0, 1, "ITAL", "green"],
+  [4, 0, 1, "MATE", "amber"], [4, 1, 1, "INGL", "sky"],
+];
+const busy = new Set();
+for (const [d, from, span, short, color] of filled) {
+  for (let i = 0; i < span; i += 1) busy.add(`${d}:${from+i}`);
+  cells.push(`<button class="ag-tt__cell" style="grid-column:${d+1};grid-row:${from+2}/span ${span};--ag-chip-soft:var(--ag-subj-${color}-soft);--ag-chip-ink:var(--ag-subj-${color}-ink)">${short}</button>`);
+}
+for (let d = 1; d <= 6; d += 1) {
+  for (let h = 0; h < 6; h += 1) {
+    if (busy.has(`${d}:${h}`)) continue;
+    cells.push(`<button class="ag-tt__cell ag-tt__cell--empty" style="grid-column:${d+1};grid-row:${h+2}"></button>`);
+  }
+}
+document.getElementById("tt-grid").innerHTML = cells.join("");
+
+const button = document.getElementById("toggle");
+button.addEventListener("click", () => {
+  const dark = document.documentElement.dataset.theme === "dark";
+  document.documentElement.dataset.theme = dark ? "light" : "dark";
+  button.textContent = dark ? "Passa al tema scuro" : "Passa al tema chiaro";
+});
+</script>
+</body>
+</html>

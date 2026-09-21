@@ -1,0 +1,1294 @@
+/* Agenda — foglio componenti.
+ *
+ * Usa solo i token di tokens/. Nessun colore, dimensione o durata scritti a
+ * mano qui dentro: se manca un valore, si aggiunge un token, non un numero.
+ *
+ * Impianto visivo
+ *   - superfici piene, non bordi: le righe si distinguono per riempimento
+ *   - un solo blocco protagonista in cima (quante cose ci sono oggi)
+ *   - righe alte e raggi larghi, ritmo verticale regolare
+ *   - il colore della materia è un pallino, non un fondo: dieci fondi colorati
+ *     in colonna diventano una tavolozza, non un elenco leggibile
+ *
+ * Indice
+ *   1. Reset e shell
+ *   2. Testata
+ *   3. Blocco riepilogo
+ *   4. Filtro degli ambiti
+ *   5. Sezioni ed elenco
+ *   6. Riga del compito
+ *   7. Parti e avanzamento
+ *   8. Pulsanti
+ *   9. Barra in basso
+ *  10. Chip e selettori a tocco
+ *  11. Fila dei giorni (pianificazione)
+ *  12. Pannelli, righe di modulo, gruppi
+ *  13. Livelli, fogli, scrim
+ *  14. Calendario: settimana
+ *  15. Calendario: mese
+ *  16. Griglia dell'orario
+ *  17. Avvisi e notifiche
+ *  18. Stati vuoti
+ *  19. Utilità
+ */
+
+/* ── 1. Reset e shell ─────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  /* Su iPhone un tocco lento su qualunque cosa toccabile fa comparire un
+     rettangolo grigio: iOS lo disegna dopo circa un decimo di secondo, per
+     questo con un tocco rapido non si vede. Va spento su tutto, non solo sui
+     bottoni, perché diverse cose toccabili qui sono <div> e <li>. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  background: var(--ag-bg);
+  color: var(--ag-text);
+  font-family: var(--ag-font);
+  font-size: var(--ag-size-md);
+  line-height: var(--ag-leading-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, textarea, select {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+}
+
+button { cursor: pointer; touch-action: manipulation; }
+
+:focus-visible {
+  outline: 3px solid var(--ag-primary);
+  outline-offset: 3px;
+  border-radius: var(--ag-radius-sm);
+}
+
+/* La testata e la barra in basso restano ferme, scorre solo il contenuto. */
+.ag-app {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  width: 100%;
+  max-width: var(--ag-app-max-width);
+  height: 100vh;
+  height: 100dvh; /* altezza esatta, non minima: la barra in basso resta dentro */
+  margin-inline: auto;
+  background: var(--ag-bg);
+  overflow: hidden;
+}
+
+.ag-app__body {
+  min-height: 0; /* senza questo l'elenco spinge la barra fuori schermo */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 var(--ag-gutter) var(--ag-space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ag-space-5);
+}
+
+/* ── 2. Testata ───────────────────────────────────────────────────── */
+
+.ag-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ag-space-4);
+  padding: var(--ag-space-5) var(--ag-gutter) var(--ag-space-4);
+  padding-top: max(var(--ag-space-5), env(safe-area-inset-top));
+}
+
+.ag-header > :first-child { min-width: 0; }
+
+.ag-header__eyebrow {
+  display: block;
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-semibold);
+  letter-spacing: var(--ag-tracking-wide);
+  text-transform: uppercase;
+  color: var(--ag-text-muted);
+}
+
+.ag-header__title {
+  margin: var(--ag-space-1) 0 0;
+  font-size: var(--ag-size-xl);
+  font-weight: var(--ag-weight-bold);
+  letter-spacing: var(--ag-tracking-tight);
+  line-height: var(--ag-leading-tight);
+}
+
+.ag-header__actions {
+  display: flex;
+  gap: var(--ag-space-2);
+  flex: none;
+}
+
+.ag-iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--ag-touch-min);
+  height: var(--ag-touch-min);
+  border-radius: var(--ag-radius-pill);
+  background: var(--ag-surface);
+  color: var(--ag-text-muted);
+  flex: none;
+}
+
+.ag-iconbtn:active { background: var(--ag-surface-strong); }
+.ag-iconbtn--plain { background: none; }
+.ag-iconbtn--on { background: var(--ag-primary-soft); color: var(--ag-primary-ink); }
+
+/* ── 3. Blocco riepilogo ──────────────────────────────────────────── */
+
+.ag-hero {
+  border-radius: var(--ag-radius-lg);
+  padding: var(--ag-space-4) var(--ag-space-5) var(--ag-space-5);
+  background: linear-gradient(140deg, var(--ag-hero-from), var(--ag-hero-to));
+  color: var(--ag-on-hero);
+  box-shadow: var(--ag-shadow-hero);
+}
+
+.ag-hero__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ag-space-3);
+}
+
+.ag-hero__label {
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-semibold);
+  letter-spacing: var(--ag-tracking-wide);
+  text-transform: uppercase;
+  color: var(--ag-on-hero-muted);
+}
+
+.ag-hero__count {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ag-space-2);
+  margin-top: var(--ag-space-2);
+  font-size: var(--ag-size-3xl);
+  font-weight: var(--ag-weight-bold);
+  letter-spacing: var(--ag-tracking-tighter);
+  line-height: var(--ag-leading-tight);
+  font-variant-numeric: tabular-nums;
+}
+
+.ag-hero__unit {
+  font-size: var(--ag-size-md);
+  font-weight: var(--ag-weight-medium);
+  letter-spacing: 0;
+  color: var(--ag-on-hero-muted);
+}
+
+.ag-hero__meta {
+  margin-top: var(--ag-space-2);
+  font-size: var(--ag-size-sm);
+  color: var(--ag-on-hero-muted);
+}
+
+/* Il conto degli arretrati dentro il blocco. Non usa il rosso: sul blu del
+   blocco un rosso non passerebbe il contrasto, e comunque là dentro non c'è
+   niente da toccare. Il rosso sta sulle righe, dove serve. */
+.ag-hero__late { font-weight: var(--ag-weight-semibold); color: var(--ag-on-hero); }
+
+/* ── 4. Filtro degli ambiti ───────────────────────────────────────── */
+
+.ag-filters {
+  display: flex;
+  gap: var(--ag-space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* i chip arrivano fino al bordo dello schermo scorrendo, ma il primo e
+     l'ultimo non restano incollati al bordo */
+  margin-inline: calc(var(--ag-gutter) * -1);
+  padding-inline: var(--ag-gutter);
+}
+
+.ag-filters::-webkit-scrollbar { display: none; }
+
+.ag-filter {
+  flex: none;
+  min-height: 36px;
+  padding: 0 var(--ag-space-4);
+  border-radius: var(--ag-radius-pill);
+  background: var(--ag-surface);
+  color: var(--ag-text-muted);
+  font-size: var(--ag-size-sm);
+  font-weight: var(--ag-weight-semibold);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ag-space-2);
+}
+
+.ag-filter[aria-pressed="true"] {
+  background: var(--ag-primary-soft);
+  color: var(--ag-primary-ink);
+}
+
+.ag-filter__n {
+  font-size: var(--ag-size-2xs);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+/* ── 5. Sezioni ed elenco ─────────────────────────────────────────── */
+
+.ag-list { display: flex; flex-direction: column; gap: var(--ag-space-6); }
+
+.ag-section { display: flex; flex-direction: column; gap: var(--ag-space-2); }
+
+.ag-section__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ag-space-3);
+  padding-inline: var(--ag-space-1);
+}
+
+.ag-section__title {
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-semibold);
+  letter-spacing: var(--ag-tracking-wide);
+  text-transform: uppercase;
+  color: var(--ag-text-muted);
+}
+
+.ag-section--late .ag-section__title { color: var(--ag-late); }
+
+.ag-section__n {
+  font-size: var(--ag-size-2xs);
+  color: var(--ag-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 6. Riga del compito ──────────────────────────────────────────── */
+
+.ag-task {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: var(--ag-space-3);
+  min-height: var(--ag-row-min);
+  padding: var(--ag-space-3) var(--ag-space-3) var(--ag-space-3) var(--ag-space-4);
+  border-radius: var(--ag-radius-md);
+  background: var(--ag-surface);
+  transition: background var(--ag-motion-fast) var(--ag-motion-ease),
+              opacity var(--ag-motion-normal) var(--ag-motion-ease);
+}
+
+.ag-task:active { background: var(--ag-surface-strong); }
+
+/* Una verifica non è una riga come le altre: porta la sua barra a sinistra e
+   il suo fondo. È l'unica cosa che non si può rimandare, e si deve vedere
+   senza leggere. */
+.ag-task--test {
+  background: var(--ag-test-soft);
+  box-shadow: inset 3px 0 0 var(--ag-test);
+}
+
+.ag-task--late { box-shadow: inset 3px 0 0 var(--ag-late); }
+
+.ag-task--late.ag-task--test {
+  /* in ritardo vince sulla verifica: il rosso è più urgente dell'ambra */
+  box-shadow: inset 3px 0 0 var(--ag-late);
+}
+
+/* Barrato: resta visibile un momento dopo la spunta, con l'annulla nel toast. */
+.ag-task--done { opacity: 0.55; }
+.ag-task--done .ag-task__title { text-decoration: line-through; }
+
+.ag-task__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ag-space-1);
+  text-align: left;
+}
+
+.ag-task__title {
+  font-size: var(--ag-size-md);
+  font-weight: var(--ag-weight-semibold);
+  letter-spacing: var(--ag-tracking-tight);
+  line-height: var(--ag-leading-snug);
+  /* due righe al massimo: un titolo lungo non deve far crescere la riga
+     all'infinito, ma tagliarlo a una riga sola nasconde troppo */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ag-task__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ag-space-2);
+  font-size: var(--ag-size-xs);
+  color: var(--ag-text-muted);
+}
+
+/* Il puntino separatore fra i pezzi di metadato. Non è un carattere nel
+   markup, così il testo copiato non se lo porta dietro.
+   Sta come `::after` sull'elemento PRECEDENTE e non come `::before` su quello
+   successivo, per due motivi che si vedono solo a riga piena: un `::before`
+   finisce DENTRO il riquadro di una pillola (e il puntino appariva dentro
+   "DA PIANIFICARE"), e andando a capo resta orfano all'inizio della riga. */
+.ag-task__meta > *:not(:last-child)::after {
+  content: "·";
+  margin-inline-start: var(--ag-space-2);
+  color: var(--ag-text-faint);
+}
+
+/* Dopo una pillola il puntino non serve: la pillola ha già un contorno suo, e
+   il puntino cadrebbe dentro il suo fondo. */
+.ag-task__meta > .ag-task__flag::after { content: none; }
+
+.ag-task__subject {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ag-space-2);
+  font-weight: var(--ag-weight-semibold);
+  color: var(--ag-text);
+}
+
+/* Il pallino della materia. Il colore arriva da una variabile impostata
+   inline sulla riga (--ag-dot), che a sua volta punta a un token: è l'unico
+   modo di avere undici colori senza undici classi, senza scrivere un colore
+   nel JS. */
+.ag-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--ag-radius-pill);
+  background: var(--ag-dot, var(--ag-text-faint));
+  flex: none;
+}
+
+.ag-task__due--late { color: var(--ag-late); font-weight: var(--ag-weight-semibold); }
+.ag-task__due--soon { color: var(--ag-test-ink); font-weight: var(--ag-weight-semibold); }
+
+.ag-task__flag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ag-space-1);
+  padding: 0 var(--ag-space-2);
+  border-radius: var(--ag-radius-pill);
+  background: var(--ag-bg);
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--ag-tracking-wide);
+}
+
+.ag-task__flag--test { color: var(--ag-test-ink); background: var(--ag-bg); }
+.ag-task__flag--plan { color: var(--ag-text-muted); }
+
+/* Il peso: tre tacche, piene quante ne vale il compito. Non è un numero da
+   leggere, è una forma da riconoscere. */
+.ag-weight { display: inline-flex; align-items: center; gap: 2px; }
+
+.ag-weight__tick {
+  width: 3px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--ag-text-faint);
+  opacity: 0.35;
+}
+
+.ag-weight__tick--on { opacity: 1; background: var(--ag-text-muted); }
+
+/* Il cerchio della spunta. Visibilmente 28px ma sensibile su 44: l'area di
+   tocco è la regola, la dimensione visibile è estetica. */
+.ag-check {
+  flex: none;
+  align-self: center;
+  position: relative;
+  width: var(--ag-touch-min);
+  height: var(--ag-touch-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ag-text-faint);
+}
+
+.ag-check::before {
+  content: "";
+  position: absolute;
+  width: var(--ag-check-size);
+  height: var(--ag-check-size);
+  border-radius: var(--ag-radius-pill);
+  box-shadow: inset 0 0 0 2px currentColor;
+  transition: box-shadow var(--ag-motion-fast) var(--ag-motion-ease),
+              background var(--ag-motion-fast) var(--ag-motion-ease);
+}
+
+.ag-check:active::before { background: var(--ag-surface-strong); }
+
+.ag-check[aria-pressed="true"] { color: var(--ag-done); }
+.ag-check[aria-pressed="true"]::before { background: var(--ag-done); box-shadow: none; }
+.ag-check[aria-pressed="true"] svg { color: var(--ag-bg); }
+.ag-check svg { position: relative; z-index: 1; }
+.ag-check[aria-pressed="false"] svg { display: none; }
+
+/* ── 7. Parti e avanzamento ───────────────────────────────────────── */
+
+/* La barra dell'avanzamento sotto il titolo, quando un compito ha parti.
+   Sottile: dice "sei a metà" senza rubare la scena al titolo. */
+.ag-progress {
+  height: 4px;
+  border-radius: var(--ag-radius-pill);
+  background: var(--ag-surface-strong);
+  overflow: hidden;
+}
+
+.ag-progress__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ag-primary);
+  transition: width var(--ag-motion-normal) var(--ag-motion-ease);
+}
+
+.ag-parts { display: flex; flex-direction: column; gap: var(--ag-space-2); }
+
+.ag-part {
+  display: flex;
+  align-items: center;
+  gap: var(--ag-space-3);
+  min-height: var(--ag-touch-min);
+  padding: var(--ag-space-2) var(--ag-space-3) var(--ag-space-2) var(--ag-space-4);
+  border-radius: var(--ag-radius-sm);
+  background: var(--ag-surface);
+}
+
+.ag-part--done { opacity: 0.6; }
+.ag-part--done .ag-part__title { text-decoration: line-through; }
+
+.ag-part__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.ag-part__title {
+  font-size: var(--ag-size-sm);
+  font-weight: var(--ag-weight-medium);
+  line-height: var(--ag-leading-snug);
+}
+
+.ag-part__meta { font-size: var(--ag-size-2xs); color: var(--ag-text-muted); }
+
+/* Il contatore di una parte con quantità: − 3/5 +. I due pulsanti sono
+   rotondi e grandi, il numero in mezzo è tabellare così non balla. */
+.ag-counter { display: inline-flex; align-items: center; gap: var(--ag-space-1); flex: none; }
+
+.ag-counter__btn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--ag-radius-pill);
+  background: var(--ag-bg);
+  color: var(--ag-primary-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ag-counter__btn:active { background: var(--ag-primary-soft); }
+.ag-counter__btn[disabled] { color: var(--ag-disabled-text); background: var(--ag-disabled-bg); }
+
+/* Il cerchio si vede da 36px ma il dito ne trova 44: l'area di tocco è la
+   regola (--ag-touch-min), la dimensione visibile è estetica. Tre cerchi da
+   44px in fila su una riga di parte non lascerebbero spazio al titolo, e
+   rimpicciolire l'area invece del cerchio è il baratto sbagliato. */
+.ag-counter__btn::after,
+.ag-iconbtn--tight::after {
+  content: "";
+  position: absolute;
+  inset: calc((var(--ag-touch-min) - 36px) / -2);
+}
+
+.ag-iconbtn--tight {
+  position: relative;
+  width: 36px;
+  height: 36px;
+}
+
+.ag-counter__value {
+  min-width: 3.25rem;
+  text-align: center;
+  font-size: var(--ag-size-sm);
+  font-weight: var(--ag-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 8. Pulsanti ──────────────────────────────────────────────────── */
+
+.ag-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ag-space-2);
+  width: 100%;
+  min-height: 52px;
+  padding: 0 var(--ag-space-5);
+  border-radius: var(--ag-radius-md);
+  background: var(--ag-primary);
+  color: var(--ag-on-primary);
+  font-size: var(--ag-size-md);
+  font-weight: var(--ag-weight-semibold);
+  letter-spacing: var(--ag-tracking-tight);
+}
+
+.ag-btn:active { background: var(--ag-primary-pressed); }
+
+.ag-btn--secondary { background: var(--ag-surface); color: var(--ag-text); }
+.ag-btn--secondary:active { background: var(--ag-surface-strong); }
+
+.ag-btn--danger { background: var(--ag-danger-soft); color: var(--ag-danger); }
+.ag-btn--ghost { background: none; color: var(--ag-text-muted); }
+
+.ag-btn--done { background: var(--ag-done-soft); color: var(--ag-done-ink); }
+
+.ag-btn[disabled],
+.ag-btn--disabled {
+  background: var(--ag-disabled-bg);
+  color: var(--ag-disabled-text);
+  pointer-events: none;
+}
+
+.ag-btn--sm { min-height: var(--ag-touch-min); font-size: var(--ag-size-sm); }
+.ag-btn--auto { width: auto; }
+
+/* ── 9. Barra in basso ────────────────────────────────────────────── */
+
+.ag-actionbar {
+  display: flex;
+  gap: var(--ag-space-3);
+  align-items: center;
+  padding: var(--ag-space-3) var(--ag-gutter);
+  padding-bottom: max(var(--ag-space-3), env(safe-area-inset-bottom));
+  background: var(--ag-bg);
+  box-shadow: var(--ag-shadow-bar);
+}
+
+/* ── 10. Chip e selettori a tocco ─────────────────────────────────── */
+
+/* La fila scorrevole di chip: materie, date proposte, momenti. È il modo in
+   cui si compila un compito senza aprire la tastiera. */
+.ag-chips {
+  display: flex;
+  gap: var(--ag-space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-block: var(--ag-space-1);
+}
+
+.ag-chips::-webkit-scrollbar { display: none; }
+.ag-chips--wrap { flex-wrap: wrap; overflow: visible; }
+
+.ag-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ag-space-2);
+  min-height: var(--ag-touch-min);
+  padding: 0 var(--ag-space-4);
+  border-radius: var(--ag-radius-pill);
+  background: var(--ag-surface);
+  color: var(--ag-text);
+  font-size: var(--ag-size-sm);
+  font-weight: var(--ag-weight-semibold);
+  white-space: nowrap;
+}
+
+.ag-chip:active { background: var(--ag-surface-strong); }
+
+.ag-chip[aria-pressed="true"] {
+  background: var(--ag-primary-soft);
+  color: var(--ag-primary-ink);
+  box-shadow: inset 0 0 0 2px var(--ag-primary);
+}
+
+/* Un chip di materia acceso prende il colore della materia, non il blu: è il
+   solo caso in cui il colore d'azione cede il posto, perché qui il colore È
+   l'informazione. */
+.ag-chip--subject[aria-pressed="true"] {
+  background: var(--ag-chip-soft, var(--ag-primary-soft));
+  color: var(--ag-chip-ink, var(--ag-primary-ink));
+  box-shadow: inset 0 0 0 2px var(--ag-dot, var(--ag-primary));
+}
+
+.ag-chip__sub {
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-medium);
+  color: var(--ag-text-muted);
+}
+
+.ag-chip[aria-pressed="true"] .ag-chip__sub { color: inherit; opacity: 0.8; }
+
+.ag-chip--ghost {
+  background: none;
+  box-shadow: inset 0 0 0 2px var(--ag-hairline);
+  color: var(--ag-text-muted);
+}
+
+/* Il selettore a segmenti: tipo (compito/verifica), peso, momento. Sceglie
+   una cosa fra tre, e le tre stanno sempre tutte sotto gli occhi. */
+.ag-seg {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--ag-radius-pill);
+  background: var(--ag-surface);
+}
+
+.ag-seg__opt {
+  flex: 1;
+  min-height: 38px;
+  border-radius: var(--ag-radius-pill);
+  font-size: var(--ag-size-sm);
+  font-weight: var(--ag-weight-semibold);
+  color: var(--ag-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ag-space-2);
+}
+
+.ag-seg__opt[aria-pressed="true"] {
+  background: var(--ag-bg);
+  color: var(--ag-text);
+  box-shadow: var(--ag-shadow-sm);
+}
+
+/* La riga del tipo ha bisogno di una distinzione più forte: una verifica
+   scelta accende l'ambra, così il pannello cambia faccia e non si sbaglia. */
+.ag-seg__opt--test[aria-pressed="true"] { color: var(--ag-test-ink); }
+
+/* ── 11. Fila dei giorni (pianificazione) ─────────────────────────── */
+
+/* È il componente più importante dell'app: la finestra di giorni in cui un
+   compito si può fare (§5 del piano). Un giorno può essere dentro la finestra
+   (default), escluso, o scelto. */
+.ag-window { display: flex; flex-direction: column; gap: var(--ag-space-2); }
+
+.ag-window__days {
+  display: flex;
+  gap: var(--ag-space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-block: var(--ag-space-1);
+}
+
+.ag-window__days::-webkit-scrollbar { display: none; }
+
+.ag-day {
+  flex: none;
+  width: 52px;
+  min-height: 68px;
+  border-radius: var(--ag-radius-sm);
+  background: var(--ag-surface);
+  color: var(--ag-text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  transition: background var(--ag-motion-fast) var(--ag-motion-ease);
+}
+
+.ag-day__dow {
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--ag-tracking-wide);
+}
+
+.ag-day__n {
+  font-size: var(--ag-size-lg);
+  font-weight: var(--ag-weight-bold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--ag-tracking-tight);
+  line-height: var(--ag-leading-tight);
+}
+
+/* dentro la finestra ma non scelto: è possibile, non deciso */
+.ag-day--in { background: var(--ag-primary-softer); color: var(--ag-primary-ink); }
+
+/* scelto: qui lo farò. Porta anche il momento della giornata. */
+.ag-day--picked {
+  background: var(--ag-primary);
+  color: var(--ag-on-primary);
+}
+
+/* escluso: qui non posso */
+.ag-day--out {
+  background: var(--ag-surface);
+  color: var(--ag-text-faint);
+  text-decoration: line-through;
+}
+
+/* Il giorno della scadenza: chiude la finestra e non si tocca. Larghezza
+   automatica e non fissa, perché porta una parola ("Per quando", "Verifica")
+   e non un numero: a larghezza fissa il testo si tagliava. */
+.ag-day--due {
+  width: auto;
+  min-width: 52px;
+  padding-inline: var(--ag-space-3);
+  background: var(--ag-test-soft);
+  color: var(--ag-test-ink);
+  box-shadow: inset 0 0 0 2px var(--ag-test);
+  pointer-events: none;
+}
+
+.ag-day--due .ag-day__slot { white-space: nowrap; }
+
+.ag-day__slot { font-size: var(--ag-size-2xs); opacity: 0.85; }
+
+.ag-window__hint {
+  font-size: var(--ag-size-xs);
+  color: var(--ag-text-muted);
+  line-height: var(--ag-leading-snug);
+}
+
+/* ── 12. Pannelli, righe di modulo, gruppi ────────────────────────── */
+
+.ag-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--ag-app-max-width);
+  margin-inline: auto;
+  background: var(--ag-bg);
+  overflow: hidden;
+}
+
+.ag-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ag-space-3);
+  padding: var(--ag-space-4) var(--ag-gutter);
+  padding-top: max(var(--ag-space-4), env(safe-area-inset-top));
+}
+
+.ag-panel__title {
+  font-size: var(--ag-size-lg);
+  font-weight: var(--ag-weight-bold);
+  letter-spacing: var(--ag-tracking-tight);
+  min-width: 0;
+  flex: 1;
+}
+
+.ag-panel__body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 var(--ag-gutter) var(--ag-space-8);
+  padding-bottom: max(var(--ag-space-8), env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: var(--ag-space-6);
+}
+
+.ag-panel__foot {
+  padding: var(--ag-space-3) var(--ag-gutter);
+  padding-bottom: max(var(--ag-space-3), env(safe-area-inset-bottom));
+  box-shadow: var(--ag-shadow-bar);
+  display: flex;
+  gap: var(--ag-space-3);
+}
+
+.ag-group { display: flex; flex-direction: column; gap: var(--ag-space-2); }
+
+.ag-group__label {
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-semibold);
+  letter-spacing: var(--ag-tracking-wide);
+  text-transform: uppercase;
+  color: var(--ag-text-muted);
+  padding-inline: var(--ag-space-1);
+}
+
+.ag-group__note {
+  font-size: var(--ag-size-xs);
+  color: var(--ag-text-muted);
+  line-height: var(--ag-leading-snug);
+  padding-inline: var(--ag-space-1);
+}
+
+.ag-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ag-space-3);
+  min-height: var(--ag-row-min);
+  padding: var(--ag-space-2) var(--ag-space-4);
+  border-radius: var(--ag-radius-md);
+  background: var(--ag-surface);
+}
+
+.ag-row--tap:active { background: var(--ag-surface-strong); }
+.ag-row--stacked { flex-direction: column; align-items: stretch; gap: var(--ag-space-3); padding-block: var(--ag-space-4); }
+
+.ag-row__label { font-size: var(--ag-size-md); font-weight: var(--ag-weight-medium); flex: 1; min-width: 0; }
+.ag-row__value { font-size: var(--ag-size-sm); color: var(--ag-text-muted); }
+.ag-row__chevron { color: var(--ag-text-faint); flex: none; }
+
+.ag-input {
+  width: 100%;
+  min-height: var(--ag-touch-min);
+  padding: var(--ag-space-2) var(--ag-space-4);
+  border-radius: var(--ag-radius-sm);
+  background: var(--ag-surface);
+  /* 17px non per caso: sotto i 16px Safari ingrandisce la pagina quando il
+     campo prende il fuoco, e l'app sembra rotta */
+  font-size: var(--ag-size-md);
+  font-weight: var(--ag-weight-medium);
+}
+
+.ag-input::placeholder { color: var(--ag-text-faint); font-weight: var(--ag-weight-regular); }
+.ag-input--title { font-size: var(--ag-size-lg); font-weight: var(--ag-weight-semibold); background: none; padding-inline: var(--ag-space-1); }
+.ag-input--inline { background: var(--ag-bg); }
+
+/* ── 13. Livelli, fogli, scrim ────────────────────────────────────── */
+
+/* Un livello copre l'app intera: calendario, archivio, impostazioni, compito
+   aperto. Si chiude con la ✕, non con un gesto da indovinare. */
+.ag-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: var(--ag-bg);
+  display: flex;
+  flex-direction: column;
+  animation: ag-layer-in var(--ag-motion-normal) var(--ag-motion-ease);
+}
+
+.ag-layer[hidden] { display: none; }
+.ag-layer > .ag-panel { height: 100%; min-height: 0; }
+
+@keyframes ag-layer-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+.ag-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: hsl(var(--ag-shadow-color) / 0.45);
+  animation: ag-fade-in var(--ag-motion-fast) var(--ag-motion-ease);
+}
+
+.ag-scrim[hidden] { display: none; }
+
+@keyframes ag-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* Il foglio che sale dal basso: scelte brevi e conferme. Non è una finestra
+   del browser, e non lo diventerà mai (regola 5 di CLAUDE.md). */
+.ag-sheet {
+  position: fixed;
+  z-index: 40;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-width: var(--ag-app-max-width);
+  margin-inline: auto;
+  max-height: 88dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--ag-bg);
+  border-radius: var(--ag-radius-lg) var(--ag-radius-lg) 0 0;
+  padding: var(--ag-space-3) var(--ag-gutter) var(--ag-space-5);
+  padding-bottom: max(var(--ag-space-5), env(safe-area-inset-bottom));
+  box-shadow: var(--ag-shadow-hero);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ag-space-3);
+  animation: ag-sheet-in var(--ag-motion-normal) var(--ag-motion-ease);
+}
+
+.ag-sheet[hidden] { display: none; }
+
+@keyframes ag-sheet-in {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+
+.ag-sheet__grip {
+  width: 40px;
+  height: 4px;
+  border-radius: var(--ag-radius-pill);
+  background: var(--ag-surface-strong);
+  margin: 0 auto var(--ag-space-2);
+  flex: none;
+}
+
+.ag-sheet__title {
+  margin: 0;
+  font-size: var(--ag-size-md);
+  font-weight: var(--ag-weight-semibold);
+  text-align: center;
+  line-height: var(--ag-leading-snug);
+}
+
+.ag-sheet__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ag-space-3);
+  min-height: var(--ag-row-min);
+  padding: var(--ag-space-2) var(--ag-space-4);
+  border-radius: var(--ag-radius-md);
+  background: var(--ag-surface);
+  text-align: left;
+}
+
+.ag-sheet__option:active { background: var(--ag-surface-strong); }
+
+.ag-sheet__option[aria-selected="true"] {
+  background: var(--ag-primary-soft);
+  color: var(--ag-primary-ink);
+}
+
+/* ── 14. Calendario: settimana ────────────────────────────────────── */
+
+.ag-week { display: flex; flex-direction: column; gap: var(--ag-space-3); }
+
+.ag-week__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ag-space-3);
+}
+
+.ag-week__range {
+  font-size: var(--ag-size-md);
+  font-weight: var(--ag-weight-semibold);
+  letter-spacing: var(--ag-tracking-tight);
+  text-align: center;
+  flex: 1;
+}
+
+/* Un giorno della settimana è una card. Il fondo dice quanto pesa quel giorno
+   (i sei gradini fissi dei token), e l'inchiostro che ci va sopra è quello
+   verificato per quel gradino: non si scelgono separatamente. */
+.ag-wday {
+  border-radius: var(--ag-radius-md);
+  background: var(--ag-load, var(--ag-surface));
+  color: var(--ag-load-ink, var(--ag-text));
+  padding: var(--ag-space-3) var(--ag-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ag-space-2);
+}
+
+.ag-wday--today { box-shadow: inset 0 0 0 2px var(--ag-primary); }
+
+.ag-wday__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ag-space-2);
+}
+
+.ag-wday__dow {
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--ag-tracking-wide);
+  opacity: 0.85;
+}
+
+.ag-wday__n {
+  font-size: var(--ag-size-lg);
+  font-weight: var(--ag-weight-bold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--ag-tracking-tight);
+}
+
+.ag-wday__load { margin-inline-start: auto; font-size: var(--ag-size-2xs); opacity: 0.85; }
+
+.ag-wday__slots { display: flex; flex-direction: column; gap: var(--ag-space-2); }
+
+.ag-slot { display: flex; flex-direction: column; gap: var(--ag-space-1); }
+
+.ag-slot__label {
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--ag-tracking-wide);
+  opacity: 0.75;
+}
+
+/* Le cose dentro un giorno del calendario: piccole, su fondo neutro, perché
+   il fondo del giorno è già colorato e due colori sovrapposti non si leggono. */
+.ag-pellet {
+  display: flex;
+  align-items: center;
+  gap: var(--ag-space-2);
+  min-height: 34px;
+  padding: var(--ag-space-1) var(--ag-space-3);
+  border-radius: var(--ag-radius-xs);
+  background: var(--ag-bg);
+  color: var(--ag-text);
+  font-size: var(--ag-size-xs);
+  font-weight: var(--ag-weight-medium);
+  text-align: left;
+}
+
+.ag-pellet__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-pellet--test { background: var(--ag-test-soft); color: var(--ag-test-ink); font-weight: var(--ag-weight-semibold); }
+.ag-pellet--done { opacity: 0.55; text-decoration: line-through; }
+
+/* ── 15. Calendario: mese ─────────────────────────────────────────── */
+
+.ag-cal { display: flex; flex-direction: column; gap: var(--ag-space-6); }
+
+.ag-cal__month { display: flex; flex-direction: column; gap: var(--ag-space-2); }
+
+.ag-cal__title {
+  font-size: var(--ag-size-md);
+  font-weight: var(--ag-weight-semibold);
+  letter-spacing: var(--ag-tracking-tight);
+  padding-inline: var(--ag-space-1);
+}
+
+.ag-cal__weekdays,
+.ag-cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--ag-space-1);
+}
+
+.ag-cal__weekdays {
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--ag-tracking-wide);
+  color: var(--ag-text-muted);
+  text-align: center;
+}
+
+.ag-cal__cell {
+  aspect-ratio: 1;
+  border-radius: var(--ag-radius-xs);
+  background: var(--ag-load, transparent);
+  color: var(--ag-load-ink, var(--ag-text));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ag-cal__cell--empty { background: none; pointer-events: none; }
+.ag-cal__n { font-size: var(--ag-size-xs); font-weight: var(--ag-weight-semibold); }
+.ag-cal__n--today { box-shadow: inset 0 0 0 2px var(--ag-primary); border-radius: var(--ag-radius-pill); padding: 1px 5px; }
+
+/* Una verifica in quel giorno: un anello ambra attorno al numero. Nel mese non
+   c'è spazio per scrivere, e l'anello è l'unico modo di dirlo senza parole —
+   per questo il giorno resta comunque toccabile e porta alla settimana, dove
+   la verifica ha il suo nome scritto. */
+.ag-cal__ring {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ag-radius-pill);
+  box-shadow: inset 0 0 0 2px var(--ag-test);
+}
+
+.ag-cal__pips { display: flex; gap: 2px; height: 4px; }
+.ag-cal__pip { width: 4px; height: 4px; border-radius: var(--ag-radius-pill); background: currentColor; opacity: 0.6; }
+
+/* ── 16. Griglia dell'orario ──────────────────────────────────────── */
+
+.ag-tt { display: flex; flex-direction: column; gap: var(--ag-space-2); }
+
+.ag-tt__head {
+  display: grid;
+  grid-template-columns: 1.6rem repeat(var(--ag-tt-days, 6), 1fr);
+  gap: var(--ag-space-1);
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--ag-tracking-wide);
+  color: var(--ag-text-muted);
+  text-align: center;
+}
+
+.ag-tt__grid {
+  display: grid;
+  grid-template-columns: 1.6rem repeat(var(--ag-tt-days, 6), 1fr);
+  gap: var(--ag-space-1);
+}
+
+.ag-tt__hour {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-semibold);
+  color: var(--ag-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Una casella dell'orario. Due ore di fila della stessa materia si fondono in
+   una casella sola più alta (grid-row: span N), che è come la si legge in
+   un'agenda vera — e come si scrive, perché toccandola si cambiano tutte e
+   due insieme. */
+.ag-tt__cell {
+  min-height: var(--ag-touch-min);
+  border-radius: var(--ag-radius-xs);
+  background: var(--ag-chip-soft, var(--ag-surface));
+  color: var(--ag-chip-ink, var(--ag-text-faint));
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-bold);
+  letter-spacing: var(--ag-tracking-wide);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2px;
+  overflow: hidden;
+}
+
+.ag-tt__cell--empty { background: var(--ag-surface); color: var(--ag-text-faint); }
+.ag-tt__cell:active { box-shadow: inset 0 0 0 2px var(--ag-primary); }
+
+.ag-tt__weeks { display: flex; flex-direction: column; gap: var(--ag-space-2); }
+
+/* ── 17. Avvisi e notifiche ───────────────────────────────────────── */
+
+/* L'avviso arancione: non è un errore, è una cosa che chiede attenzione ora.
+   Come il "Back up July" di Shift Hours, sta sulla strada e non si chiude da
+   sé. */
+.ag-alert {
+  display: flex;
+  align-items: center;
+  gap: var(--ag-space-3);
+  padding: var(--ag-space-3) var(--ag-space-4);
+  border-radius: var(--ag-radius-md);
+  background: var(--ag-test-soft);
+  color: var(--ag-test-ink);
+}
+
+.ag-alert--late { background: var(--ag-late-soft); color: var(--ag-late-ink); }
+
+.ag-alert__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.ag-alert__title { font-size: var(--ag-size-sm); font-weight: var(--ag-weight-semibold); }
+.ag-alert__note { font-size: var(--ag-size-xs); opacity: 0.9; }
+
+.ag-alert__btn {
+  flex: none;
+  min-height: var(--ag-touch-min);
+  padding: 0 var(--ag-space-4);
+  border-radius: var(--ag-radius-pill);
+  background: var(--ag-bg);
+  color: inherit;
+  font-size: var(--ag-size-sm);
+  font-weight: var(--ag-weight-semibold);
+}
+
+/* I toast: confermano quello che è appena successo e offrono l'annulla. */
+.ag-toasts {
+  position: fixed;
+  z-index: 50;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-width: var(--ag-app-max-width);
+  margin-inline: auto;
+  padding: var(--ag-space-3) var(--ag-gutter);
+  padding-bottom: calc(max(var(--ag-space-3), env(safe-area-inset-bottom)) + 72px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ag-space-2);
+  pointer-events: none;
+}
+
+.ag-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--ag-space-3);
+  padding: var(--ag-space-3) var(--ag-space-3) var(--ag-space-3) var(--ag-space-4);
+  border-radius: var(--ag-radius-md);
+  background: var(--ag-text);
+  color: var(--ag-bg);
+  font-size: var(--ag-size-sm);
+  font-weight: var(--ag-weight-medium);
+  box-shadow: var(--ag-shadow-md);
+  animation: ag-toast-in var(--ag-motion-normal) var(--ag-motion-ease);
+}
+
+.ag-toast__text { flex: 1; min-width: 0; }
+
+.ag-toast__undo {
+  flex: none;
+  min-height: var(--ag-touch-min);
+  padding: 0 var(--ag-space-3);
+  color: inherit;
+  font-size: var(--ag-size-sm);
+  font-weight: var(--ag-weight-bold);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@keyframes ag-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.ag-toast--leaving {
+  animation: ag-toast-out var(--ag-motion-fast) var(--ag-motion-ease) forwards;
+}
+
+@keyframes ag-toast-out {
+  to { opacity: 0; transform: translateY(8px); }
+}
+
+/* ── 18. Stati vuoti ──────────────────────────────────────────────── */
+
+.ag-empty {
+  padding: var(--ag-space-7) var(--ag-space-5);
+  border-radius: var(--ag-radius-md);
+  background: var(--ag-surface);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ag-space-2);
+  align-items: center;
+}
+
+.ag-empty__icon { color: var(--ag-text-faint); }
+.ag-empty__title { font-size: var(--ag-size-md); font-weight: var(--ag-weight-semibold); }
+.ag-empty__note { font-size: var(--ag-size-sm); color: var(--ag-text-muted); line-height: var(--ag-leading-snug); }
+
+/* ── 19. Utilità ──────────────────────────────────────────────────── */
+
+.ag-hidden { display: none !important; }
+
+.ag-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.ag-spacer { flex: 1; }
