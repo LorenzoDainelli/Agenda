@@ -16,8 +16,8 @@ const check = (l, ok, x="") => { if(!ok) ko++; console.log(`  ${ok?"ok  ":"KO  "
 
 await page.goto("http://localhost:8099/index.html", { waitUntil: "networkidle" });
 await page.evaluate(() => {
-  const subjects = [{id:"s-ingl",name:"Inglese",short:"INGL",color:"sky"},
-                    {id:"s-stor",name:"Storia",short:"STOR",color:"violet"}];
+  const subjects = [{id:"s-ingl",name:"Inglese",short:"INGL",color:"petrolio"},
+                    {id:"s-stor",name:"Storia",short:"STOR",color:"prugna"}];
   localStorage.setItem("agenda:settings", JSON.stringify({version:1,lang:null,theme:null,subjects,areas:[],lessonsPerDay:6,schoolDays:[1,2,3,4,5,6]}));
   const base = o => ({ id:"t-"+Math.random().toString(36).slice(2,8), area:"school", subjectId:null, subjectName:null,
     kind:"homework", title:"x", due:null, weight:1, createdAt:"2026-09-21", doneAt:null, droppedAt:null,

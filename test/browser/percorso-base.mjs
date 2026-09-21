@@ -20,8 +20,8 @@ await page.goto("http://localhost:8099/index.html", { waitUntil: "networkidle" }
 //    tempo di riempire le impostazioni a mano
 await page.evaluate(() => {
   const S = (n, short, color) => ({ id: "s-" + short.toLowerCase(), name: n, short, color });
-  const subjects = [S("Inglese","INGL","sky"), S("Matematica","MATE","amber"),
-                    S("Storia","STOR","violet"), S("Informatica","INFO","green")];
+  const subjects = [S("Inglese","INGL","petrolio"), S("Matematica","MATE","mattone"),
+                    S("Storia","STOR","prugna"), S("Informatica","INFO","muschio")];
   localStorage.setItem("agenda:settings", JSON.stringify({
     version:1, lang:null, theme:null, subjects, areas:[], lessonsPerDay:6, schoolDays:[1,2,3,4,5,6],
   }));
@@ -46,7 +46,7 @@ await page.locator('[data-weight="2"]').click();
 await page.fill("#part-new", "5 frasi da tradurre"); await page.click("#part-add"); await page.waitForTimeout(150);
 await page.fill("#part-new", "2 esercizi sul libro"); await page.click("#part-add"); await page.waitForTimeout(150);
 // scelgo martedì 22 con pressione lunga
-const mar = page.locator('[data-day="2026-09-22"]');
+const mar = page.locator('#window-days [data-day="2026-09-22"]');
 await mar.hover();
 await page.mouse.down(); await page.waitForTimeout(600); await page.mouse.up();
 await page.waitForTimeout(300);
@@ -54,19 +54,20 @@ check("la pressione lunga apre la scelta del momento", await page.locator("#shee
       (await all("#sheet-body .ag-sheet__option")).join("/"));
 await page.locator('#sheet-body .ag-sheet__option:has-text("Sera")').click();
 await page.waitForTimeout(250);
-check("martedì risulta scelto", (await page.locator('[data-day="2026-09-22"]').getAttribute("class")).includes("ag-day--picked"));
-check("e porta il momento", (await txt('[data-day="2026-09-22"] .ag-day__slot')) === "sera", await txt('[data-day="2026-09-22"] .ag-day__slot'));
+check("martedì risulta scelto", (await page.locator('#window-days [data-day="2026-09-22"]').getAttribute("class")).includes("ag-day--picked"));
+check("e porta il momento", (await txt('#window-days [data-day="2026-09-22"] .ag-day__slot')) === "sera", await txt('#window-days [data-day="2026-09-22"] .ag-day__slot'));
 // escludo mercoledì con un tocco
-await page.locator('[data-day="2026-09-23"]').click(); await page.waitForTimeout(200);
-check("mercoledì risulta escluso", (await page.locator('[data-day="2026-09-23"]').getAttribute("class")).includes("ag-day--out"));
+await page.locator('#window-days [data-day="2026-09-23"]').click(); await page.waitForTimeout(200);
+check("mercoledì risulta escluso", (await page.locator('#window-days [data-day="2026-09-23"]').getAttribute("class")).includes("ag-day--out"));
 await page.screenshot({ path: "/tmp/shots/05-finestra.png" });
 await page.click("#task-save"); await page.waitForTimeout(300);
 
 console.log("\n== l'elenco ==");
 check("il compito è nell'elenco", await page.locator("#list .ag-task").count() === 1);
 check("sezione = Domani (lo fa martedì)", (await all(".ag-section__title")).includes("Domani"), (await all(".ag-section__title")).join("/"));
-check("la riga porta materia, scadenza e parti", (await txt("#list .ag-task__meta")).includes("Inglese") && (await txt("#list .ag-task__meta")).includes("0 di 2"),
-      await txt("#list .ag-task__meta"));
+const meta = await txt("#list .ag-task__meta");
+check("la riga porta materia e scadenza", meta.includes("Inglese") && meta.includes("gio 24"), meta);
+check("e dice COSA resta, non quante parti", meta.includes("restano: frasi da tradurre"), meta);
 
 console.log("\n== altri compiti, per vedere le sezioni ==");
 await page.evaluate(() => {
@@ -94,7 +95,9 @@ check("l'avviso della rassegna non c'è più", await page.locator("#review-alert
 
 console.log("\n== sezioni complete ==");
 console.log("   ", (await all(".ag-section__title")).join(" · "));
-console.log("   hero:", await txt("#hero-n"), await txt("#hero-unit"), "—", await txt("#hero-meta"));
+console.log("   prossimi giorni:", (await all("#next-days .ag-nday")).join(" | "));
+check("la striscia mostra sette giorni", await page.locator("#next-days .ag-nday").count() === 7);
+check("l'avviso in cima non c'è (niente di urgente)", await page.locator("#urgent").isHidden());
 await page.screenshot({ path: "/tmp/shots/07-elenco.png" });
 await page.screenshot({ path: "/tmp/shots/07b-elenco-intero.png", fullPage: true });
 
@@ -107,10 +110,14 @@ check("annullando il compito torna", await page.locator("#list .ag-task").count(
 
 console.log("\n== calendario ==");
 await page.click("#open-calendar"); await page.waitForTimeout(350);
-check("la settimana mostra sette giorni", await page.locator(".ag-wday").count() === 7);
-console.log("   pesi dei giorni:", (await all(".ag-wday__load")).join(" / "));
-console.log("   martedì contiene:", (await all('.ag-wday:nth-child(4) .ag-pellet__title')).join(" / ") || "(controllo sotto)");
-check("una verifica si vede come pellet ambra", await page.locator(".ag-pellet--test").count() >= 1);
+check("la griglia ha sette intestazioni di giorno", await page.locator(".ag-wgrid__head").count() === 7);
+check("i momenti della giornata sono righe", (await all(".ag-wgrid__slot")).length >= 3, (await all(".ag-wgrid__slot")).join("/"));
+console.log("   blocchi nella griglia:", (await all(".ag-wblock")).join(" "));
+check("il giorno scelto ha il suo dettaglio sotto", await page.locator(".ag-wday-detail__title").count() === 1,
+      await txt(".ag-wday-detail__title"));
+await page.locator('.ag-wgrid__head[data-pick-day="2026-09-22"]').click(); await page.waitForTimeout(300);
+check("toccando un'intestazione cambia il giorno del dettaglio",
+      (await txt(".ag-wday-detail__title")).includes("22"), await txt(".ag-wday-detail__title"));
 await page.screenshot({ path: "/tmp/shots/08-settimana.png" });
 await page.screenshot({ path: "/tmp/shots/08b-settimana-intera.png", fullPage: true });
 await page.locator('#cal-mode [data-mode="month"]').click(); await page.waitForTimeout(350);
@@ -118,15 +125,20 @@ check("il mese mostra dodici blocchi", await page.locator(".ag-cal__month").coun
 check("un giorno con verifica ha l'anello", await page.locator(".ag-cal__ring").count() >= 1);
 await page.screenshot({ path: "/tmp/shots/09-mese.png" });
 await page.locator('.ag-cal__month:first-child [data-day="2026-09-22"]').click(); await page.waitForTimeout(300);
-check("toccando un giorno si scende alla sua settimana", await page.locator(".ag-wday").count() === 7);
+check("toccando un giorno si scende alla sua settimana", await page.locator(".ag-wgrid__head").count() === 7);
 await page.click('[data-close="calendar-layer"]'); await page.waitForTimeout(200);
 
 console.log("\n== tema scuro ==");
 await page.click("#open-settings"); await page.waitForTimeout(300);
 await page.locator('[data-theme="dark"]').click(); await page.waitForTimeout(300);
 check("l'attributo del tema cambia", await page.getAttribute("html","data-theme") === "dark");
-const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-check("il fondo diventa scuro", bg === "rgb(13, 17, 23)", bg);
+// Non il valore esatto: quello cambia con la palette e il test diventerebbe
+// rosso per una scelta di design invece che per un difetto. Conta che sia scuro.
+const bg = await page.evaluate(() => {
+  const [r,g,b] = getComputedStyle(document.body).backgroundColor.match(/\d+/g).map(Number);
+  return { css: `rgb(${r}, ${g}, ${b})`, chiaro: (r*0.2126 + g*0.7152 + b*0.0722) / 255 };
+});
+check("il fondo diventa scuro", bg.chiaro < 0.2, `${bg.css} — luminosità ${bg.chiaro.toFixed(3)}`);
 await page.screenshot({ path: "/tmp/shots/10-scuro-impostazioni.png" });
 await page.click('[data-close="settings-layer"]'); await page.waitForTimeout(250);
 await page.screenshot({ path: "/tmp/shots/11-scuro-elenco.png" });

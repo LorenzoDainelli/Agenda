@@ -9,19 +9,25 @@
 import { newId } from "./model.js";
 
 /**
- * Gli undici colori disponibili, nell'ordine in cui vengono proposti.
- * L'ordine non è casuale: colori vicini nella tavolozza sono lontani
- * nell'elenco, così le prime materie che si creano prendono colori che non si
- * confondono fra loro.
+ * I dodici colori disponibili, nell'ordine in cui vengono proposti.
+ *
+ * Sono sei tonalità in due intensità (vedi il commento nei token, che spiega
+ * perché sei e non dodici). L'ordine conta: prima tutte e sei le tonalità
+ * piene, alternate in modo da mettere le più lontane vicine nell'elenco, e
+ * solo dopo le versioni chiare. Così le prime sei materie che si creano
+ * prendono sei tonalità diverse, e due materie si assomigliano solo quando ce
+ * ne sono più di sei — che è il momento in cui è inevitabile.
  */
 export const COLORS = [
-  "sky", "amber", "violet", "green", "rose",
-  "teal", "orange", "indigo", "lime", "fuchsia", "slate",
+  "petrolio", "mattone", "oltremare", "oliva", "prugna", "muschio",
+  "petrolio-2", "mattone-2", "oltremare-2", "oliva-2", "prugna-2", "muschio-2",
 ];
 
 /** Le tre variabili che servono a dipingere qualcosa col colore di una materia. */
 export function colorVars(color) {
-  const name = COLORS.includes(color) ? color : "slate";
+  // Un nome sconosciuto (un dato vecchio, un backup di un'altra versione) non
+  // deve dare un colore vuoto: ripiega sulla prima tonalità.
+  const name = COLORS.includes(color) ? color : COLORS[0];
   return {
     "--ag-dot": `var(--ag-subj-${name})`,
     "--ag-chip-soft": `var(--ag-subj-${name}-soft)`,
@@ -84,7 +90,7 @@ export function subjectLabel(subjects, task) {
 
 export function subjectColor(subjects, task) {
   const found = task.subjectId ? findSubject(subjects, task.subjectId) : null;
-  return found?.color ?? "slate";
+  return found?.color ?? COLORS[0];
 }
 
 /** Quanti compiti usano una materia: serve a dirlo nella conferma di eliminazione. */

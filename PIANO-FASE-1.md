@@ -74,16 +74,25 @@ Queste quattro decisioni sono state prese in assenza dell'utente per non
 fermare il lavoro. Sono tutte isolate in modo da poter essere ribaltate senza
 riscrivere l'app.
 
-| # | Assunzione | Come si ribalta |
+| # | Assunzione | Stato |
 |---|---|---|
-| A1 | **Colore d'azione: blu `#0066CC`** (il blu del tema ufficiale delle scuole italiane, plausibile per il sito dell'istituto, che non è stato possibile leggere: il dominio è bloccato dal proxy di rete dell'ambiente di sviluppo). | Si cambiano i token `--ag-primary*` in `design_handoff/tokens/colors.css` e si ricopiano. Nessun file HTML o JS da toccare. |
-| A2 | **Inserimento: pannello unico con chips e parti già dentro.** L'utente ha chiesto "più informazioni possibile in meno tempo possibile". | Le parti si nascondono togliendo una sezione dal pannello in `src/js/compose.js`. |
-| A3 | **Dimensionamento per 9-12 materie.** | Solo conseguenze di layout: la griglia scorre. |
-| A4 | **Elenco raggruppato per giorno, arretrati sempre in cima.** L'utente ha chiesto "tutto da fare per scadenza": il raggruppamento per giorno è un ordine per scadenza con le intestazioni. | Una funzione in `src/js/tasks.js`. |
+| A1 | Colore d'azione: blu `#0066CC`, il blu del tema ufficiale delle scuole italiane, preso come base plausibile perché il sito dell'istituto non era raggiungibile dal proxy di rete dell'ambiente di sviluppo. | **Superata.** L'utente ha chiesto di non copiare la scuola e ha indicato la direzione «sobria e seria»: il colore d'azione è il blu notte `#16405C`, scelto fra otto candidati misurati come quello che si confonde meno con i colori delle materie. |
+| A2 | Inserimento: pannello unico con chips e parti già dentro. | **Confermata** dall'uso: un compito completo si crea in quattro tocchi più il titolo. |
+| A3 | Dimensionamento per 9-12 materie. | **Confermata.** |
+| A4 | Elenco raggruppato per giorno, arretrati sempre in cima. | **Confermata.** |
 
-Rimaste aperte e **non** decise: il voto delle verifiche (non chiesto, non
-costruito), il nome definitivo dell'app (provvisorio: "Agenda"), la forma
-definitiva dell'ambito privato (vedi §6.4).
+### Decise dall'utente il 21 settembre 2026, dopo aver visto l'app
+
+| cosa | decisione |
+|---|---|
+| voti delle verifiche | **non si fanno**: il registro elettronico c'è già, e due posti che dicono lo stesso voto sono uno di troppo |
+| colori delle materie | la prima tavolozza (undici colori saturi) è stata bocciata: «sembra un parco giochi per bambini». Rifatta in sei tonalità × due intensità, tutte al 30% di saturazione (vedi il commento nei token) |
+| blocco in cima | il grande rettangolo colorato col numero è stato sostituito dalla **striscia dei prossimi giorni** col peso di ognuno, più un avviso che compare solo quando c'è un arretrato o una verifica entro domani |
+| righe dei compiti | al posto di «0 di 2», il **nome** di quello che resta da fare |
+| calendario settimana | rifatto da zero con la forma della griglia dell'orario: giorni in colonna, momenti in riga, la settimana intera in una schermata |
+
+Rimaste aperte e **non** decise: il nome definitivo dell'app (provvisorio:
+"Agenda") e la forma definitiva dell'ambito privato (vedi §6.4).
 
 ---
 
@@ -299,17 +308,31 @@ che si aprono sopra e si chiudono con una ✕, come in Shift Hours.
 ### 6.1 Da fare (si apre sempre qui)
 
 Testata: titolo + tre icone (calendario, archivio, impostazioni).
-Blocco riepilogo in cima (hero): **quante cose da fare oggi**, e sotto la riga
-"n in ritardo · n entro domani" quando ce n'è motivo.
+
+Sotto, due cose e in quest'ordine:
+
+1. un **avviso**, che compare *solo* quando c'è un arretrato o una verifica
+   entro domani. Un avviso che c'è sempre non è un avviso;
+2. la **striscia dei prossimi sette giorni**, ognuno col fondo del suo peso e
+   il numero di cose che ci sono. Non è un riepilogo, è uno strumento: serve a
+   rispondere alla domanda «dove lo metto?», che è il problema dell'app — e a
+   quella domanda il numero di cose di oggi non risponde. Toccando un giorno si
+   apre il calendario su quel giorno.
 
 Elenco a sezioni, nell'ordine: **In ritardo**, **Oggi**, **Domani**,
 **Questa settimana**, **Più avanti**, **Senza data**. Dentro ogni sezione:
 prima le verifiche, poi per peso decrescente, poi per titolo.
 
-Ogni riga: pallino del colore della materia, titolo, riga secondaria con
-materia · scadenza · avanzamento delle parti (`1/2`), e il cerchio della spunta
-a destra (44×44). Le verifiche portano il loro colore e un contorno: sono
-l'unica cosa che non si può rimandare.
+Ogni riga: titolo, riga secondaria con materia (col suo pallino) · scadenza ·
+**cosa resta da fare** · peso, e il cerchio della spunta a destra (44×44).
+
+«Cosa resta» e non «quante parti restano»: un compito con due parti di cui una
+fatta non dice `1 di 2` ma `restano: esercizi sul libro`, perché la domanda
+vera è *che cosa mi manca*. Con tre parti o più torna il conto, perché tre nomi
+in fila fanno di una riga un paragrafo.
+
+Le verifiche portano il loro colore e un contorno: sono l'unica cosa che non si
+può rimandare.
 
 Un filtro in testa all'elenco con gli ambiti: **Tutto · Scuola · Privato · …**
 
@@ -323,13 +346,18 @@ In basso, fisso, il pulsante `+`.
 
 Due viste commutabili, **settimana** (di partenza) e **mese**.
 
-- **Settimana**: sei-sette colonne di giorni, una sotto l'altra su iPhone; in
-  ogni giorno le cose scelte per quel giorno, divise per momento (mattina /
-  pomeriggio / sera), più le verifiche di quel giorno in evidenza. Il fondo del
-  giorno è colorato in base al **peso totale** di quel giorno, sui gradini
-  fissi dei token (lo stesso schema della heatmap del calendario di Shift
-  Hours: gradini fissi, non calcolati, così il contrasto del testo sopra è
-  garantito per costruzione).
+- **Settimana**: una **griglia** con la stessa forma di quella dell'orario —
+  sette colonne (i giorni) per tre righe (mattina, pomeriggio, sera), più una
+  quarta riga per quello che scade quel giorno senza essere stato pianificato.
+  Dentro le caselle, blocchetti col colore della materia e la sua sigla.
+  L'intestazione di ogni colonna porta il fondo del **peso** di quel giorno,
+  sui gradini fissi dei token (gradini fissi e non calcolati, così il
+  contrasto del testo sopra è garantito per costruzione).
+  In 42px di colonna ci sta una sigla e non un titolo: per questo sotto la
+  griglia c'è l'elenco per esteso del giorno scelto, e toccando
+  un'intestazione si cambia giorno. La griglia dice DOVE, l'elenco dice COSA.
+  *(La prima versione erano sette card una sotto l'altra: l'utente l'ha
+  bocciata perché per vedere la settimana bisognava scorrere tre schermate.)*
 - **Mese**: i mesi uno sotto l'altro, si scorre. Ogni casella: numero del
   giorno, fondo colorato per peso, e un anello attorno al numero se quel giorno
   c'è una verifica. Toccando un giorno si apre la settimana su quel giorno.

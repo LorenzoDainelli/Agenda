@@ -69,10 +69,12 @@ eq("nome di una parola", S.suggestShort("Matematica"), "MATE");
 eq("nome di due parole", S.suggestShort("Scienze motorie"), "SM");
 eq("nome di tre parole", S.suggestShort("Tecnologie e progettazione sistemi"), "TEP");
 eq("nome vuoto", S.suggestShort("   "), "");
-eq("colori diversi per materie nuove", S.nextColor([{color:"sky"},{color:"amber"}]), "violet");
-eq("il colore è un token, non un esadecimale", S.colorStyle("sky"),
-   "--ag-dot:var(--ag-subj-sky);--ag-chip-soft:var(--ag-subj-sky-soft);--ag-chip-ink:var(--ag-subj-sky-ink)");
-eq("un colore sconosciuto ripiega su slate", S.colorStyle("verdolino").includes("slate"), true);
+eq("colori diversi per materie nuove", S.nextColor([{color:"petrolio"},{color:"mattone"}]), "oltremare");
+eq("il colore è un token, non un esadecimale", S.colorStyle("petrolio"),
+   "--ag-dot:var(--ag-subj-petrolio);--ag-chip-soft:var(--ag-subj-petrolio-soft);--ag-chip-ink:var(--ag-subj-petrolio-ink)");
+eq("un colore sconosciuto ripiega sul primo, non sul nulla", S.colorStyle("verdolino").includes("petrolio"), true);
+eq("dodici colori disponibili", S.COLORS.length, 12);
+eq("le sei tonalità piene vengono prima", S.COLORS.slice(0,6).every(c => !c.endsWith("-2")), true);
 eq("materia eliminata: resta il nome congelato",
    S.subjectLabel([], { subjectId: "s-x", subjectName: "Inglese" }), "Inglese");
 eq("materia esistente: vince il nome attuale",

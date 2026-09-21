@@ -147,7 +147,91 @@ button { cursor: pointer; touch-action: manipulation; }
 .ag-iconbtn--plain { background: none; }
 .ag-iconbtn--on { background: var(--ag-primary-soft); color: var(--ag-primary-ink); }
 
-/* ── 3. Blocco riepilogo ──────────────────────────────────────────── */
+/* ── 3. Prossimi giorni e avviso ──────────────────────────────────────
+ *
+ * Al posto del grande rettangolo colorato col numero dentro. Il rettangolo
+ * occupava un quinto dello schermo per dire una cifra che si conta guardando
+ * l'elenco sotto; questa striscia occupa meno e dice una cosa che l'elenco
+ * non dice: DOVE hai spazio nei prossimi giorni. È quello che serve per
+ * decidere quando fare un compito, che è il problema dell'app.
+ *
+ * Il fondo di ogni giorno è il suo peso, sui sei gradini fissi dei token.
+ */
+
+.ag-next {
+  display: flex;
+  gap: var(--ag-space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-inline: calc(var(--ag-gutter) * -1);
+  padding-inline: var(--ag-gutter);
+}
+
+.ag-next::-webkit-scrollbar { display: none; }
+
+.ag-nday {
+  flex: none;
+  width: 60px;
+  padding: var(--ag-space-2) var(--ag-space-1) var(--ag-space-3);
+  border-radius: var(--ag-radius-sm);
+  background: var(--ag-load, var(--ag-surface));
+  color: var(--ag-load-ink, var(--ag-text));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.ag-nday--today { box-shadow: inset 0 0 0 2px var(--ag-primary); }
+
+.ag-nday__dow {
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--ag-tracking-wide);
+  opacity: 0.85;
+}
+
+.ag-nday__n {
+  font-size: var(--ag-size-lg);
+  font-weight: var(--ag-weight-bold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--ag-tracking-tight);
+  line-height: var(--ag-leading-tight);
+}
+
+/* Quante cose ci sono quel giorno. Uno spazio vuoto invece di uno zero: un
+   giorno libero si riconosce dal fatto che non c'è scritto niente, e una
+   colonna di zeri è rumore. */
+.ag-nday__n2 { font-size: var(--ag-size-2xs); opacity: 0.85; min-height: 1em; }
+
+/* L'anello ambra: quel giorno c'è una verifica. */
+.ag-nday--test .ag-nday__n {
+  box-shadow: inset 0 0 0 2px var(--ag-test);
+  border-radius: var(--ag-radius-pill);
+  padding: 0 var(--ag-space-2);
+}
+
+/* L'avviso in cima: compare SOLO quando c'è qualcosa che non aspetta. Nelle
+   giornate in pari non c'è, e lo spazio va all'elenco. */
+.ag-urgent {
+  display: flex;
+  align-items: center;
+  gap: var(--ag-space-3);
+  padding: var(--ag-space-3) var(--ag-space-4);
+  border-radius: var(--ag-radius-md);
+  background: var(--ag-late-soft);
+  color: var(--ag-late-ink);
+  font-size: var(--ag-size-sm);
+  font-weight: var(--ag-weight-semibold);
+}
+
+.ag-urgent--test { background: var(--ag-test-soft); color: var(--ag-test-ink); }
+.ag-urgent__text { flex: 1; min-width: 0; }
+
+/* ── 3-bis. Blocco riepilogo (non più usato nella schermata principale,
+ *   tenuto perché reference.html lo mostra e perché una fase successiva
+ *   potrebbe riusarlo altrove) ──────────────────────────────────────── */
 
 .ag-hero {
   border-radius: var(--ag-radius-lg);
@@ -857,7 +941,11 @@ button { cursor: pointer; touch-action: manipulation; }
   font-weight: var(--ag-weight-medium);
 }
 
-.ag-input::placeholder { color: var(--ag-text-faint); font-weight: var(--ag-weight-regular); }
+/* Un segnaposto è testo che si legge, quindi `muted` e non `faint`: `faint`
+   sta a 2.67:1 ed è dichiarato solo per le cose che non portano
+   informazione. Lo strumento che misura i contrasti sulla pagina non guarda
+   dentro l'attributo placeholder, quindi questo non l'ha trovato lui. */
+.ag-input::placeholder { color: var(--ag-text-muted); font-weight: var(--ag-weight-regular); }
 .ag-input--title { font-size: var(--ag-size-lg); font-weight: var(--ag-weight-semibold); background: none; padding-inline: var(--ag-space-1); }
 .ag-input--inline { background: var(--ag-bg); }
 
@@ -962,9 +1050,147 @@ button { cursor: pointer; touch-action: manipulation; }
   color: var(--ag-primary-ink);
 }
 
-/* ── 14. Calendario: settimana ────────────────────────────────────── */
+/* ── 14. Calendario: settimana ─────────────────────────────────────────
+ *
+ * Rifatta da zero su richiesta dell'utente, che della prima versione (sette
+ * card una sotto l'altra) ha detto che non lo convinceva e che gli piaceva
+ * molto la griglia dell'orario. Ha ragione: lì la settimana si vede tutta in
+ * un colpo, qui bisognava scorrere per tre schermate.
+ *
+ * Quindi la stessa forma: giorni in colonna, momenti della giornata in riga
+ * (dove l'orario ha le ore), e dentro le caselle i blocchi colorati con la
+ * sigla della materia. Una quarta riga raccoglie quello che scade quel giorno
+ * senza essere stato pianificato.
+ *
+ * L'intestazione di ogni colonna porta il fondo del peso: la riga in cima è
+ * già una mappa di quanto pesa la settimana.
+ *
+ * Su iPhone sette colonne più la colonna delle etichette fanno circa 42px per
+ * giorno: ci sta una sigla di quattro caratteri, non un titolo. Per questo
+ * toccando un giorno si apre sotto l'elenco per esteso di quel giorno —
+ * la griglia dice DOVE, l'elenco sotto dice COSA.
+ */
 
-.ag-week { display: flex; flex-direction: column; gap: var(--ag-space-3); }
+.ag-week { display: flex; flex-direction: column; gap: var(--ag-space-4); }
+
+.ag-wgrid {
+  display: grid;
+  /* 3.1rem è la larghezza della più lunga delle forme brevi ("SCADE") a
+     11px maiuscoletto, misurata. Le sette colonne si dividono il resto. */
+  grid-template-columns: 3.1rem repeat(7, 1fr);
+  gap: 3px;
+}
+
+/* Intestazione di una colonna: giorno, numero, e il fondo del peso. */
+.ag-wgrid__head {
+  border-radius: var(--ag-radius-xs);
+  background: var(--ag-load, var(--ag-surface));
+  color: var(--ag-load-ink, var(--ag-text));
+  padding: var(--ag-space-2) 1px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  min-height: var(--ag-touch-min);
+}
+
+.ag-wgrid__head--today { box-shadow: inset 0 0 0 2px var(--ag-primary); }
+.ag-wgrid__head--on { box-shadow: inset 0 0 0 2px var(--ag-primary-ink); }
+
+.ag-wgrid__dow {
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--ag-tracking-wide);
+  opacity: 0.8;
+}
+
+.ag-wgrid__n {
+  font-size: var(--ag-size-sm);
+  font-weight: var(--ag-weight-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--ag-leading-tight);
+}
+
+/* L'etichetta del momento, nella colonna di sinistra.
+   Era testo verticale, e sembrava la soluzione ovvia per una colonna stretta.
+   Era sbagliata per un motivo che si vede solo provandola: un testo verticale
+   ha un'altezza intrinseca pari alla sua lunghezza, e in una griglia CSS
+   quell'altezza diventa l'altezza della RIGA. "Da pianificare" girato di
+   novanta gradi rendeva la sua riga alta centoventi pixel.
+   Quindi forme brevi in orizzontale, e la colonna larga quanto serve. */
+.ag-wgrid__slot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-semibold);
+  letter-spacing: var(--ag-tracking-wide);
+  color: var(--ag-text-muted);
+  padding-inline-end: var(--ag-space-1);
+  white-space: nowrap;
+}
+
+.ag-wgrid__cell {
+  min-height: 34px;
+  border-radius: var(--ag-radius-xs);
+  background: var(--ag-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px;
+}
+
+.ag-wgrid__cell--empty { background: var(--ag-surface); opacity: 0.55; }
+
+/* Un blocchetto dentro una casella: la sigla della materia sul colore della
+   materia. È lo stesso mattone della griglia dell'orario, ed è di proposito:
+   due griglie che mostrano la stessa settimana devono somigliarsi. */
+.ag-wblock {
+  /* Niente `flex: 1`: un blocco solo si allargherebbe a riempire la casella e
+     due blocchi nella stessa casella si dividerebbero lo spazio, facendo
+     righe di altezza diversa da un giorno all'altro. */
+  min-height: 24px;
+  border-radius: 5px;
+  background: var(--ag-chip-soft, var(--ag-surface-strong));
+  color: var(--ag-chip-ink, var(--ag-text));
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-bold);
+  letter-spacing: var(--ag-tracking-wide);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 1px;
+}
+
+.ag-wblock--test {
+  background: var(--ag-test-soft);
+  color: var(--ag-test-ink);
+  box-shadow: inset 0 0 0 1.5px var(--ag-test);
+}
+
+.ag-wblock--done { opacity: 0.45; text-decoration: line-through; }
+.ag-wblock:active { box-shadow: inset 0 0 0 2px var(--ag-primary); }
+
+/* Il dettaglio del giorno toccato, sotto la griglia. */
+.ag-wday-detail { display: flex; flex-direction: column; gap: var(--ag-space-2); }
+
+.ag-wday-detail__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ag-space-3);
+  padding-inline: var(--ag-space-1);
+}
+
+.ag-wday-detail__title {
+  font-size: var(--ag-size-md);
+  font-weight: var(--ag-weight-semibold);
+  letter-spacing: var(--ag-tracking-tight);
+}
+
+.ag-wday-detail__load { font-size: var(--ag-size-xs); color: var(--ag-text-muted); }
 
 .ag-week__nav {
   display: flex;

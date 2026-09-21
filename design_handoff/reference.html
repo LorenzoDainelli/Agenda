@@ -48,7 +48,7 @@
     larghezza di un iPhone.</p>
 
   <h2>1 · Colori delle materie</h2>
-  <p class="lead">Undici, ognuno con il pieno, il chip e l'inchiostro sul chip.
+  <p class="lead">Dodici: sei tonalità in due intensità, ognuna con il pieno, il chip e l'inchiostro sul chip.
     I rapporti di contrasto sono scritti nei commenti di
     <code>tokens/colors.css</code>, e sono calcolati.</p>
   <div class="swatches" id="subj-swatches"></div>
@@ -64,7 +64,7 @@
       <button class="ag-task__main" type="button">
         <span class="ag-task__title">Esercizi di matematica</span>
         <span class="ag-task__meta">
-          <span class="ag-task__subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-amber)"></span>Matematica</span>
+          <span class="ag-task__subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-mattone)"></span>Matematica</span>
           <span>gio 24</span>
           <span class="ag-weight"><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick"></span></span>
         </span>
@@ -78,7 +78,7 @@
       <button class="ag-task__main" type="button">
         <span class="ag-task__title">Verifica di storia</span>
         <span class="ag-task__meta">
-          <span class="ag-task__subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-violet)"></span>Storia</span>
+          <span class="ag-task__subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-prugna)"></span>Storia</span>
           <span class="ag-task__flag ag-task__flag--test">Verifica</span>
           <span class="ag-task__due--soon">Domani</span>
         </span>
@@ -92,7 +92,7 @@
       <button class="ag-task__main" type="button">
         <span class="ag-task__title">Compiti di inglese</span>
         <span class="ag-task__meta">
-          <span class="ag-task__subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-sky)"></span>Inglese</span>
+          <span class="ag-task__subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-petrolio)"></span>Inglese</span>
           <span class="ag-task__due--late">in ritardo di 3 giorni</span>
           <span>1 di 2</span>
         </span>
@@ -166,8 +166,8 @@
       <button class="ag-filter" type="button" aria-pressed="false">Privato <span class="ag-filter__n">1</span></button>
     </div>
     <div class="ag-chips">
-      <button class="ag-chip ag-chip--subject" type="button" aria-pressed="true" style="--ag-dot:var(--ag-subj-sky);--ag-chip-soft:var(--ag-subj-sky-soft);--ag-chip-ink:var(--ag-subj-sky-ink)"><span class="ag-dot" style="--ag-dot:var(--ag-subj-sky)"></span>Inglese</button>
-      <button class="ag-chip ag-chip--subject" type="button" aria-pressed="false" style="--ag-dot:var(--ag-subj-amber)"><span class="ag-dot" style="--ag-dot:var(--ag-subj-amber)"></span>Matematica</button>
+      <button class="ag-chip ag-chip--subject" type="button" aria-pressed="true" style="--ag-dot:var(--ag-subj-petrolio);--ag-chip-soft:var(--ag-subj-petrolio-soft);--ag-chip-ink:var(--ag-subj-petrolio-ink)"><span class="ag-dot" style="--ag-dot:var(--ag-subj-petrolio)"></span>Inglese</button>
+      <button class="ag-chip ag-chip--subject" type="button" aria-pressed="false" style="--ag-dot:var(--ag-subj-mattone)"><span class="ag-dot" style="--ag-dot:var(--ag-subj-mattone)"></span>Matematica</button>
       <button class="ag-chip ag-chip--ghost" type="button">Altro</button>
     </div>
     <div class="ag-chips">
@@ -226,7 +226,7 @@
       <div class="ag-wday__slots">
         <div class="ag-slot">
           <span class="ag-slot__label">Sera</span>
-          <button class="ag-pellet" type="button"><span class="ag-dot" style="--ag-dot:var(--ag-subj-sky)"></span><span class="ag-pellet__title">Compiti di inglese</span></button>
+          <button class="ag-pellet" type="button"><span class="ag-dot" style="--ag-dot:var(--ag-subj-petrolio)"></span><span class="ag-pellet__title">Compiti di inglese</span></button>
         </div>
       </div>
     </section>
@@ -255,7 +255,8 @@
 /* Tavolozze e griglia generate qui invece che scritte a mano: se un token
    cambia nome, questa pagina se ne accorge (la casella resta vuota) invece di
    continuare a mostrare un colore vecchio incollato nel markup. */
-const SUBJ = ["sky","teal","green","lime","amber","orange","rose","fuchsia","violet","indigo","slate"];
+const SUBJ = ["petrolio","mattone","oltremare","oliva","prugna","muschio",
+              "petrolio-2","mattone-2","oltremare-2","oliva-2","prugna-2","muschio-2"];
 document.getElementById("subj-swatches").innerHTML = SUBJ.map((c) => `
   <div class="sw" style="background:var(--ag-subj-${c}-soft);color:var(--ag-subj-${c}-ink)">
     <span class="ag-dot" style="--ag-dot:var(--ag-subj-${c})"></span> ${c}
@@ -268,9 +269,9 @@ document.getElementById("load-swatches").innerHTML = [0,1,2,3,4,5].map((n) => `
 const cells = [];
 for (let r = 0; r < 6; r += 1) cells.push(`<span class="ag-tt__hour" style="grid-row:${r+2}">${r+1}</span>`);
 const filled = [
-  [1, 0, 2, "INGL", "sky"], [1, 2, 1, "MATE", "amber"],
-  [2, 0, 1, "STOR", "violet"], [3, 0, 1, "ITAL", "green"],
-  [4, 0, 1, "MATE", "amber"], [4, 1, 1, "INGL", "sky"],
+  [1, 0, 2, "INGL", "petrolio"], [1, 2, 1, "MATE", "mattone"],
+  [2, 0, 1, "STOR", "prugna"], [3, 0, 1, "ITAL", "muschio"],
+  [4, 0, 1, "MATE", "mattone"], [4, 1, 1, "INGL", "petrolio"],
 ];
 const busy = new Set();
 for (const [d, from, span, short, color] of filled) {

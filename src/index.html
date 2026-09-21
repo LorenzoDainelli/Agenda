@@ -61,16 +61,19 @@
 
   <div class="ag-app__body">
 
-    <section class="ag-hero">
-      <div class="ag-hero__top">
-        <span class="ag-hero__label" data-i18n="todo.hero.label"></span>
-      </div>
-      <div class="ag-hero__count">
-        <span id="hero-n">0</span>
-        <span class="ag-hero__unit" id="hero-unit"></span>
-      </div>
-      <div class="ag-hero__meta" id="hero-meta"></div>
-    </section>
+    <!-- L'avviso compare SOLO quando c'è qualcosa che non aspetta: un
+         arretrato, o una verifica entro domani. Nelle giornate in pari non
+         c'è, e lo spazio va all'elenco. -->
+    <div class="ag-urgent" id="urgent" hidden>
+      <span class="ag-urgent__text" id="urgent-text"></span>
+    </div>
+
+    <!-- I prossimi giorni col loro peso: dice dove c'è spazio per mettere un
+         compito, che è la cosa che l'elenco sotto non dice. -->
+    <div class="ag-group">
+      <span class="ag-group__label" data-i18n="todo.next"></span>
+      <div class="ag-next" id="next-days"></div>
+    </div>
 
     <!-- I filtri per ambito. Scorrono in orizzontale: gli ambiti possono
          essere più di quanti ne stiano sullo schermo. -->

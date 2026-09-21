@@ -54,6 +54,32 @@ const AUDIT = () => {
   };
 
   const out = [];
+
+  /* I segnaposto dei campi. Vanno guardati a parte, perché il testo di un
+     placeholder non è un nodo di testo: la prima versione di questo strumento
+     non li vedeva, e uno stava a 2.67:1 senza che nessuno se ne accorgesse.
+     Il colore si chiede a `getComputedStyle(el, "::placeholder")`, che lo
+     risolve già — la strada di leggere le regole dal CSSOM sembrava più
+     rigorosa e invece non trovava niente, perché i fogli arrivano via
+     @import. */
+  for (const el of document.querySelectorAll("input[placeholder], textarea[placeholder]")) {
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) continue;
+    const st = getComputedStyle(el);
+    if (st.visibility === "hidden" || st.opacity === "0") continue;
+    const fg = parse(getComputedStyle(el, "::placeholder").color);
+    if (!fg) continue;
+    const bg = bgOf(el, lum(fg.rgb));
+    const colore = fg.a === 1 ? fg.rgb : over(fg.rgb, bg, fg.a);
+    const px = parseFloat(st.fontSize);
+    const soglia = px >= 24 ? 3 : 4.5;
+    const rr = ratio(colore, bg);
+    out.push({ testo: "segnaposto: " + el.placeholder.slice(0, 26),
+               cls: (el.id || el.className) + "::placeholder",
+               px: Math.round(px), rapporto: Math.round(rr*100)/100, soglia,
+               passa: rr >= soglia - 0.005 });
+  }
+
   for (const el of document.querySelectorAll("body *")) {
     // solo elementi con testo proprio e visibili
     const own = [...el.childNodes].filter(n => n.nodeType === 3 && n.textContent.trim()).map(n => n.textContent.trim()).join(" ");
@@ -85,13 +111,13 @@ const scenari = [
   ["pannello compito", async () => { await page.click('[data-close="settings-layer"]'); await page.locator("#list [data-open]").first().click(); await page.waitForTimeout(400); }],
 ];
 
-let totali = 0, falliti = [];
+let totali = 0, placeholderVisti = 0, falliti = [];
 for (const tema of ["light", "dark"]) {
   await page.goto("http://localhost:8099/index.html", { waitUntil: "networkidle" });
   await page.evaluate((tema) => {
-    const subjects = ["sky","teal","green","lime","amber","orange","rose","fuchsia","violet","indigo","slate"]
+    const subjects = ["petrolio","oltremare","muschio","oliva-2","mattone","mattone-2","oliva","prugna-2","prugna","oltremare-2","petrolio-2"]
       .map((c,i) => ({ id:"s-"+c, name:"Materia "+c, short:c.slice(0,4).toUpperCase(), color:c }));
-    localStorage.setItem("agenda:settings", JSON.stringify({version:1,lang:"it",theme:tema,subjects,areas:[{id:"a-1",name:"Palestra",color:"lime"}],lessonsPerDay:6,schoolDays:[1,2,3,4,5,6]}));
+    localStorage.setItem("agenda:settings", JSON.stringify({version:1,lang:"it",theme:tema,subjects,areas:[{id:"a-1",name:"Palestra",color:"oliva-2"}],lessonsPerDay:6,schoolDays:[1,2,3,4,5,6]}));
     const base = o => ({ id:"t-"+Math.random().toString(36).slice(2,8), area:"school", subjectId:null, subjectName:null,
       kind:"homework", title:"x", due:null, weight:1, createdAt:"2026-09-21", doneAt:null, droppedAt:null,
       plan:{skip:[],pick:{}}, parts:[], ...o });
@@ -116,14 +142,17 @@ for (const tema of ["light", "dark"]) {
   for (const [nome, azione] of scenari) {
     await azione();
     const res = await page.evaluate(AUDIT);
+    const nPh = res.filter((r) => r.cls.includes("::placeholder")).length;
     totali += res.length;
+    if (nPh) placeholderVisti += nPh;
     const ko = res.filter(r => !r.passa);
     console.log(`${tema.padEnd(5)} · ${nome.padEnd(22)} ${res.length.toString().padStart(3)} elementi, ${ko.length ? ko.length + " SOTTO SOGLIA" : "tutti a norma"}`);
     for (const r of ko) falliti.push({ tema, scenario: nome, ...r });
   }
 }
 
-console.log(`\n${totali} elementi di testo esaminati nei due temi.`);
+console.log(`\n${totali} elementi di testo esaminati nei due temi, di cui ${placeholderVisti} segnaposto.`);
+if (placeholderVisti === 0) console.log("ATTENZIONE: nessun segnaposto esaminato — il controllo non sta guardando niente.");
 if (falliti.length === 0) {
   console.log("Nessun testo sotto la soglia WCAG AA che gli spetta.");
 } else {

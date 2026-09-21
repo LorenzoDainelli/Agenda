@@ -13,7 +13,7 @@
  */
 
 import {
-  today as todayISO, full, dayMonth, dowShort, dayNumber, monthYear, diffDays,
+  today as todayISO, addDays, full, dayMonth, dowShort, dayNumber, monthYear, diffDays,
 } from "./days.js";
 import { t, setLang, deviceLang, getLang, apply as applyI18n } from "./i18n.js";
 import {
@@ -21,10 +21,12 @@ import {
   loadReview, saveReview,
 } from "./storage.js";
 import {
-  markDone, markOpen, isLate, isDone, isDropped, progress, AREA_PRIVATE,
+  markDone, markOpen, isLate, isDone, isDropped, isOpen, isPartDone, progress,
+  dayLoad, loadStep, AREA_PRIVATE,
 } from "./model.js";
 import {
   sections, summary, countsByArea, replaceTask, removeTask, findTask, archive,
+  byArea, onDay,
 } from "./tasks.js";
 import { subjectLabel, subjectColor, colorStyle } from "./subjects.js";
 import {
@@ -108,16 +110,67 @@ function renderHeader() {
   el("today-title").textContent = full(day, getLang());
 }
 
-function renderHero() {
-  const s = summary(state.tasks, { today: day, area });
-  el("hero-n").textContent = String(s.forToday);
-  el("hero-unit").textContent = s.forToday === 1 ? t("todo.hero.thing") : t("todo.hero.things");
+/* Quanti giorni mostra la striscia: oggi più i sei successivi. Una settimana
+   è l'orizzonte in cui si decide quando fare un compito — oltre, la risposta
+   non è "quel giorno" ma "guardo il calendario". */
+const NEXT_DAYS = 7;
 
-  const bits = [];
-  if (s.late) bits.push(`<span class="ag-hero__late">${esc(t("todo.hero.late", { n: s.late }))}</span>`);
-  if (s.dueTomorrow) bits.push(esc(t("todo.hero.tomorrow", { n: s.dueTomorrow })));
-  if (!bits.length) bits.push(esc(s.forToday ? t("todo.hero.allclear") : t("todo.hero.nothing")));
-  el("hero-meta").innerHTML = bits.join(" · ");
+/**
+ * L'avviso in cima. Compare solo per le due cose che non aspettano: qualcosa
+ * in ritardo, o una verifica entro domani. Tutto il resto lo dice l'elenco,
+ * e un avviso che c'è sempre non è un avviso.
+ */
+function renderUrgent() {
+  const box = el("urgent");
+  const s = summary(state.tasks, { today: day, area });
+  const tomorrow = addDays(day, 1);
+  const test = state.tasks.find((task) => isOpen(task) && task.kind === "test"
+    && (task.due === day || task.due === tomorrow));
+  const when = test ? (test.due === day ? t("urgent.test.today") : t("urgent.test.tomorrow")) : null;
+
+  if (!s.late && !test) { box.hidden = true; return; }
+  box.hidden = false;
+  box.classList.toggle("ag-urgent--test", !s.late);
+  el("urgent-text").textContent = s.late && test
+    ? t("urgent.both", { n: s.late, when: test.due === day ? t("common.today").toLowerCase() : t("common.tomorrow").toLowerCase() })
+    : s.late ? t("urgent.late", { n: s.late }) : when;
+}
+
+/**
+ * La striscia dei prossimi giorni, col peso di ognuno.
+ *
+ * Non è un riepilogo: è uno strumento. Serve a rispondere alla domanda
+ * "dove lo metto?", che è il problema dell'app — e a quella domanda il
+ * numero di cose di oggi non risponde.
+ */
+function renderNext() {
+  const lang = getLang();
+  const days = Array.from({ length: NEXT_DAYS }, (_, i) => addDays(day, i));
+  const filtered = byArea(state.tasks, area);
+
+  el("next-days").innerHTML = days.map((d) => {
+    const load = dayLoad(filtered, d);
+    const step = loadStep(load);
+    const n = onDay(filtered, d).filter(isOpen).length;
+    const hasTest = filtered.some((task) => isOpen(task) && task.kind === "test" && task.due === d);
+    return `
+      <button class="ag-nday ${d === day ? "ag-nday--today" : ""} ${hasTest ? "ag-nday--test" : ""}"
+              type="button" data-next-day="${d}"
+              style="--ag-load:var(--ag-load-${step});--ag-load-ink:var(--ag-load-ink-${step})"
+              aria-label="${esc(full(d, lang))}">
+        <span class="ag-nday__dow">${esc(d === day ? t("common.today") : dowShort(d, lang))}</span>
+        <span class="ag-nday__n">${dayNumber(d)}</span>
+        <span class="ag-nday__n2">${n || ""}</span>
+      </button>`;
+  }).join("");
+
+  // `data-next-day` e non `data-day`: `data-day` è già usato dalla fila dei
+  // giorni del pianificatore e dalle caselle del mese. Tre componenti con lo
+  // stesso attributo funzionano finché ognuno cerca dentro il proprio
+  // contenitore, ma è un incidente che aspetta di capitare.
+  onEach(el("next-days"), "[data-next-day]", "click", (event) => {
+    openCalendar(event.currentTarget.dataset.nextDay);
+  });
 }
 
 function renderFilters() {
@@ -156,6 +209,23 @@ function dueLabel(task) {
   return { text: dayMonth(task.due, getLang()), className: "" };
 }
 
+/**
+ * Cosa resta da fare di un compito con parti.
+ *
+ * Al massimo due nomi: con tre o più la riga diventa un paragrafo, e allora
+ * il conto è più utile del dettaglio. Una parte lasciata a metà porta anche
+ * il suo numero, perché "3 di 5 frasi" e "0 di 5 frasi" sono due situazioni
+ * molto diverse.
+ */
+function remainingLabel(task) {
+  const parts = (task.parts || []).filter((part) => !isPartDone(part));
+  if (parts.length === 0) return null;
+  if (parts.length > 2) return t("task.progress", progress(task));
+  const nomi = parts.map((part) =>
+    part.total > 1 && part.done > 0 ? `${part.title} ${part.done}/${part.total}` : part.title);
+  return t("task.remaining", { what: nomi.join(", ") });
+}
+
 function taskRow(task) {
   const subject = subjectLabel(state.settings.subjects, task);
   const color = subjectColor(state.settings.subjects, task);
@@ -174,7 +244,10 @@ function taskRow(task) {
   if (subject) meta.push(`<span class="ag-task__subject">${dot(colorStyle(color))}${esc(subject)}</span>`);
   if (task.kind === "test") meta.push(`<span class="ag-task__flag ag-task__flag--test">${esc(t("kind.test"))}</span>`);
   if (due) meta.push(`<span class="${due.className}">${esc(due.text)}</span>`);
-  if (p.hasParts) meta.push(`<span>${esc(t("task.progress", p))}</span>`);
+  // Non "0 di 2" ma il nome di quello che manca: la domanda vera non è
+  // quante parti restano, è QUALI.
+  const resta = remainingLabel(task);
+  if (resta) meta.push(`<span>${esc(resta)}</span>`);
   if (unplanned && !isLate(task, day)) {
     meta.push(`<span class="ag-task__flag ag-task__flag--plan">${esc(t("task.plan.needed"))}</span>`);
   }
@@ -231,7 +304,8 @@ function renderReviewAlert() {
 
 function renderAll() {
   renderHeader();
-  renderHero();
+  renderUrgent();
+  renderNext();
   renderFilters();
   renderReviewAlert();
   renderList();
@@ -334,11 +408,9 @@ function renderArchive() {
 
 /* ── Livelli ──────────────────────────────────────────────────────── */
 
-function openCalendar() {
+function openCalendar(onDayISO = null) {
   openLayer("calendar-layer");
-  calendar.open(ctx(), {
-    onOpenTask: (id) => openTask(id),
-  });
+  calendar.open(ctx(), { onOpenTask: (id) => openTask(id) }, onDayISO);
 }
 
 function openArchive() {
@@ -369,7 +441,9 @@ function openReview() {
 /* ── Avvio ────────────────────────────────────────────────────────── */
 
 function bindChrome() {
-  el("open-calendar").addEventListener("click", openCalendar);
+  // La funzione avvolta, non passata: `addEventListener` passerebbe l'oggetto
+  // evento come primo argomento, e openCalendar lo prenderebbe per un giorno.
+  el("open-calendar").addEventListener("click", () => openCalendar());
   el("open-archive").addEventListener("click", openArchive);
   el("open-settings").addEventListener("click", openSettings);
   el("review-open").addEventListener("click", openReview);
