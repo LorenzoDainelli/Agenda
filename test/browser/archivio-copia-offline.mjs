@@ -5,6 +5,12 @@ const ctx = await browser.newContext({
   ...devices["iPhone 15"], hasTouch: true, isMobile: true,
   locale: "it-IT", timezoneId: "Europe/Rome", acceptDownloads: true,
 });
+// Le prove sono scritte per lunedì 21 settembre 2026, alle dieci: l'orologio
+// del browser si ferma lì. Senza, dal giorno dopo le date dei dati finti
+// scivolano nel passato, parte la rassegna degli arretrati e la prova fallisce
+// per colpa del calendario, non dell'app. Si ferma solo la data: i timer
+// (i toast, le animazioni) continuano a scorrere.
+await ctx.clock.setFixedTime(new Date("2026-09-21T10:00:00+02:00"));
 const page = await ctx.newPage();
 const errors = [];
 page.on("console", m => { if (m.type() === "error") errors.push("console: " + m.text()); });
@@ -24,7 +30,9 @@ await page.evaluate(() => {
     plan:{skip:[],pick:{}}, parts:[], ...o });
   localStorage.setItem("agenda:tasks", JSON.stringify([
     base({title:"Da fare adesso", subjectId:"s-ingl", subjectName:"Inglese", due:"2026-09-24"}),
-    base({title:"Già fatto", subjectId:"s-stor", subjectName:"Storia", due:"2026-09-22", doneAt:"2026-09-21"}),
+    // fatto IERI: una cosa fatta oggi resta nell'elenco fino a mezzanotte e
+    // nell'archivio non c'è ancora (§6.3)
+    base({title:"Già fatto", subjectId:"s-stor", subjectName:"Storia", due:"2026-09-22", doneAt:"2026-09-20"}),
     base({title:"Lasciato cadere", due:"2026-09-22", droppedAt:"2026-09-21"}),
     base({title:"Fatto in agosto", due:"2026-08-20", doneAt:"2026-08-21"}),
   ]));
@@ -45,10 +53,11 @@ check("tre cose chiuse in archivio", await page.locator("#archive-body .ag-task"
 check("il lasciato cadere è marcato", (await all("#archive-body .ag-task__flag")).some(t=>/cadere/i.test(t)), (await all("#archive-body .ag-task__flag")).join("/"));
 check("l'aperto NON è in archivio", !(await all("#archive-body .ag-task__title")).includes("Da fare adesso"));
 await page.screenshot({ path: "/tmp/shots/13-archivio.png" });
+const rimesso = await txt("#archive-body .ag-task__title");
 await page.locator("#archive-body [data-restore]").first().click(); await page.waitForTimeout(350);
 check("rimettere da fare lo toglie dall'archivio", await page.locator("#archive-body .ag-task").count() === 2, String(await page.locator("#archive-body .ag-task").count()));
 await page.click('[data-close="archive-layer"]'); await page.waitForTimeout(250);
-check("ed è tornato nell'elenco", (await all("#list .ag-task__title")).includes("Già fatto"), (await all("#list .ag-task__title")).join("/"));
+check("ed è tornato nell'elenco", (await all("#list .ag-task__title")).includes(rimesso), `${rimesso} in ${(await all("#list .ag-task__title")).join("/")}`);
 
 console.log("\n== copia di sicurezza: giro completo ==");
 await page.click("#open-settings"); await page.waitForTimeout(300);

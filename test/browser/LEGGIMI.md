@@ -15,9 +15,9 @@ node test/browser/percorso-base.mjs
 
 | file | cosa verifica |
 |---|---|
-| `percorso-base.mjs` | materie, orario, creazione di un compito, i tre gesti sulla fila dei giorni, spunta con annulla, calendario, temi, lingue |
+| `percorso-base.mjs` | materie, orario, creazione di un compito, i tre gesti sulla fila dei giorni, le parti spuntate dall'elenco nei due modi dell'impostazione, spunta con annulla, le cose fatte che restano fino a mezzanotte (anche con l'app aperta davanti), calendario, temi, lingue |
 | `archivio-copia-offline.mjs` | archivio, giro completo della copia di sicurezza (compreso «il ripristino non cancella quello che è più recente del file»), file non valido, avvio in aereo |
-| `contrasti.mjs` | risale il fondo effettivo di ogni testo renderizzato nei due temi e lo confronta con la soglia WCAG che gli spetta — gradienti compresi |
+| `contrasti.mjs` | risale il fondo effettivo di ogni testo renderizzato nei due temi e lo confronta con la soglia WCAG che gli spetta — gradienti e opacità compresi |
 | `riferimento.mjs` | `design_handoff/reference.html` si apre senza errori nei due temi |
 
 `contrasti.mjs` è quello che conta di più: i numeri nei commenti dei token si
@@ -26,3 +26,7 @@ misurato sull'estremo scuro del gradiente invece che su quello chiaro). Questo
 misura quello che si vede davvero.
 
 I percorsi dentro questi file puntano a `http://localhost:8099`.
+
+L'orologio del browser è fermo a **lunedì 21 settembre 2026, alle dieci**
+(`ctx.clock.setFixedTime`): i dati finti hanno date scritte per quel giorno, e
+senza fermarlo le prove fallirebbero dal giorno dopo per colpa del calendario.

@@ -5,6 +5,12 @@ const ctx = await browser.newContext({
   ...devices["iPhone 15"], hasTouch: true, isMobile: true,
   locale: "it-IT", timezoneId: "Europe/Rome",
 });
+// Le prove sono scritte per lunedì 21 settembre 2026, alle dieci: l'orologio
+// del browser si ferma lì. Senza, dal giorno dopo le date dei dati finti
+// scivolano nel passato, parte la rassegna degli arretrati e la prova fallisce
+// per colpa del calendario, non dell'app. Si ferma solo la data: i timer
+// (i toast, le animazioni) continuano a scorrere.
+await ctx.clock.setFixedTime(new Date("2026-09-21T10:00:00+02:00"));
 const page = await ctx.newPage();
 const errors = [];
 page.on("console", (m) => { if (m.type() === "error") errors.push("console: " + m.text()); });
@@ -67,7 +73,54 @@ check("il compito è nell'elenco", await page.locator("#list .ag-task").count() 
 check("sezione = Domani (lo fa martedì)", (await all(".ag-section__title")).includes("Domani"), (await all(".ag-section__title")).join("/"));
 const meta = await txt("#list .ag-task__meta");
 check("la riga porta materia e scadenza", meta.includes("Inglese") && meta.includes("gio 24"), meta);
-check("e dice COSA resta, non quante parti", meta.includes("restano: frasi da tradurre"), meta);
+check("le parti stanno sotto la riga", await page.locator("#list .ag-subpart").count() === 2);
+check("la parte con un numero porta il conto nel cerchio", (await txt("#list .ag-check__count")) === "0/5", await txt("#list .ag-check__count"));
+check("e la riga non le ripete accanto al titolo", !meta.includes("restano"), meta);
+
+console.log("\n== spuntare le parti senza aprire il compito ==");
+const parte = (i) => page.locator("#list .ag-subpart").nth(i);
+const cerchio = (i) => parte(i).locator("[data-part]");
+const riga = page.locator("#list .ag-task").first();
+await cerchio(0).click(); await page.waitForTimeout(150);
+check("+1 a ogni tocco, di partenza", (await parte(0).locator(".ag-check__count").textContent()) === "1/5");
+check("e nessun toast per un tocco normale", await page.locator(".ag-toast").count() === 0);
+for (let i = 0; i < 4; i++) { await cerchio(0).click(); await page.waitForTimeout(80); }
+check("al quinto tocco la parte è fatta", (await cerchio(0).getAttribute("aria-pressed")) === "true");
+check("e resta sotto, barrata", (await parte(0).getAttribute("class")).includes("ag-subpart--done"));
+check("il compito non è ancora fatto", !(await riga.getAttribute("class")).includes("ag-task--done"));
+await cerchio(1).click(); await page.waitForTimeout(80);
+await cerchio(1).click(); await page.waitForTimeout(250);
+check("spuntata l'ultima parte, il compito si spunta da sé", (await riga.getAttribute("class")).includes("ag-task--done"));
+check("e lo dice il toast", (await all(".ag-toast__text")).some((x) => x.includes("Fatte tutte le parti")), (await all(".ag-toast__text")).join("/"));
+check("la riga resta nell'elenco", await page.locator("#list .ag-task").count() === 1);
+check("il numerino della sezione dice che non resta niente", (await txt(".ag-section__n")) === "0", await txt(".ag-section__n"));
+await page.waitForTimeout(5400); // i toast se ne vanno
+await cerchio(1).click(); await page.waitForTimeout(250);
+check("togliendo una parte il compito torna da fare", !(await riga.getAttribute("class")).includes("ag-task--done"));
+check("la parte con un numero torna a zero", (await parte(1).locator(".ag-check__count").textContent()) === "0/2");
+
+console.log("\n== togliere la spunta ridà le parti com'erano ==");
+await riga.locator("[data-check]").click(); await page.waitForTimeout(200);
+check("spuntando il compito tutte le parti si spuntano", await page.locator("#list .ag-subpart--done").count() === 2);
+await riga.locator("[data-check]").click(); await page.waitForTimeout(200);
+check("togliendo la spunta tornano com'erano: una fatta e una no",
+      await page.locator("#list .ag-subpart--done").count() === 1 && (await txt("#list .ag-check__count")) === "0/2");
+await page.waitForTimeout(5400);
+
+console.log("\n== l'impostazione: un tocco la fa tutta ==");
+await page.click("#open-settings"); await page.waitForTimeout(250);
+await page.locator('[data-parttap="all"]').click(); await page.waitForTimeout(250);
+check("l'impostazione risulta scelta", (await page.locator('[data-parttap="all"]').getAttribute("aria-pressed")) === "true");
+await page.click('[data-close="settings-layer"]'); await page.waitForTimeout(200);
+await cerchio(1).click(); await page.waitForTimeout(250);
+check("un tocco riempie la parte da 2", (await cerchio(1).getAttribute("aria-pressed")) === "true");
+check("e il compito è fatto", (await riga.getAttribute("class")).includes("ag-task--done"));
+await page.waitForTimeout(5400);
+await riga.locator("[data-check]").click(); await page.waitForTimeout(200);
+await page.waitForTimeout(5400);
+await page.click("#open-settings"); await page.waitForTimeout(250);
+await page.locator('[data-parttap="step"]').click(); await page.waitForTimeout(200);
+await page.click('[data-close="settings-layer"]'); await page.waitForTimeout(200);
 
 console.log("\n== altri compiti, per vedere le sezioni ==");
 await page.evaluate(() => {
@@ -105,8 +158,10 @@ console.log("\n== spuntare, con annulla ==");
 const prima = await page.locator("#list .ag-task").count();
 await page.locator("#list [data-check]").first().click(); await page.waitForTimeout(250);
 check("compare il toast con l'annulla", await page.locator(".ag-toast__undo").count() === 1);
+check("la riga resta al suo posto, barrata", await page.locator("#list .ag-task").count() === prima
+      && (await page.locator("#list .ag-task").first().getAttribute("class")).includes("ag-task--done"));
 await page.locator(".ag-toast__undo").click(); await page.waitForTimeout(300);
-check("annullando il compito torna", await page.locator("#list .ag-task").count() === prima, `${prima} → ${await page.locator("#list .ag-task").count()}`);
+check("annullando torna da fare", !(await page.locator("#list .ag-task").first().getAttribute("class")).includes("ag-task--done"));
 
 console.log("\n== calendario ==");
 await page.click("#open-calendar"); await page.waitForTimeout(350);
@@ -153,6 +208,38 @@ check("l'interfaccia passa all'inglese", (await txt('[data-i18n="settings.title"
 await page.locator('#lang-seg [data-lang="it"]').click(); await page.waitForTimeout(250);
 await page.locator('[data-theme=""]').click(); await page.waitForTimeout(250);
 await page.click('[data-close="settings-layer"]');
+
+console.log("\n== a mezzanotte le cose fatte vanno nell'archivio ==");
+await page.locator("#list [data-check]").first().click(); await page.waitForTimeout(250);
+const fattoTitolo = await txt("#list .ag-task--done .ag-task__title");
+await page.click("#open-archive"); await page.waitForTimeout(250);
+check("fatto oggi: non ancora nell'archivio", !(await all("#archive-body .ag-task__title")).includes(fattoTitolo), fattoTitolo);
+await page.click('[data-close="archive-layer"]'); await page.waitForTimeout(200);
+await ctx.clock.setFixedTime(new Date("2026-09-22T00:00:05+02:00"));
+await page.evaluate(() => window.dispatchEvent(new Event("focus"))); await page.waitForTimeout(300);
+check("passata la mezzanotte non è più nell'elenco", !(await all("#list .ag-task__title")).includes(fattoTitolo));
+await page.click("#open-archive"); await page.waitForTimeout(250);
+check("ed è nell'archivio", (await all("#archive-body .ag-task__title")).includes(fattoTitolo));
+await page.click('[data-close="archive-layer"]'); await page.waitForTimeout(200);
+
+console.log("\n== anche con l'app aperta davanti, senza toccarla ==");
+// Un contesto a parte con l'orologio finto intero (anche i timer): si parte
+// alle 23:59:50 con una cosa fatta oggi e si lascia scorrere il tempo.
+const ctx2 = await browser.newContext({ ...devices["iPhone 15"], locale: "it-IT", timezoneId: "Europe/Rome" });
+await ctx2.clock.install({ time: new Date("2026-09-21T23:59:50+02:00") });
+const p2 = await ctx2.newPage();
+p2.on("pageerror", (e) => errors.push("pageerror (mezzanotte): " + e.message));
+await p2.goto("http://localhost:8099/index.html");
+await p2.evaluate(() => {
+  localStorage.setItem("agenda:tasks", JSON.stringify([{ id:"t-notte", area:"private", subjectId:null, subjectName:null,
+    kind:"todo", title:"Fatto a tarda sera", due:null, weight:1, createdAt:"2026-09-21", doneAt:"2026-09-21",
+    droppedAt:null, plan:{skip:[],pick:{}}, parts:[] }]));
+});
+await p2.reload(); await p2.clock.runFor(500);
+check("alle 23:59:50 la cosa fatta è ancora lì", await p2.locator("#list .ag-task--done").count() === 1);
+await p2.clock.runFor(20000);
+check("a mezzanotte se ne va da sola", await p2.locator("#list .ag-task").count() === 0);
+await ctx2.close();
 
 console.log("\n== errori raccolti ==");
 console.log(errors.length ? errors.join("\n") : "nessuno");

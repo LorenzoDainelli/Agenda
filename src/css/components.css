@@ -263,10 +263,11 @@ button { cursor: pointer; touch-action: manipulation; }
   color: var(--ag-primary-ink);
 }
 
+/* Niente opacità: al 75% il numero stava a 3.2:1 nel tema chiaro (misurato
+   quando audit.mjs ha cominciato a contarla). Lo distingue la dimensione. */
 .ag-filter__n {
   font-size: var(--ag-size-2xs);
   font-variant-numeric: tabular-nums;
-  opacity: 0.75;
 }
 
 /* ── 5. Sezioni ed elenco ─────────────────────────────────────────── */
@@ -308,6 +309,9 @@ button { cursor: pointer; touch-action: manipulation; }
 .ag-task {
   position: relative;
   display: flex;
+  /* va a capo solo quando ha delle parti: l'elenco delle parti (.ag-subparts)
+     prende tutta la larghezza e scende sotto titolo e cerchio */
+  flex-wrap: wrap;
   align-items: stretch;
   gap: var(--ag-space-3);
   min-height: var(--ag-row-min);
@@ -335,9 +339,15 @@ button { cursor: pointer; touch-action: manipulation; }
   box-shadow: inset 3px 0 0 var(--ag-late);
 }
 
-/* Barrato: resta visibile un momento dopo la spunta, con l'annulla nel toast. */
-.ag-task--done { opacity: 0.55; }
-.ag-task--done .ag-task__title { text-decoration: line-through; }
+/* Fatto: resta al suo posto fino a mezzanotte (§6.1), e nell'archivio.
+   Si attenua coi colori e non con l'opacità: un testo al 55% non ha un
+   contrasto che si possa scrivere qui accanto, e una cosa fatta si deve
+   ancora poter leggere — resta lì proprio per essere ritrovata.
+   Titolo in muted e barrato: 5.31:1 su --ag-surface nel chiaro, 7.34:1 nello
+   scuro. Una verifica fatta perde l'ambra e la sua barra: il colore dice
+   "questa non si può rimandare", e non è più vero. */
+.ag-task--done .ag-task__title { color: var(--ag-text-muted); text-decoration: line-through; }
+.ag-task--done.ag-task--test { background: var(--ag-surface); box-shadow: none; }
 
 .ag-task__main {
   flex: 1;
@@ -472,23 +482,68 @@ button { cursor: pointer; touch-action: manipulation; }
 .ag-check svg { position: relative; z-index: 1; }
 .ag-check[aria-pressed="false"] svg { display: none; }
 
-/* ── 7. Parti e avanzamento ───────────────────────────────────────── */
+/* Una parte con un numero porta il conto al posto del cerchio vuoto (§6.1):
+   una pillola che parte tonda come il cerchio e si allunga quanto serve, così
+   anche "12/15" ci sta senza rimpicciolire le cifre. Il conto è testo e usa
+   muted — 5.31:1 su --ag-surface e 5.18:1 su --ag-test-soft nel chiaro, 7.34:1
+   e 6.83:1 nello scuro, 4.79:1 e 6.39:1 su --ag-surface-strong quando è
+   premuto. Il bordo resta faint come quello del cerchio: non è testo. */
+.ag-check--count { width: auto; min-width: var(--ag-touch-min); }
+.ag-check--count::before { content: none; }
 
-/* La barra dell'avanzamento sotto il titolo, quando un compito ha parti.
-   Sottile: dice "sei a metà" senza rubare la scena al titolo. */
-.ag-progress {
-  height: 4px;
+.ag-check__count {
+  min-width: var(--ag-check-size);
+  height: var(--ag-check-size);
+  padding: 0 var(--ag-space-2);
   border-radius: var(--ag-radius-pill);
-  background: var(--ag-surface-strong);
-  overflow: hidden;
+  box-shadow: inset 0 0 0 2px var(--ag-text-faint);
+  color: var(--ag-text-muted);
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-bold);
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.ag-progress__fill {
-  height: 100%;
-  border-radius: inherit;
-  background: var(--ag-primary);
-  transition: width var(--ag-motion-normal) var(--ag-motion-ease);
+.ag-check--count:active .ag-check__count { background: var(--ag-surface-strong); }
+
+/* Le parti sotto la riga del compito (§6.1). Stanno dentro la stessa card,
+   perché sono pezzi di quel compito e non righe a sé; i loro cerchi cadono in
+   colonna sotto quello del compito. Il nome è un pulsante che apre il
+   compito, come il titolo: una riga dove risponde solo il cerchio sembra
+   rotta a chi tocca il nome. */
+.ag-subparts {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--ag-hairline);
 }
+
+.ag-subpart { display: flex; align-items: center; gap: var(--ag-space-3); }
+
+.ag-subpart__title {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--ag-touch-min);
+  display: flex;
+  align-items: center;
+  text-align: left;
+  font-size: var(--ag-size-sm);
+  font-weight: var(--ag-weight-medium);
+  line-height: var(--ag-leading-snug);
+  color: var(--ag-text);
+}
+
+/* Fatta: come il compito fatto, coi colori e non con l'opacità. Muted:
+   5.31:1 su --ag-surface e 5.18:1 su --ag-test-soft nel chiaro, 7.34:1 e
+   6.83:1 nello scuro. */
+.ag-subpart--done .ag-subpart__title { color: var(--ag-text-muted); text-decoration: line-through; }
+
+/* ── 7. Parti e avanzamento ───────────────────────────────────────── */
 
 .ag-parts { display: flex; flex-direction: column; gap: var(--ag-space-2); }
 
@@ -502,8 +557,8 @@ button { cursor: pointer; touch-action: manipulation; }
   background: var(--ag-surface);
 }
 
-.ag-part--done { opacity: 0.6; }
-.ag-part--done .ag-part__title { text-decoration: line-through; }
+/* Fatta: muted e barrata, non trasparente (vedi .ag-task--done). */
+.ag-part--done .ag-part__title { color: var(--ag-text-muted); text-decoration: line-through; }
 
 .ag-part__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 
@@ -1040,12 +1095,13 @@ button { cursor: pointer; touch-action: manipulation; }
 .ag-wgrid__head--today { box-shadow: inset 0 0 0 2px var(--ag-primary); }
 .ag-wgrid__head--on { box-shadow: inset 0 0 0 2px var(--ag-primary-ink); }
 
+/* Niente opacità: all'80% sui gradini del peso la sigla scendeva a 4.23:1.
+   Senza, vale l'inchiostro del gradino, già misurato sopra 4.5:1 nei token. */
 .ag-wgrid__dow {
   font-size: var(--ag-size-2xs);
   font-weight: var(--ag-weight-semibold);
   text-transform: uppercase;
   letter-spacing: var(--ag-tracking-wide);
-  opacity: 0.8;
 }
 
 .ag-wgrid__n {
@@ -1113,7 +1169,15 @@ button { cursor: pointer; touch-action: manipulation; }
   box-shadow: inset 0 0 0 1.5px var(--ag-test);
 }
 
-.ag-wblock--done { opacity: 0.45; text-decoration: line-through; }
+/* Fatto: grigio e barrato, non trasparente. Il colore della materia se ne va
+   con la spunta, e la sigla resta leggibile: muted su --ag-surface-strong,
+   4.79:1 nel chiaro e 6.39:1 nello scuro. */
+.ag-wblock--done {
+  background: var(--ag-surface-strong);
+  color: var(--ag-text-muted);
+  box-shadow: none;
+  text-decoration: line-through;
+}
 .ag-wblock:active { box-shadow: inset 0 0 0 2px var(--ag-primary); }
 
 /* Il dettaglio del giorno toccato, sotto la griglia. */
@@ -1218,7 +1282,9 @@ button { cursor: pointer; touch-action: manipulation; }
 
 .ag-pellet__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ag-pellet--test { background: var(--ag-test-soft); color: var(--ag-test-ink); font-weight: var(--ag-weight-semibold); }
-.ag-pellet--done { opacity: 0.55; text-decoration: line-through; }
+/* Fatta: muted e barrata, non trasparente. Muted su --ag-bg: 5.86:1 nel
+   chiaro, 8.10:1 nello scuro; una verifica fatta torna sul fondo neutro. */
+.ag-pellet--done { background: var(--ag-bg); color: var(--ag-text-muted); text-decoration: line-through; }
 
 /* ── 15. Calendario: mese ─────────────────────────────────────────── */
 

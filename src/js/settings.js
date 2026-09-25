@@ -9,7 +9,7 @@
 
 import { today as todayISO, dayMonth, dowShort, addDays, mondayOf } from "./days.js";
 import { t, getLang, LANGS } from "./i18n.js";
-import { newId, AREA_PRIVATE } from "./model.js";
+import { newId, AREA_PRIVATE, PART_TAP } from "./model.js";
 import { COLORS, newSubject, colorStyle, suggestShort, findSubject, countUsing, nextColor } from "./subjects.js";
 import {
   createNext, timetableFor, blocksOf, setBlock, countHours,
@@ -278,6 +278,7 @@ function areasGroup() {
 function dataGroup() {
   const lang = ctx.settings.lang;
   const theme = ctx.settings.theme;
+  const partTap = ctx.settings.partTap;
   return `
     <div class="ag-group">
       <span class="ag-group__label">${esc(t("settings.data"))}</span>
@@ -288,6 +289,17 @@ function dataGroup() {
         ${esc(t("settings.data.restore"))}
       </button>
       <p class="ag-group__note">${esc(t("settings.data.note"))}</p>
+    </div>
+
+    <div class="ag-group">
+      <span class="ag-group__label">${esc(t("settings.parttap"))}</span>
+      <div class="ag-seg" id="parttap-seg">
+        ${PART_TAP.map((mode) => `
+          <button class="ag-seg__opt" type="button" data-parttap="${mode}" aria-pressed="${partTap === mode ? "true" : "false"}">
+            ${esc(t(`settings.parttap.${mode}`))}
+          </button>`).join("")}
+      </div>
+      <p class="ag-group__note">${esc(t("settings.parttap.note"))}</p>
     </div>
 
     <div class="ag-group">
@@ -406,7 +418,10 @@ export function render() {
     el("restore-file").click();
   });
 
-  /* Lingua e tema */
+  /* Parti con un numero, lingua e tema */
+  onEach(body, "[data-parttap]", "click", (event) => {
+    handlers.onSettings({ ...ctx.settings, partTap: event.currentTarget.dataset.parttap });
+  });
   onEach(body, "[data-lang]", "click", (event) => {
     handlers.onSettings({ ...ctx.settings, lang: event.currentTarget.dataset.lang || null });
   });

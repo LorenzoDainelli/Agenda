@@ -259,3 +259,52 @@ export function setPartDone(task, partId, value) {
   );
   return { ...task, parts };
 }
+
+/** I due modi del tocco su una parte con un numero (impostazione `partTap`). */
+export const PART_TAP = ["step", "all"];
+
+/**
+ * Il tocco sul cerchio di una parte, dall'elenco.
+ *
+ * Una parte a spunta secca si spunta e si toglie. Una parte con un numero fa
+ * quello che dice l'impostazione: "all" come una spunta secca, "step" +1 a
+ * ogni tocco — e da piena torna a zero, perché un cerchio che a un certo punto
+ * smette di rispondere sembra rotto.
+ *
+ * Torna il compito già sistemato (vedi settleParts): chi chiama non deve
+ * ricordarsi di chiuderlo quando l'ultima parte è fatta.
+ */
+export function tapPart(task, partId, mode = "step", today = todayISO()) {
+  const part = (task.parts || []).find((entry) => entry.id === partId);
+  if (!part) return task;
+  const stepwise = mode === "step" && Number(part.total) > 1;
+  let value;
+  if (isPartDone(part)) value = 0;
+  else value = stepwise ? Number(part.done) + 1 : Number(part.total);
+  return settleParts(setPartDone(task, partId, value), today, task);
+}
+
+/**
+ * Lo stato del compito dopo che le sue parti sono cambiate (§5.2 del piano).
+ *
+ * Le due metà della regola non sono simmetriche, e di proposito:
+ *
+ *   - tutte le parti fatte e compito aperto → si chiude da sé. Ma solo se
+ *     prima *non* erano già tutte fatte: un compito rimesso da fare
+ *     dall'archivio ha ancora tutte le parti spuntate, e richiuderlo al primo
+ *     salvataggio vorrebbe dire che non si può più riaprire;
+ *   - una parte non fatta e compito fatto → si riapre, sempre. Un compito a
+ *     cui manca un pezzo non è fatto, qualunque cosa sia successa prima.
+ *
+ * `before` è il compito prima della modifica; se manca vale "prima non erano
+ * tutte fatte".
+ */
+export function settleParts(task, today = todayISO(), before = null) {
+  if (!task.parts?.length) return task;
+  if (allPartsDone(task)) {
+    const wereAll = before ? allPartsDone(before) : false;
+    if (isOpen(task) && !wereAll) return { ...task, doneAt: today, droppedAt: null };
+    return task;
+  }
+  return isDone(task) ? { ...task, doneAt: null } : task;
+}

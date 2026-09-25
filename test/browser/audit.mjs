@@ -10,6 +10,12 @@
  * Per ogni elemento che contiene testo: risale i genitori fino a trovare un
  * fondo opaco, calcola il rapporto e lo confronta con la soglia WCAG AA che gli
  * spetta (3:1 per il testo grande o grassetto, 4.5:1 per il resto).
+ *
+ * E tiene conto dell'`opacity`, sua e dei genitori. La prima versione non lo
+ * faceva: una riga fatta, disegnata al 55%, risultava leggibile quanto una
+ * riga aperta, e la stessa cosa succedeva a ogni testo "attenuato" con
+ * l'opacità invece che con un colore. Finché le righe fatte sparivano subito
+ * il buco non si vedeva; da quando restano nell'elenco fino a mezzanotte, sì.
  */
 
 export const AUDIT = () => {
@@ -55,6 +61,26 @@ export const AUDIT = () => {
     return (hi+0.05)/(lo+0.05);
   };
 
+  /* Il testo e il fondo come arrivano davvero allo schermo quando l'elemento,
+     o un suo genitore, è trasparente. Un gruppo con opacità α si disegna
+     prima tutto intero (testo sul suo fondo) e poi si mescola con quello che
+     c'è sotto: quindi sia il testo sia il fondo vicino finiscono mescolati con
+     lo stesso "sotto", ed è per questo che il contrasto cala. Con più livelli
+     trasparenti uno dentro l'altro si moltiplicano le α e si mescola col fondo
+     sotto al più esterno: è un'approssimazione, ma sbaglia sempre dalla
+     parte del severo solo quando i fondi intermedi sono più scuri di quello
+     esterno, cioè mai in questa app. */
+  const faded = (el, color, bg, fgLum) => {
+    let alpha = 1, outer = null;
+    for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
+      const o = parseFloat(getComputedStyle(n).opacity);
+      if (o < 1) { alpha *= o; outer = n; }
+    }
+    if (!outer) return { color, bg };
+    const under = bgOf(outer.parentElement || document.body, fgLum);
+    return { color: over(color, under, alpha), bg: over(bg, under, alpha), alpha };
+  };
+
   const out = [];
 
   /* I segnaposto dei campi. Vanno guardati a parte, perché il testo di un
@@ -71,8 +97,9 @@ export const AUDIT = () => {
     if (st.visibility === "hidden" || st.opacity === "0") continue;
     const fg = parse(getComputedStyle(el, "::placeholder").color);
     if (!fg) continue;
-    const bg = bgOf(el, lum(fg.rgb));
-    const colore = fg.a === 1 ? fg.rgb : over(fg.rgb, bg, fg.a);
+    const bg0 = bgOf(el, lum(fg.rgb));
+    const vero = faded(el, fg.a === 1 ? fg.rgb : over(fg.rgb, bg0, fg.a), bg0, lum(fg.rgb));
+    const colore = vero.color, bg = vero.bg;
     const px = parseFloat(st.fontSize);
     const soglia = px >= 24 ? 3 : 4.5;
     const rr = ratio(colore, bg);
@@ -92,14 +119,16 @@ export const AUDIT = () => {
     if (st.visibility === "hidden" || st.opacity === "0") continue;
     const fg = parse(st.color);
     if (!fg) continue;
-    const bg = bgOf(el, lum(fg.rgb));
-    const color = fg.a === 1 ? fg.rgb : over(fg.rgb, bg, fg.a);
+    const bg0 = bgOf(el, lum(fg.rgb));
+    const vero = faded(el, fg.a === 1 ? fg.rgb : over(fg.rgb, bg0, fg.a), bg0, lum(fg.rgb));
+    const color = vero.color, bg = vero.bg;
     const px = parseFloat(st.fontSize);
     const bold = Number(st.fontWeight) >= 700;
     const soglia = (px >= 24 || (px >= 18.66 && bold)) ? 3 : 4.5;
     const rr = ratio(color, bg);
     out.push({ testo: own.slice(0, 40), cls: el.className?.toString?.().slice(0,44) || el.tagName,
                px: Math.round(px), rapporto: Math.round(rr*100)/100, soglia,
+               ...(vero.alpha ? { opacita: Math.round(vero.alpha*100)/100 } : {}),
                passa: rr >= soglia - 0.005 });
   }
   return out;

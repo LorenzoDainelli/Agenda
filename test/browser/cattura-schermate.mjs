@@ -21,6 +21,12 @@ const ctx = await browser.newContext({
   ...devices["iPhone 15"], hasTouch: true, isMobile: true,
   locale: "it-IT", timezoneId: "Europe/Rome",
 });
+// Le prove sono scritte per lunedì 21 settembre 2026, alle dieci: l'orologio
+// del browser si ferma lì. Senza, dal giorno dopo le date dei dati finti
+// scivolano nel passato, parte la rassegna degli arretrati e la prova fallisce
+// per colpa del calendario, non dell'app. Si ferma solo la data: i timer
+// (i toast, le animazioni) continuano a scorrere.
+await ctx.clock.setFixedTime(new Date("2026-09-21T10:00:00+02:00"));
 const page = await ctx.newPage();
 await page.goto("http://localhost:8099/index.html", { waitUntil: "networkidle" });
 

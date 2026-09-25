@@ -21,8 +21,8 @@ import {
   loadReview, saveReview,
 } from "./storage.js";
 import {
-  markDone, markOpen, isLate, isDone, isDropped, isOpen, isPartDone, progress,
-  dayLoad, loadStep, AREA_PRIVATE,
+  markDone, markOpen, isLate, isDone, isDropped, isOpen, isPartDone,
+  dayLoad, loadStep, tapPart, settleParts, AREA_PRIVATE,
 } from "./model.js";
 import {
   sections, summary, countsByArea, replaceTask, removeTask, findTask, archive,
@@ -210,27 +210,36 @@ function dueLabel(task) {
 }
 
 /**
- * Cosa resta da fare di un compito con parti.
+ * Una parte sotto la riga del suo compito, col suo cerchio.
  *
- * Al massimo due nomi: con tre o più la riga diventa un paragrafo, e allora
- * il conto è più utile del dettaglio. Una parte lasciata a metà porta anche
- * il suo numero, perché "3 di 5 frasi" e "0 di 5 frasi" sono due situazioni
- * molto diverse.
+ * Il nome apre il compito, come il titolo sopra: una riga dove solo il
+ * cerchio risponde sembrerebbe rotta a chi tocca il nome. Una parte con un
+ * numero porta il conto dentro il cerchio (3/5) finché non è piena, poi la
+ * spunta come le altre: il numero è l'unica cosa che dice quanto manca, e
+ * fuori dal cerchio sarebbe una terza colonna su una riga già stretta.
  */
-function remainingLabel(task) {
-  const parts = (task.parts || []).filter((part) => !isPartDone(part));
-  if (parts.length === 0) return null;
-  if (parts.length > 2) return t("task.progress", progress(task));
-  const nomi = parts.map((part) =>
-    part.total > 1 && part.done > 0 ? `${part.title} ${part.done}/${part.total}` : part.title);
-  return t("task.remaining", { what: nomi.join(", ") });
+function partRow(task, part) {
+  const done = isPartDone(part);
+  const counted = Number(part.total) > 1;
+  const label = counted
+    ? t("part.count", { title: part.title, done: part.done, total: part.total })
+    : t("part.check", { title: part.title });
+  return `
+    <li class="ag-subpart ${done ? "ag-subpart--done" : ""}">
+      <button class="ag-subpart__title" type="button" data-open="${esc(task.id)}">${esc(part.title)}</button>
+      <button class="ag-check ${counted && !done ? "ag-check--count" : ""}" type="button"
+              data-part="${esc(task.id)}" data-part-id="${esc(part.id)}"
+              aria-pressed="${done ? "true" : "false"}"
+              aria-label="${esc(label)}">${counted && !done
+                ? `<span class="ag-check__count">${esc(`${part.done}/${part.total}`)}</span>`
+                : checkIcon()}</button>
+    </li>`;
 }
 
 function taskRow(task) {
   const subject = subjectLabel(state.settings.subjects, task);
   const color = subjectColor(state.settings.subjects, task);
   const due = dueLabel(task);
-  const p = progress(task);
   const unplanned = task.due && Object.keys(task.plan?.pick || {}).length === 0;
 
   const classes = [
@@ -244,11 +253,9 @@ function taskRow(task) {
   if (subject) meta.push(`<span class="ag-task__subject">${dot(colorStyle(color))}${esc(subject)}</span>`);
   if (task.kind === "test") meta.push(`<span class="ag-task__flag ag-task__flag--test">${esc(t("kind.test"))}</span>`);
   if (due) meta.push(`<span class="${due.className}">${esc(due.text)}</span>`);
-  // Non "0 di 2" ma il nome di quello che manca: la domanda vera non è
-  // quante parti restano, è QUALI.
-  const resta = remainingLabel(task);
-  if (resta) meta.push(`<span>${esc(resta)}</span>`);
-  if (unplanned && !isLate(task, day)) {
+  // Le parti non sono più scritte qui ("restano: …"): stanno sotto la riga,
+  // tutte, e ripeterle accanto al titolo le farebbe leggere due volte.
+  if (unplanned && !isLate(task, day) && isOpen(task)) {
     meta.push(`<span class="ag-task__flag ag-task__flag--plan">${esc(t("task.plan.needed"))}</span>`);
   }
   meta.push(weightTicks(task.weight));
@@ -258,12 +265,12 @@ function taskRow(task) {
       <button class="ag-task__main" type="button" data-open="${esc(task.id)}">
         <span class="ag-task__title">${esc(task.title)}</span>
         <span class="ag-task__meta">${meta.join("")}</span>
-        ${p.hasParts && p.done > 0 && p.done < p.total ? `
-          <span class="ag-progress"><span class="ag-progress__fill" style="width:${(p.done / p.total) * 100}%"></span></span>` : ""}
       </button>
       <button class="ag-check" type="button" data-check="${esc(task.id)}"
               aria-pressed="${isDone(task) ? "true" : "false"}"
               aria-label="${esc(t("common.done"))}">${checkIcon()}</button>
+      ${task.parts?.length ? `
+        <ul class="ag-subparts">${task.parts.map((part) => partRow(task, part)).join("")}</ul>` : ""}
     </div>`;
 }
 
@@ -282,13 +289,17 @@ function renderList() {
     <section class="ag-section ${group.key === "late" ? "ag-section--late" : ""}">
       <header class="ag-section__head">
         <span class="ag-section__title">${esc(t(`todo.section.${group.key}`))}</span>
-        <span class="ag-section__n">${group.tasks.length}</span>
+        <span class="ag-section__n">${group.open}</span>
       </header>
       ${group.tasks.map(taskRow).join("")}
     </section>`).join("");
 
   onEach(box, "[data-open]", "click", (event) => openTask(event.currentTarget.dataset.open));
   onEach(box, "[data-check]", "click", (event) => tickOff(event.currentTarget.dataset.check));
+  onEach(box, "[data-part]", "click", (event) => {
+    const { part, partId } = event.currentTarget.dataset;
+    tapPartInList(part, partId);
+  });
 }
 
 function renderReviewAlert() {
@@ -325,23 +336,78 @@ function openTask(id) {
 }
 
 /**
- * La spunta. La riga resta barrata e il toast offre l'annulla per cinque
- * secondi: è il tempo di accorgersi di aver toccato la riga sbagliata.
+ * Com'erano le parti di un compito prima che la sua spunta le spuntasse
+ * tutte. Serve a togliere la spunta e ritrovarle com'erano (assunzione A7 del
+ * piano): senza, un compito con una parte fatta su tre, spuntato per sbaglio
+ * e poi rimesso da fare, resterebbe con tre parti barrate. Sta in memoria e
+ * non nei dati: è un "annulla" più lungo del toast, non una cosa da salvare.
+ */
+const partsBeforeTick = new Map();
+
+/**
+ * La spunta. La riga resta barrata al suo posto fino a mezzanotte (§6.1), e
+ * il toast offre l'annulla per cinque secondi: è il tempo di accorgersi di
+ * aver toccato la riga sbagliata. Dopo, basta ritoccare il cerchio.
  */
 function tickOff(id) {
   const task = findTask(state.tasks, id);
   if (!task) return;
   const before = JSON.parse(JSON.stringify(task));
-  const after = isDone(task) ? markOpen(task) : markDone(task, day);
+  let after;
+  if (isDone(task)) {
+    after = markOpen(task);
+    const parts = partsBeforeTick.get(id);
+    if (parts) after = { ...after, parts };
+    partsBeforeTick.delete(id);
+  } else {
+    partsBeforeTick.set(id, before.parts || []);
+    after = markDone(task, day);
+  }
   saveTasksAndRender(replaceTask(state.tasks, after));
   toast(isDone(after) ? t("task.done.toast") : t("task.undone.toast"), {
-    onUndo: () => saveTasksAndRender(replaceTask(state.tasks, before)),
+    onUndo: () => {
+      partsBeforeTick.delete(id);
+      saveTasksAndRender(replaceTask(state.tasks, before));
+    },
   });
 }
 
+/**
+ * Il tocco sul cerchio di una parte, senza aprire il compito.
+ *
+ * Il toast c'è solo quando il tocco fa qualcosa di più di quello che si vede
+ * sotto il dito (assunzione A8): chiude o riapre il compito, o riporta a zero
+ * una parte con un numero. Negli altri casi si rimedia ritoccando lo stesso
+ * cerchio, e un toast a ogni tocco sarebbe rumore.
+ */
+function tapPartInList(taskId, partId) {
+  const task = findTask(state.tasks, taskId);
+  const part = task?.parts?.find((entry) => entry.id === partId);
+  if (!part) return;
+  const before = JSON.parse(JSON.stringify(task));
+  const after = tapPart(task, partId, state.settings.partTap, day);
+  const reset = Number(part.total) > 1 && Number(part.done) > 0
+    && Number(after.parts.find((entry) => entry.id === partId).done) === 0;
+  // la spunta di una parte non passa da tickOff: se il compito si chiude o si
+  // riapre da qui, lo stato "prima della spunta" di tickOff non vale più
+  partsBeforeTick.delete(taskId);
+  saveTasksAndRender(replaceTask(state.tasks, after));
+  const undo = { onUndo: () => saveTasksAndRender(replaceTask(state.tasks, before)) };
+  if (isDone(after) && !isDone(task)) toast(t("task.done.auto.toast"), undo);
+  else if (!isDone(after) && isDone(task)) toast(t("task.undone.toast"), undo);
+  else if (reset) toast(t("part.reset.toast", { title: part.title }), undo);
+}
+
+/* Ogni modifica che passa dal pannello del compito rende vecchio il ricordo
+   delle parti di tickOff: ritrovarle dopo vorrebbe dire disfare quello che
+   si è appena fatto nel pannello. */
 const taskHandlers = {
   onSave: (task) => {
-    saveTasksAndRender(replaceTask(state.tasks, task));
+    partsBeforeTick.delete(task.id);
+    // la stessa regola dell'elenco (§5.2): spuntate dal pannello tutte le
+    // parti, il compito è fatto; tolta la spunta a una, non lo è più
+    const before = findTask(state.tasks, task.id);
+    saveTasksAndRender(replaceTask(state.tasks, settleParts(task, day, before)));
   },
   onDelete: (task) => {
     saveTasksAndRender(removeTask(state.tasks, task.id));
@@ -350,10 +416,12 @@ const taskHandlers = {
     });
   },
   onDone: (task) => {
+    partsBeforeTick.delete(task.id);
     saveTasksAndRender(replaceTask(state.tasks, markDone(task, day)));
     toast(t("task.done.toast"));
   },
   onReopen: (task) => {
+    partsBeforeTick.delete(task.id);
     saveTasksAndRender(replaceTask(state.tasks, markOpen(task)));
     toast(t("task.undone.toast"));
   },
@@ -362,7 +430,7 @@ const taskHandlers = {
 /* ── Archivio ─────────────────────────────────────────────────────── */
 
 function renderArchive() {
-  const months = archive(state.tasks);
+  const months = archive(state.tasks, day);
   const body = el("archive-body");
 
   if (!months.length) {
@@ -517,6 +585,24 @@ function bindChrome() {
     if (!document.hidden) checkDay();
   });
   window.addEventListener("focus", checkDay);
+  scheduleMidnight(checkDay);
+}
+
+/**
+ * Un timer puntato alla prossima mezzanotte (assunzione A10). Il controllo al
+ * ritorno in primo piano non basta più da quando le cose fatte restano
+ * nell'elenco fino a mezzanotte: con l'app aperta davanti, a mezzanotte e un
+ * minuto sarebbero ancora lì. Si ripunta ogni volta, perché un timer lungo
+ * ore su un telefono che dorme può arrivare in ritardo, mai in anticipo, e
+ * `checkDay` guarda comunque l'orologio vero.
+ */
+function scheduleMidnight(onMidnight) {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
+  setTimeout(() => {
+    onMidnight();
+    scheduleMidnight(onMidnight);
+  }, next - now);
 }
 
 function maybeReview() {

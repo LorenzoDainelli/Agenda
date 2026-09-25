@@ -1,6 +1,6 @@
 /* Verifica dei contrasti sulla pagina renderizzata, non sui numeri dei token.
  *
- * Guida l'app nei due temi e su cinque schermate, e su ognuna passa il
+ * Guida l'app nei due temi e su sei schermate, e su ognuna passa il
  * controllo di audit.mjs. Quello che trova qui e non nei token è la differenza
  * fra un numero scritto in un commento e un pixel disegnato davvero.
  */
@@ -8,7 +8,13 @@ import { chromium, devices } from "playwright";
 import { AUDIT } from "./audit.mjs";
 const CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 const browser = await chromium.launch({ executablePath: CHROME });
-const ctx = await browser.newContext({ ...devices["iPhone 15"], hasTouch: true, isMobile: true, locale: "it-IT" });
+const ctx = await browser.newContext({ ...devices["iPhone 15"], hasTouch: true, isMobile: true, locale: "it-IT", timezoneId: "Europe/Rome" });
+// Le prove sono scritte per lunedì 21 settembre 2026, alle dieci: l'orologio
+// del browser si ferma lì. Senza, dal giorno dopo le date dei dati finti
+// scivolano nel passato, parte la rassegna degli arretrati e la prova fallisce
+// per colpa del calendario, non dell'app. Si ferma solo la data: i timer
+// (i toast, le animazioni) continuano a scorrere.
+await ctx.clock.setFixedTime(new Date("2026-09-21T10:00:00+02:00"));
 const page = await ctx.newPage();
 
 const scenari = [
@@ -17,6 +23,7 @@ const scenari = [
   ["calendario mese", async () => { await page.locator('#cal-mode [data-mode="month"]').click(); await page.waitForTimeout(400); }],
   ["impostazioni", async () => { await page.click('[data-close="calendar-layer"]'); await page.click("#open-settings"); await page.waitForTimeout(400); }],
   ["pannello compito", async () => { await page.click('[data-close="settings-layer"]'); await page.locator("#list [data-open]").first().click(); await page.waitForTimeout(400); }],
+  ["archivio", async () => { await page.click('[data-close="task-layer"]'); await page.click("#open-archive"); await page.waitForTimeout(400); }],
 ];
 
 let totali = 0, placeholderVisti = 0, falliti = [];
@@ -37,6 +44,16 @@ for (const tema of ["light", "dark"]) {
             plan:{skip:[],pick:{"2026-09-22":"morning","2026-09-23":"evening"}}}),
       base({title:"Giornata pesante", subjectId:"s-rose", subjectName:"Materia rose", due:"2026-09-26", weight:3, plan:{skip:[],pick:{"2026-09-22":"afternoon"}}}),
       base({title:"Cosa privata", area:"private", kind:"todo"}),
+      // fatte oggi: restano nell'elenco barrate, ed è il caso che prima non si
+      // guardava perché sparivano subito
+      base({title:"Fatto stamattina", subjectId:"s-petrolio", subjectName:"Materia petrolio", due:"2026-09-23", weight:2,
+            doneAt:"2026-09-21", parts:[{id:"p3",title:"scheda",total:1,done:1,pick:{}},{id:"p4",title:"otto righe",total:8,done:8,pick:{}}],
+            plan:{skip:[],pick:{"2026-09-21":"afternoon"}}}),
+      base({title:"Verifica ripassata", kind:"test", subjectId:"s-prugna", subjectName:"Materia prugna", due:"2026-09-21", weight:2,
+            doneAt:"2026-09-21"}),
+      // nell'archivio: una fatta e una lasciata cadere
+      base({title:"Fatto la settimana scorsa", subjectId:"s-muschio", subjectName:"Materia muschio", due:"2026-09-16", doneAt:"2026-09-15"}),
+      base({title:"Lasciato cadere", due:"2026-09-17", droppedAt:"2026-09-17"}),
     ]));
     localStorage.setItem("agenda:timetables", JSON.stringify([{weekStart:"2026-09-21",
       grid:{"1":["s-sky","s-sky","s-amber",null,null,null],"2":["s-violet",null,null,null,null,null],

@@ -34,8 +34,33 @@ const tasks = [
 ];
 const secs = Q.sections(tasks, { today: OGGI });
 eq("nessuna sezione vuota, nell'ordine giusto", secs.map(s => s.key), ["late","today","week","undated"]);
-eq("dentro Oggi vince il peso", secs.find(s => s.key === "today").tasks.map(t => t.title), ["pesante oggi","leggero oggi"]);
-eq("il compito fatto non c'è", secs.flatMap(s => s.tasks).some(t => t.title === "fatto"), false);
+// "fatto" è stato fatto oggi: resta dov'era, barrato, fino a mezzanotte (§6.1)
+eq("dentro Oggi vince il peso, e il fatto di oggi resta al suo posto",
+   secs.find(s => s.key === "today").tasks.map(t => t.title), ["pesante oggi","fatto","leggero oggi"]);
+eq("il numerino della sezione conta solo quello che resta", secs.find(s => s.key === "today").open, 2);
+
+console.log("fatto oggi: nell'elenco fino a mezzanotte, poi nell'archivio");
+const IERI = "2026-09-22";
+const fattoOggi = M.markDone(mk("fatto oggi", { due: "2026-09-25" }), OGGI);
+const fattoIeri = M.markDone(mk("fatto ieri", { due: "2026-09-25" }), IERI);
+const lasciatoOggi = M.markDropped(mk("lasciato oggi", { due: "2026-09-25" }), OGGI);
+const arretratoFatto = M.markDone(mk("arretrato fatto", { due: "2026-09-21" }), OGGI);
+const dalFuturo = { ...mk("orologio sbagliato", { due: "2026-09-25" }), doneAt: "2026-09-30" };
+const chiusi = [fattoOggi, fattoIeri, lasciatoOggi, arretratoFatto, dalFuturo];
+const inElenco = Q.sections(chiusi, { today: OGGI }).flatMap(s => s.tasks).map(t => t.title);
+const inArchivio = Q.archive(chiusi, OGGI).flatMap(m => m.tasks).map(t => t.title);
+eq("nell'elenco solo le cose fatte oggi", inElenco.sort(), ["arretrato fatto", "fatto oggi"]);
+eq("nell'archivio tutto il resto", inArchivio.sort(), ["fatto ieri", "lasciato oggi", "orologio sbagliato"]);
+eq("ogni cosa in uno solo dei due posti, e mai in nessuno",
+   chiusi.every(t => inElenco.includes(t.title) !== inArchivio.includes(t.title)), true);
+eq("fatto oggi resta nella sezione del suo giorno, non salta in Oggi",
+   Q.sections([fattoOggi], { today: OGGI }).map(s => s.key), ["week"]);
+eq("un arretrato fatto oggi resta fra gli arretrati",
+   Q.sections([arretratoFatto], { today: OGGI }).map(s => s.key), ["late"]);
+eq("una sezione con solo cose fatte dice 0", Q.sections([arretratoFatto], { today: OGGI })[0].open, 0);
+eq("il giorno dopo non c'è più", Q.sections([fattoOggi], { today: "2026-09-24" }).length, 0);
+eq("ed è nell'archivio", Q.archive([fattoOggi], "2026-09-24").flatMap(m => m.tasks).length, 1);
+eq("i filtri non contano le cose fatte", Q.countsByArea(chiusi), { all: 0 });
 
 console.log("verifica prima di tutto, anche se leggera");
 const mix = [mk("pesante", { due: OGGI, weight: 3 }), mk("verifica", { kind: "test", due: OGGI, weight: 1 })];
@@ -84,7 +109,7 @@ const arch = Q.archive([
   M.markDone(mk("agosto", { due: OGGI }), "2026-08-15"),
   M.markDropped(mk("caduto", { due: OGGI }), "2026-09-22"),
   mk("aperto", { due: OGGI }),
-]);
+], OGGI);
 eq("raggruppato per mese, il più recente prima", arch.map(m => m.month), ["2026-09","2026-08"]);
 eq("dentro settembre, il più recente prima", arch[0].tasks.map(t => t.title), ["caduto","settembre"]);
 eq("l'aperto non c'è", arch.flatMap(m => m.tasks).some(t => t.title === "aperto"), false);

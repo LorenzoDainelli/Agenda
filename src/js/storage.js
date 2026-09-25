@@ -56,6 +56,7 @@ const DEFAULT_SETTINGS = {
   areas: [],        // solo quelli personalizzati: Scuola e Privato non stanno qui
   lessonsPerDay: 6,
   schoolDays: [1, 2, 3, 4, 5, 6],
+  partTap: "step",  // una parte con un numero, toccata dall'elenco: +1 ("step") o tutta ("all")
 };
 
 export function loadSettings() {
@@ -71,6 +72,10 @@ export function loadSettings() {
     lessonsPerDay: Number(stored.lessonsPerDay) > 0
       ? Number(stored.lessonsPerDay)
       : DEFAULT_SETTINGS.lessonsPerDay,
+    // un valore che non conosciamo (una copia scritta a mano, una versione
+    // futura) torna al modo di partenza invece di far fare al cerchio una
+    // terza cosa che nessuno ha deciso
+    partTap: stored.partTap === "all" ? "all" : DEFAULT_SETTINGS.partTap,
   };
 }
 

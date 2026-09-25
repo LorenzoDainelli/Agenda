@@ -100,6 +100,28 @@ riscrivere l'app.
 | palette | nessuna delle tre direzioni è stata scelta a scatola chiusa: sono state **generate tutte e tre e messe a confronto sulla schermata vera** (`design_handoff/palette-alternative/confronto.html`). La scelta arriva dopo averle guardate sul telefono |
 | ambito privato | **ancora non deciso**: resta come sta (un compito senza materia, con la scadenza che può mancare) e si decide quando l'uso reale avrà detto cosa serve |
 
+### Decise dall'utente il 25 settembre 2026, nel terzo giro di domande
+
+| cosa | decisione |
+|---|---|
+| palette | **Notte**, quella che c'era già. Le due alternative (Carta, Bosco) sono state guardate e scartate: la cartella `palette-alternative/` è stata buttata come previsto, e gli strumenti che l'hanno generata restano in `tools/` |
+| un compito fatto | **resta al suo posto, barrato, fino a mezzanotte**; poi passa nell'archivio. Prima spariva subito, e l'unico modo di rimediare a un tocco sbagliato era il toast di cinque secondi |
+| le parti nell'elenco | **tutte sotto la riga del compito**, quelle fatte barrate, ognuna con il suo cerchio da spuntare senza aprire il compito. La scritta «restano: …» accanto al titolo sparisce: sarebbe un doppione di quello che si vede sotto |
+| il tocco su una parte con un numero («5 frasi») | **si sceglie dalle impostazioni**: `+1 a ogni tocco` oppure `un tocco la fa tutta` |
+| il petrolio nel tema scuro | i due petrolio distano dal colore d'azione ΔE 10.8 e 12.2, sotto la soglia di 15 che vale per tutte le altre materie. La correzione proposta (tinta da 217° a 200°, luminosità e intensità invariate) gli è stata mostrata prima/dopo: **in attesa della sua risposta**, i token non sono stati toccati |
+
+#### Assunzioni prese nel farlo (si ribaltano senza discutere)
+
+| # | Assunzione | Come si ribalta |
+|---|---|---|
+| A5 | Il modo di partenza delle parti con un numero è **+1 a ogni tocco**: è quello che l'utente aveva davanti come consigliato quando ha chiesto l'impostazione. Da piena, un altro tocco la riporta a zero, e il toast offre l'annulla. | `partTap` in `DEFAULT_SETTINGS` di `storage.js` |
+| A6 | Il numerino accanto al nome di una sezione conta **quello che resta**, non le righe: una sezione con solo cose barrate dice 0. Allo stesso modo i filtri, la striscia dei prossimi giorni e l'avviso in cima ignorano le cose fatte. | `sections()` in `tasks.js` |
+| A7 | Toccare di nuovo il cerchio di un compito fatto oggi lo rimette da fare **com'era prima della spunta**, parti comprese, finché l'app resta aperta. Senza questo, spuntare per sbaglio un compito con tre parti di cui una fatta e poi togliere la spunta lascerebbe tutte e tre barrate. Dopo aver chiuso l'app resta solo il toast, che dura cinque secondi, e togliendo la spunta le parti restano come sono. | `tickOff()` in `app.js` |
+| A8 | Il toast compare solo quando un tocco su una parte cambia lo stato del compito (lo chiude o lo riapre) o azzera una parte con un numero. Le altre spunte si tolgono ritoccando lo stesso cerchio, e un toast per ogni tocco sarebbe rumore. | `tapPartInList()` in `app.js` |
+| A9 | Le cose **lasciate cadere** («non serve più») vanno subito nell'archivio: non sono fatte, e barrarle nell'elenco direbbe il falso. | `isShownInList()` in `tasks.js` |
+| A10 | A mezzanotte l'elenco si aggiorna **anche se l'app è aperta davanti**, con un timer puntato alla mezzanotte, e non solo quando torna in primo piano. | `scheduleMidnight()` in `app.js` |
+| A11 | Le parti si spuntano dall'elenco **e basta**: il calendario resta una cosa che si guarda (§6.2). | — |
+
 Rimasta aperta e **non** decisa: la forma definitiva dell'ambito privato
 (vedi §6.4). Il nome dell'app non è più in questa lista.
 
@@ -159,7 +181,7 @@ Il progetto sta **alla radice della repo** (decisione dell'utente): la repo
     browser/                    prove che guidano l'app in un browser vero
                                 (servono Playwright: vedi test/browser/LEGGIMI.md)
       audit.mjs                 il controllo dei contrasti sulla pagina renderizzata
-      contrasti.mjs             lo passa su cinque schermate dell'app, nei due temi
+      contrasti.mjs             lo passa su sei schermate dell'app, nei due temi
       cattura-schermate.mjs     salva il markup vero dell'app, per il confronto palette
       confronto-palette.mjs     guarda le palette candidate e le verifica
       percorso-base.mjs         il giro completo: creare, pianificare, spuntare
@@ -173,10 +195,11 @@ Il progetto sta **alla radice della repo** (decisione dell'utente): la repo
   .github/workflows/deploy.yml  pubblica src/ su GitHub Pages
 ```
 
-Dentro `design_handoff/` c'è anche `palette-alternative/`, che contiene i
-candidati da guardare e la pagina che li confronta. **Non è una cartella
-definitiva**: quando una palette viene scelta diventa `tokens/colors.css` e
-tutta la cartella si butta.
+Per la scelta della palette in `design_handoff/` c'era anche
+`palette-alternative/`, con i candidati e la pagina che li confrontava. È stata
+scelta Notte, cioè quella che era già `tokens/colors.css`, e la cartella è
+stata buttata come previsto. Se un giorno servisse un nuovo confronto,
+`tools/genera-palette.py` e `tools/confronto-palette.py` la rigenerano.
 
 > **Due file in più rispetto alla prima stesura di questo piano**, aggiunti in
 > corso d'opera e scritti qui perché il piano resti la verità: `ui.js` (i
@@ -200,13 +223,15 @@ I giorni della settimana sono numeri **1 = lunedì … 7 = domenica** (ISO).
   lang: null,          // null = segue il telefono; "it" | "en"
   theme: null,         // null = segue il telefono; "light" | "dark"
   subjects: [          // le materie dell'anno, inserite da lui
-    { id: "s-1", name: "Inglese", short: "INGL", color: "sky" }
+    { id: "s-1", name: "Inglese", short: "INGL", color: "petrolio" }
   ],
   areas: [             // SOLO gli ambiti personalizzati: i due fissi non stanno qui
-    { id: "a-1", name: "Palestra", color: "lime" }
+    { id: "a-1", name: "Palestra", color: "oliva" }
   ],
   lessonsPerDay: 6,    // righe della griglia dell'orario
-  schoolDays: [1,2,3,4,5,6]
+  schoolDays: [1,2,3,4,5,6],
+  partTap: "step"      // una parte con un numero, toccata dall'elenco:
+                       // "step" = +1 a ogni tocco | "all" = un tocco la fa tutta
 }
 ```
 
@@ -313,7 +338,7 @@ pianificare**: l'app non decide per lui, ma non lo nasconde nemmeno.
 
 | stato | condizione | dove si vede |
 |---|---|---|
-| `done` | `doneAt` valorizzato | archivio |
+| `done` | `doneAt` valorizzato | fatto oggi: al suo posto nell'elenco, barrato, fino a mezzanotte; poi archivio |
 | `dropped` | `droppedAt` valorizzato | archivio |
 | `late` | non fatto e `due < oggi` | in cima, sempre |
 | `today` | `giornoDiLavoro == oggi` | sezione Oggi |
@@ -322,7 +347,9 @@ pianificare**: l'app non decide per lui, ma non lo nasconde nemmeno.
 
 Una parte non ha uno stato suo: è fatta quando `done >= total`. **Un compito si
 spunta da sé quando tutte le sue parti sono fatte**, e spuntando il compito si
-spuntano tutte le parti.
+spuntano tutte le parti. Al contrario, togliere la spunta a una parte di un
+compito fatto lo rimette da fare: un compito con una parte che manca non è
+fatto. La regola vale sia dall'elenco sia dal pannello del compito.
 
 ---
 
@@ -350,12 +377,21 @@ Elenco a sezioni, nell'ordine: **In ritardo**, **Oggi**, **Domani**,
 prima le verifiche, poi per peso decrescente, poi per titolo.
 
 Ogni riga: titolo, riga secondaria con materia (col suo pallino) · scadenza ·
-**cosa resta da fare** · peso, e il cerchio della spunta a destra (44×44).
+peso, e il cerchio della spunta a destra (44×44).
 
-«Cosa resta» e non «quante parti restano»: un compito con due parti di cui una
-fatta non dice `1 di 2` ma `restano: esercizi sul libro`, perché la domanda
-vera è *che cosa mi manca*. Con tre parti o più torna il conto, perché tre nomi
-in fila fanno di una riga un paragrafo.
+**Sotto la riga, le sue parti**, tutte, ognuna col suo cerchio: si spuntano
+senza aprire il compito. Quelle fatte restano barrate, perché la domanda vera
+è *che cosa mi manca* e la risposta si legge meglio accanto a quello che è già
+fatto. Una parte con un numero («5 frasi») porta il conto dentro il cerchio
+(`3/5`), e il tocco fa quello che dice l'impostazione (§6.4): +1, oppure tutta
+in una volta. Quando l'ultima parte si spunta, si spunta da sé anche il
+compito (§5.2).
+
+*(La prima versione diceva «restano: esercizi sul libro» accanto al titolo, e
+sotto aveva una barra di avanzamento. Con le parti in vista erano due doppioni,
+e sono stati tolti tutti e due. La barra, fra l'altro, nell'elenco non si era
+mai disegnata: il riempimento era un elemento in linea, e la larghezza non gli
+si applicava.)*
 
 Le verifiche portano il loro colore e un contorno: sono l'unica cosa che non si
 può rimandare.
@@ -363,8 +399,10 @@ può rimandare.
 Un filtro in testa all'elenco con gli ambiti: **Tutto · Scuola · Privato · …**
 
 Toccando una riga si apre il compito (§6.5). Toccando il cerchio si spunta:
-la riga si barra, resta per qualche secondo con un toast "fatto — annulla",
-poi scompare.
+la riga si barra e **resta al suo posto fino a mezzanotte**, col toast
+"fatto — annulla" per i primi cinque secondi. Ritoccando il cerchio torna da
+fare. A mezzanotte le cose fatte passano nell'archivio, anche se l'app è
+aperta in quel momento.
 
 In basso, fisso, il pulsante `+`.
 
@@ -396,6 +434,11 @@ e da lì si modifica: ma il calendario in sé non ha azioni.)
 Le cose fatte e quelle lasciate cadere, più recenti prima, raggruppate per mese.
 Ogni riga si può **rimettere da fare** con un tocco. Niente si cancella da sé.
 
+Le cose fatte **oggi** non sono qui: stanno ancora nell'elenco, barrate, e
+arrivano nell'archivio a mezzanotte. Una cosa sta sempre in uno solo dei due
+posti, mai in nessuno. Quelle lasciate cadere oggi invece arrivano subito:
+non sono fatte, e barrarle nell'elenco direbbe il falso.
+
 ### 6.4 Impostazioni
 
 Quattro gruppi:
@@ -407,7 +450,8 @@ Quattro gruppi:
    Ore consecutive della stessa materia si fondono in una casella più alta.
 3. **Ambiti** — Scuola e Privato ci sono sempre; qui si aggiungono gli altri.
 4. **I tuoi dati** — `Scarica una copia`, `Ripristina da una copia`, lingua,
-   tema.
+   tema, e **cosa fa un tocco su una parte con un numero** dall'elenco:
+   `+1 a ogni tocco` oppure `un tocco la fa tutta`.
 
 > **Ambito privato, fase 1**: una cosa privata è lo stesso oggetto di un
 > compito (`kind: "todo"`), senza materia e con la scadenza che può mancare.

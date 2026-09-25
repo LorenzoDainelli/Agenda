@@ -64,6 +64,38 @@ eq("tutte fatte", M.allPartsDone(p), true);
 eq("senza parti l'avanzamento è 0/1", M.progress(task("2026-09-25")), { done: 0, total: 1, hasParts: false });
 eq("spuntare il compito spunta le parti", M.progress(M.markDone(p, OGGI)), { done: 2, total: 2, hasParts: true });
 
+console.log("il tocco su una parte, dall'elenco");
+// una parte da 3 e una a spunta secca, niente di fatto
+let q = { ...task("2026-09-25"), parts: [M.newPart("frasi", 3), M.newPart("scheda", 1)] };
+const [frasi, scheda] = q.parts.map((x) => x.id);
+const conto = (t) => t.parts.map((x) => x.done);
+eq("+1: il primo tocco fa 1 di 3", conto(M.tapPart(q, frasi, "step", OGGI)), [1, 0]);
+eq("tutta: il primo tocco la riempie", conto(M.tapPart(q, frasi, "all", OGGI)), [3, 0]);
+eq("una parte a spunta secca non conta, si spunta", conto(M.tapPart(q, scheda, "step", OGGI)), [0, 1]);
+let pieno = q;
+for (let i = 0; i < 3; i++) pieno = M.tapPart(pieno, frasi, "step", OGGI);
+eq("+1: al terzo tocco è piena", M.isPartDone(pieno.parts[0]), true);
+eq("+1: da piena, un altro tocco la riporta a zero", conto(M.tapPart(pieno, frasi, "step", OGGI)), [0, 0]);
+eq("tutta: da piena, un tocco la svuota", conto(M.tapPart(pieno, frasi, "all", OGGI)), [0, 0]);
+eq("una parte che non c'è non cambia niente", M.tapPart(q, "p-nessuna", "step", OGGI), q);
+
+console.log("il compito segue le sue parti (§5.2)");
+const finito = M.tapPart(M.tapPart(q, frasi, "all", OGGI), scheda, "step", OGGI);
+eq("spuntata l'ultima parte, il compito è fatto oggi", finito.doneAt, OGGI);
+eq("finché ne manca una, no", M.tapPart(q, frasi, "all", OGGI).doneAt, null);
+eq("tolta la spunta a una parte, il compito torna da fare", M.tapPart(finito, scheda, "step", OGGI).doneAt, null);
+eq("e le altre parti restano come sono", conto(M.tapPart(finito, scheda, "step", OGGI)), [3, 0]);
+// rimesso da fare dall'archivio: le parti sono ancora tutte spuntate
+const riaperto = M.markOpen(M.markDone(q, "2026-09-20"));
+eq("un compito riaperto con le parti tutte fatte non si richiude da sé",
+   M.settleParts(riaperto, OGGI, riaperto).doneAt, null);
+eq("ma si chiude se le parti diventano tutte fatte adesso",
+   M.settleParts({ ...q, parts: q.parts.map((x) => ({ ...x, done: x.total })) }, OGGI, q).doneAt, OGGI);
+eq("un compito lasciato cadere non viene chiuso da una parte",
+   M.settleParts({ ...M.markDropped(q, OGGI), parts: riaperto.parts }, OGGI, q).doneAt, null);
+const semplice = task("2026-09-25");
+eq("senza parti non cambia niente", M.settleParts(semplice, OGGI), semplice);
+
 console.log("peso della giornata");
 const tasks = [
   M.togglePick({ ...M.newTask({ title: "a", due: "2026-09-25", weight: 3 }) }, "2026-09-22"),

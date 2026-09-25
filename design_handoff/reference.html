@@ -94,13 +94,23 @@
         <span class="ag-task__meta">
           <span class="ag-task__subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-petrolio)"></span>Inglese</span>
           <span class="ag-task__due--late">in ritardo di 3 giorni</span>
-          <span>1 di 2</span>
         </span>
-        <span class="ag-progress"><span class="ag-progress__fill" style="width:50%"></span></span>
       </button>
       <button class="ag-check" type="button" aria-pressed="false" aria-label="Fatto">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
       </button>
+      <ul class="ag-subparts">
+        <li class="ag-subpart ag-subpart--done">
+          <button class="ag-subpart__title" type="button">scheda dei verbi</button>
+          <button class="ag-check" type="button" aria-pressed="true" aria-label="Spunta «scheda dei verbi»">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+          </button>
+        </li>
+        <li class="ag-subpart">
+          <button class="ag-subpart__title" type="button">frasi da tradurre</button>
+          <button class="ag-check ag-check--count" type="button" aria-pressed="false" aria-label="«frasi da tradurre»: 3 di 5"><span class="ag-check__count">3/5</span></button>
+        </li>
+      </ul>
     </div>
 
     <div class="ag-task ag-task--done">

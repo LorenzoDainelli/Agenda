@@ -8,7 +8,7 @@
 
 import { today as todayISO, addDays, mondayOf, monthKey } from "./days.js";
 import {
-  isOpen, isDone, isDropped, isLate, workDate, progress, AREA_PRIVATE, SLOTS,
+  isOpen, isDone, isDropped, isLate, workDate, AREA_PRIVATE, SLOTS,
 } from "./model.js";
 
 /** Le sezioni dell'elenco, nell'ordine in cui si mostrano. */
@@ -59,16 +59,52 @@ export function byArea(tasks, area) {
 }
 
 /**
+ * Fatto oggi: resta nell'elenco, barrato, fino a mezzanotte (§6.1).
+ *
+ * Uguale a oggi e non "da oggi in poi": una data di fatto nel futuro può
+ * venire solo da un orologio sbagliato, e una cosa così resterebbe barrata
+ * nell'elenco per giorni. Va nell'archivio, dove almeno si trova.
+ */
+export function isDoneToday(task, today = todayISO()) {
+  return isDone(task) && task.doneAt === today;
+}
+
+/**
+ * Cosa sta nell'elenco: le cose aperte e quelle fatte oggi. L'archivio prende
+ * esattamente il resto (vedi archive), così una cosa è sempre in uno solo dei
+ * due posti e mai in nessuno.
+ *
+ * Le cose lasciate cadere oggi non restano: non sono fatte, e barrarle
+ * direbbe il falso.
+ */
+export function isShownInList(task, today = todayISO()) {
+  return isOpen(task) || isDoneToday(task, today);
+}
+
+/**
  * L'elenco raggruppato, pronto da disegnare. Le sezioni vuote non arrivano
  * affatto: una sezione con l'intestazione e niente sotto fa sembrare che
  * l'app abbia perso qualcosa.
+ *
+ * Una cosa fatta oggi resta nella sezione in cui era da aperta, e nello
+ * stesso punto: si decide come se la spunta non ci fosse. Se si spostasse,
+ * toccare il cerchio per sbaglio la farebbe sparire da sotto il dito, e per
+ * ritrovarla bisognerebbe cercarla. `open` conta solo quello che resta: il
+ * numerino accanto al nome della sezione dice quanto manca, non quante righe
+ * ci sono.
  */
 export function sections(tasks, { today = todayISO(), area = "all" } = {}) {
-  const open = byArea(tasks, area).filter(isOpen);
+  const shown = byArea(tasks, area).filter((task) => isShownInList(task, today));
   const buckets = new Map(SECTIONS.map((key) => [key, []]));
-  for (const task of open) buckets.get(sectionOf(task, today)).push(task);
+  for (const task of shown) {
+    const asIfOpen = isDone(task) ? { ...task, doneAt: null } : task;
+    buckets.get(sectionOf(asIfOpen, today)).push(task);
+  }
   return SECTIONS
-    .map((key) => ({ key, tasks: buckets.get(key).sort(compare) }))
+    .map((key) => {
+      const list = buckets.get(key).sort(compare);
+      return { key, tasks: list, open: list.filter(isOpen).length };
+    })
     .filter((section) => section.tasks.length > 0);
 }
 
@@ -152,10 +188,11 @@ export function lateTasks(tasks, today = todayISO()) {
   return tasks.filter((task) => isLate(task, today)).sort((a, b) => a.due.localeCompare(b.due));
 }
 
-/** L'archivio: fatte e lasciate cadere, raggruppate per mese, le più recenti prima. */
-export function archive(tasks) {
+/** L'archivio: fatte e lasciate cadere, raggruppate per mese, le più recenti prima.
+ *  Tranne quelle fatte oggi, che sono ancora nell'elenco (vedi isShownInList). */
+export function archive(tasks, today = todayISO()) {
   const closed = tasks
-    .filter((task) => isDone(task) || isDropped(task))
+    .filter((task) => !isShownInList(task, today))
     .map((task) => ({ task, when: task.doneAt || task.droppedAt }))
     .sort((a, b) => b.when.localeCompare(a.when));
   const months = new Map();
@@ -165,12 +202,6 @@ export function archive(tasks) {
     months.get(key).push(entry.task);
   }
   return [...months.entries()].map(([month, list]) => ({ month, tasks: list }));
-}
-
-/** Il testo dell'avanzamento da mostrare sulla riga, o null se non ha parti. */
-export function progressLabel(task) {
-  const p = progress(task);
-  return p.hasParts ? p : null;
 }
 
 /** Sposta in Privato le cose di un ambito che si sta eliminando. */
