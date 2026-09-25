@@ -108,7 +108,9 @@ riscrivere l'app.
 | un compito fatto | **resta al suo posto, barrato, fino a mezzanotte**; poi passa nell'archivio. Prima spariva subito, e l'unico modo di rimediare a un tocco sbagliato era il toast di cinque secondi |
 | le parti nell'elenco | **tutte sotto la riga del compito**, quelle fatte barrate, ognuna con il suo cerchio da spuntare senza aprire il compito. La scritta «restano: …» accanto al titolo sparisce: sarebbe un doppione di quello che si vede sotto |
 | il tocco su una parte con un numero («5 frasi») | **si sceglie dalle impostazioni**: `+1 a ogni tocco` oppure `un tocco la fa tutta` |
-| il petrolio nel tema scuro | i due petrolio distano dal colore d'azione ΔE 10.8 e 12.2, sotto la soglia di 15 che vale per tutte le altre materie. La correzione proposta (tinta da 217° a 200°, luminosità e intensità invariate) gli è stata mostrata prima/dopo: **in attesa della sua risposta**, i token non sono stati toccati |
+| il petrolio nel tema scuro | i due petrolio distavano dal colore d'azione ΔE 10.8 e 12.2, sotto la soglia di 15 che vale per tutte le altre materie. Gli è stata mostrata la correzione prima/dopo (tinta da 217° a 200°, luminosità e intensità invariate) e ha scelto di **correggerlo**, in tutti e due i temi. Ora la materia più vicina al colore d'azione sta a ΔE 16.1 |
+| il nome di una parte, toccato dall'elenco | **apre il compito**, come il titolo; la parte si spunta solo dal suo cerchio |
+| giorni diversi per le singole parti | **sì, dal compito aperto**. Il come è ancora da chiarire con lui: vedi le domande del prossimo giro |
 
 #### Assunzioni prese nel farlo (si ribaltano senza discutere)
 

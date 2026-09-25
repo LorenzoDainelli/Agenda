@@ -130,8 +130,8 @@
 
      La via d'uscita è prendere la varietà dal VALORE invece che dalla
      saturazione, come fanno gli inchiostri diluiti: sei tonalità ben
-     distanziate (almeno 48° l'una dall'altra), ognuna in una versione piena e
-     una più chiara. Saturazione 30% per tutte e dodici.
+     distanziate, ognuna in una versione piena e una più chiara. Saturazione
+     (HSL) fra il 27% e il 30% per tutte e dodici.
 
      Misurato su tutte le 66 coppie: fra tonalità diverse i pallini stanno a
      ΔE 14.7, che si distinguono senza sforzo. Fra le due intensità della
@@ -142,21 +142,28 @@
      desaturati. Rischio noto e accettato, perché un chip non porta mai il
      colore da solo: dentro c'è sempre la sigla o il nome della materia.
 
+     E nessuna materia sta a meno di ΔE 15 dal colore d'azione, nei due temi:
+     le più vicine sono oltremare (16.9 qui) e petrolio (16.1 nel tema scuro).
+     Il petrolio è stato spostato il 25 settembre 2026 da 217° a 200° di tinta
+     (LCh), con luminosità e intensità invariate: nel tema scuro stava a ΔE
+     10.8 dal colore d'azione, e un chip «Inglese» selezionato sembrava un
+     pulsante. L'utente ha visto il prima e il dopo e ha scelto di correggerlo.
+
      I due numeri accanto a ogni riga sono: pieno su --ag-surface ·
      inchiostro sul chip. Soglie: 3:1 per il pieno (elemento non testuale che
      porta informazione), 4.5:1 per l'inchiostro. */
-  --ag-subj-petrolio: #345960;    --ag-subj-petrolio-soft: #d1e2e6;    --ag-subj-petrolio-ink: #274a51;
-  --ag-subj-petrolio-2: #477a85;  --ag-subj-petrolio-2-soft: #b6d2d8;  --ag-subj-petrolio-2-ink: #274a51;
-  --ag-subj-oltremare: #343560;   --ag-subj-oltremare-soft: #d1d1e6;   --ag-subj-oltremare-ink: #272951;
-  --ag-subj-oltremare-2: #474985; --ag-subj-oltremare-2-soft: #b6b7d8; --ag-subj-oltremare-2-ink: #272951;
-  --ag-subj-prugna: #5a3460;      --ag-subj-prugna-soft: #e3d1e6;      --ag-subj-prugna-ink: #4b2751;
-  --ag-subj-prugna-2: #7c4785;    --ag-subj-prugna-2-soft: #d3b6d8;    --ag-subj-prugna-2-ink: #4b2751;
-  --ag-subj-mattone: #5d3f32;     --ag-subj-mattone-soft: #e5d6d0;     --ag-subj-mattone-ink: #513427;
-  --ag-subj-mattone-2: #815846;   --ag-subj-mattone-2-soft: #d7bfb5;   --ag-subj-mattone-2-ink: #513427;
-  --ag-subj-oliva: #454c29;       --ag-subj-oliva-soft: #dee3cb;       --ag-subj-oliva-ink: #485127;
-  --ag-subj-oliva-2: #66713d;     --ag-subj-oliva-2-soft: #cdd5b0;     --ag-subj-oliva-2-ink: #485127;
-  --ag-subj-muschio: #2e563c;     --ag-subj-muschio-soft: #cee4d5;     --ag-subj-muschio-ink: #275135;
-  --ag-subj-muschio-2: #427b55;   --ag-subj-muschio-2-soft: #b3d6bf;   --ag-subj-muschio-2-ink: #275135;
+  --ag-subj-petrolio: #345a5a;    --ag-subj-petrolio-soft: #d1e2e3;    --ag-subj-petrolio-ink: #274b4b;  /*  6.90:1 ·  7.15:1 */
+  --ag-subj-petrolio-2: #477b7c;  --ag-subj-petrolio-2-soft: #b6d3d3;  --ag-subj-petrolio-2-ink: #274b4b;  /*  4.33:1 ·  6.04:1 */
+  --ag-subj-oltremare: #343560;   --ag-subj-oltremare-soft: #d1d1e6;   --ag-subj-oltremare-ink: #272951;  /* 10.43:1 ·  9.18:1 */
+  --ag-subj-oltremare-2: #474985; --ag-subj-oltremare-2-soft: #b6b7d8; --ag-subj-oltremare-2-ink: #272951;  /*  7.43:1 ·  7.06:1 */
+  --ag-subj-prugna: #5a3460;      --ag-subj-prugna-soft: #e3d1e6;      --ag-subj-prugna-ink: #4b2751;  /*  9.08:1 ·  8.51:1 */
+  --ag-subj-prugna-2: #7c4785;    --ag-subj-prugna-2-soft: #d3b6d8;    --ag-subj-prugna-2-ink: #4b2751;  /*  6.14:1 ·  6.70:1 */
+  --ag-subj-mattone: #5d3f32;     --ag-subj-mattone-soft: #e5d6d0;     --ag-subj-mattone-ink: #513427;  /*  8.56:1 ·  7.95:1 */
+  --ag-subj-mattone-2: #815846;   --ag-subj-mattone-2-soft: #d7bfb5;   --ag-subj-mattone-2-ink: #513427;  /*  5.57:1 ·  6.42:1 */
+  --ag-subj-oliva: #454c29;       --ag-subj-oliva-soft: #dee3cb;       --ag-subj-oliva-ink: #485127;  /*  8.20:1 ·  6.43:1 */
+  --ag-subj-oliva-2: #66713d;     --ag-subj-oliva-2-soft: #cdd5b0;     --ag-subj-oliva-2-ink: #485127;  /*  4.76:1 ·  5.54:1 */
+  --ag-subj-muschio: #2e563c;     --ag-subj-muschio-soft: #cee4d5;     --ag-subj-muschio-ink: #275135;  /*  7.57:1 ·  6.78:1 */
+  --ag-subj-muschio-2: #427b55;   --ag-subj-muschio-2-soft: #b3d6bf;   --ag-subj-muschio-2-ink: #275135;  /*  4.53:1 ·  5.74:1 */
 
   /* ── Ombre ─────────────────────────────────────────────────────── */
   --ag-shadow-color: 205 45% 14%;
@@ -228,18 +235,18 @@
 
     /* Le stesse sei tonalità in due intensità, schiarite per il fondo scuro.
        I due numeri: pieno su --ag-surface · inchiostro sul chip. */
-    --ag-subj-petrolio: #98c4cd;    --ag-subj-petrolio-soft: #172a2e;    --ag-subj-petrolio-ink: #bad8de;
-    --ag-subj-petrolio-2: #68a9b6;  --ag-subj-petrolio-2-soft: #213d42;  --ag-subj-petrolio-2-ink: #9fc8d0;
-    --ag-subj-oltremare: #989acd;   --ag-subj-oltremare-soft: #17182e;   --ag-subj-oltremare-ink: #babcde;
-    --ag-subj-oltremare-2: #686bb6; --ag-subj-oltremare-2-soft: #212242; --ag-subj-oltremare-2-ink: #9fa1d0;
-    --ag-subj-prugna: #c698cd;      --ag-subj-prugna-soft: #2b172e;      --ag-subj-prugna-ink: #d9bade;
-    --ag-subj-prugna-2: #ab68b6;    --ag-subj-prugna-2-soft: #3e2142;    --ag-subj-prugna-2-ink: #ca9fd0;
-    --ag-subj-mattone: #cea99a;     --ag-subj-mattone-soft: #2e1e17;     --ag-subj-mattone-ink: #dec5ba;
-    --ag-subj-mattone-2: #b6816a;   --ag-subj-mattone-2-soft: #422b21;   --ag-subj-mattone-2-ink: #d0ae9f;
-    --ag-subj-oliva: #c8d2a2;       --ag-subj-oliva-soft: #292e17;       --ag-subj-oliva-ink: #d7deba;
-    --ag-subj-oliva-2: #acbb72;     --ag-subj-oliva-2-soft: #3c4221;     --ag-subj-oliva-2-ink: #c6d09f;
-    --ag-subj-muschio: #9dcfae;     --ag-subj-muschio-soft: #172e1f;     --ag-subj-muschio-ink: #badec6;
-    --ag-subj-muschio-2: #6db886;   --ag-subj-muschio-2-soft: #21422c;   --ag-subj-muschio-2-ink: #9fd0af;
+    --ag-subj-petrolio: #98c5c6;    --ag-subj-petrolio-soft: #172a2b;    --ag-subj-petrolio-ink: #bad9d9;  /*  9.11:1 ·  9.99:1 */
+    --ag-subj-petrolio-2: #68aaac;  --ag-subj-petrolio-2-soft: #213d3e;  --ag-subj-petrolio-2-ink: #9fc9c9;  /*  6.49:1 ·  6.48:1 */
+    --ag-subj-oltremare: #989acd;   --ag-subj-oltremare-soft: #17182e;   --ag-subj-oltremare-ink: #babcde;  /*  6.41:1 ·  9.40:1 */
+    --ag-subj-oltremare-2: #686bb6; --ag-subj-oltremare-2-soft: #212242; --ag-subj-oltremare-2-ink: #9fa1d0;  /*  3.57:1 ·  6.18:1 */
+    --ag-subj-prugna: #c698cd;      --ag-subj-prugna-soft: #2b172e;      --ag-subj-prugna-ink: #d9bade;  /*  7.18:1 ·  9.51:1 */
+    --ag-subj-prugna-2: #ab68b6;    --ag-subj-prugna-2-soft: #3e2142;    --ag-subj-prugna-2-ink: #ca9fd0;  /*  4.41:1 ·  6.25:1 */
+    --ag-subj-mattone: #cea99a;     --ag-subj-mattone-soft: #2e1e17;     --ag-subj-mattone-ink: #dec5ba;  /*  7.99:1 ·  9.74:1 */
+    --ag-subj-mattone-2: #b6816a;   --ag-subj-mattone-2-soft: #422b21;   --ag-subj-mattone-2-ink: #d0ae9f;  /*  5.18:1 ·  6.40:1 */
+    --ag-subj-oliva: #c8d2a2;       --ag-subj-oliva-soft: #292e17;       --ag-subj-oliva-ink: #d7deba;  /* 10.79:1 · 10.05:1 */
+    --ag-subj-oliva-2: #acbb72;     --ag-subj-oliva-2-soft: #3c4221;     --ag-subj-oliva-2-ink: #c6d09f;  /*  8.27:1 ·  6.48:1 */
+    --ag-subj-muschio: #9dcfae;     --ag-subj-muschio-soft: #172e1f;     --ag-subj-muschio-ink: #badec6;  /*  9.79:1 ·  9.92:1 */
+    --ag-subj-muschio-2: #6db886;   --ag-subj-muschio-2-soft: #21422c;   --ag-subj-muschio-2-ink: #9fd0af;  /*  7.24:1 ·  6.44:1 */
 
   /* Nel tema scuro un'ombra non stacca: quello che stacca è la superficie più
      chiara. Si tengono quasi nere e solo per i livelli sovrapposti. */
