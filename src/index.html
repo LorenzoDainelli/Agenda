@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="it" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Agenda">
+<title>Agenda</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+
+<!-- Il tema, prima di qualunque cosa si disegni.
+     Deve stare qui, inline e sincrono: se lo decidesse app.js, fra il disegno
+     della pagina e l'esecuzione del modulo si vedrebbe un lampo di tema chiaro
+     su un telefono in tema scuro. `theme-color` segue, così anche la barra di
+     stato di iOS è del colore giusto. -->
+<script>
+(function () {
+  var forced = null;
+  try {
+    var raw = localStorage.getItem("agenda:settings");
+    if (raw) forced = JSON.parse(raw).theme || null;
+  } catch (e) { /* navigazione privata o dati corrotti: si segue il telefono */ }
+  var dark = forced ? forced === "dark"
+    : window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  var meta = document.createElement("meta");
+  meta.name = "theme-color";
+  meta.content = dark ? "#0b1118" : "#ffffff";
+  document.head.appendChild(meta);
+})();
+</script>
+
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ════ Schermata principale: Da fare ════════════════════════════════ -->
+<div class="ag-app">
+
+  <header class="ag-header">
+    <div>
+      <span class="ag-header__eyebrow" data-i18n="todo.eyebrow"></span>
+      <h1 class="ag-header__title" id="today-title">&nbsp;</h1>
+    </div>
+    <div class="ag-header__actions">
+      <button class="ag-iconbtn" type="button" id="open-calendar" data-i18n-label="cal.title">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 9.5h17M8 3v3.5M16 3v3.5"/></svg>
+      </button>
+      <button class="ag-iconbtn" type="button" id="open-archive" data-i18n-label="archive.title">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5h17v3.5h-17zM5 11v8.5a1 1 0 001 1h12a1 1 0 001-1V11M10 15h4"/></svg>
+      </button>
+      <button class="ag-iconbtn" type="button" id="open-settings" data-i18n-label="settings.title">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8.5h16M4 15.5h16"/><circle cx="15" cy="8.5" r="2.4" fill="currentColor" stroke="none"/><circle cx="9" cy="15.5" r="2.4" fill="currentColor" stroke="none"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="ag-app__body">
+
+    <!-- L'avviso compare SOLO quando c'è qualcosa che non aspetta: un
+         arretrato, o una verifica entro domani. Nelle giornate in pari non
+         c'è, e lo spazio va all'elenco. -->
+    <div class="ag-urgent" id="urgent" hidden>
+      <span class="ag-urgent__text" id="urgent-text"></span>
+    </div>
+
+    <!-- I prossimi giorni col loro peso: dice dove c'è spazio per mettere un
+         compito, che è la cosa che l'elenco sotto non dice. -->
+    <div class="ag-group">
+      <span class="ag-group__label" data-i18n="todo.next"></span>
+      <div class="ag-next" id="next-days"></div>
+    </div>
+
+    <!-- I filtri per ambito. Scorrono in orizzontale: gli ambiti possono
+         essere più di quanti ne stiano sullo schermo. -->
+    <div class="ag-filters" id="filters" role="group" data-i18n-label="settings.areas"></div>
+
+    <!-- L'avviso della rassegna degli arretrati. Sta sulla strada, fra i
+         filtri e l'elenco, e non si chiude da sé: se ne va solo quando gli
+         arretrati sono stati sistemati o quando la rassegna è già stata fatta
+         oggi. -->
+    <div class="ag-alert ag-alert--late" id="review-alert" hidden>
+      <div class="ag-alert__text">
+        <span class="ag-alert__title" id="review-alert-title"></span>
+        <span class="ag-alert__note" id="review-alert-note"></span>
+      </div>
+      <button class="ag-alert__btn" type="button" id="review-open"></button>
+    </div>
+
+    <!-- Il promemoria della copia di sicurezza, una volta al mese (§6.1,
+         assunzioni A18–A20). I dati stanno solo qui: se il telefono si
+         perde, senza una copia non si recuperano. -->
+    <div class="ag-alert ag-alert--neutral" id="backup-alert" hidden>
+      <div class="ag-alert__text">
+        <span class="ag-alert__title" id="backup-alert-title"></span>
+        <span class="ag-alert__note" id="backup-alert-note"></span>
+      </div>
+      <div class="ag-alert__actions">
+        <button class="ag-alert__btn" type="button" id="backup-save"></button>
+        <button class="ag-alert__btn ag-alert__btn--quiet" type="button" id="backup-later"></button>
+      </div>
+    </div>
+
+    <div class="ag-list" id="list"></div>
+
+  </div>
+
+  <footer class="ag-actionbar">
+    <button class="ag-btn" type="button" id="add">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      <span data-i18n="todo.add"></span>
+    </button>
+  </footer>
+
+</div>
+
+<!-- ════ Livello: calendario ══════════════════════════════════════════ -->
+<div class="ag-layer" id="calendar-layer" hidden>
+  <div class="ag-panel">
+    <header class="ag-panel__head">
+      <span class="ag-panel__title" data-i18n="cal.title"></span>
+      <div class="ag-seg" id="cal-mode" style="flex:none;width:auto">
+        <button class="ag-seg__opt" type="button" data-mode="week" data-i18n="cal.week" style="padding-inline:var(--ag-space-4)"></button>
+        <button class="ag-seg__opt" type="button" data-mode="month" data-i18n="cal.month" style="padding-inline:var(--ag-space-4)"></button>
+      </div>
+      <button class="ag-iconbtn" type="button" data-close="calendar-layer" data-i18n-label="common.close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </header>
+    <div class="ag-panel__body" id="calendar-body"></div>
+  </div>
+</div>
+
+<!-- ════ Livello: archivio ════════════════════════════════════════════ -->
+<div class="ag-layer" id="archive-layer" hidden>
+  <div class="ag-panel">
+    <header class="ag-panel__head">
+      <span class="ag-panel__title" data-i18n="archive.title"></span>
+      <button class="ag-iconbtn" type="button" data-close="archive-layer" data-i18n-label="common.close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </header>
+    <div class="ag-panel__body" id="archive-body"></div>
+  </div>
+</div>
+
+<!-- ════ Livello: impostazioni ════════════════════════════════════════ -->
+<div class="ag-layer" id="settings-layer" hidden>
+  <div class="ag-panel">
+    <header class="ag-panel__head">
+      <span class="ag-panel__title" data-i18n="settings.title"></span>
+      <button class="ag-iconbtn" type="button" data-close="settings-layer" data-i18n-label="common.close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </header>
+    <div class="ag-panel__body" id="settings-body"></div>
+    <input id="restore-file" type="file" accept="application/json,.json" hidden>
+  </div>
+</div>
+
+<!-- ════ Livello: il compito (nuovo o aperto) ═════════════════════════ -->
+<div class="ag-layer" id="task-layer" hidden>
+  <div class="ag-panel">
+    <header class="ag-panel__head">
+      <span class="ag-panel__title" id="task-layer-title"></span>
+      <button class="ag-iconbtn" type="button" data-close="task-layer" data-i18n-label="common.close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </header>
+    <div class="ag-panel__body" id="task-body"></div>
+    <footer class="ag-panel__foot">
+      <button class="ag-btn" type="button" id="task-save"></button>
+    </footer>
+  </div>
+</div>
+
+<!-- ════ Livello: rassegna degli arretrati ════════════════════════════ -->
+<div class="ag-layer" id="review-layer" hidden>
+  <div class="ag-panel">
+    <header class="ag-panel__head">
+      <span class="ag-panel__title" data-i18n="review.title"></span>
+      <button class="ag-iconbtn" type="button" data-close="review-layer" data-i18n-label="common.close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </header>
+    <div class="ag-panel__body" id="review-body"></div>
+  </div>
+</div>
+
+<!-- ════ Fogli che salgono dal basso ══════════════════════════════════
+     Uno solo per volta. Le conferme sono queste, mai una finestra del
+     browser (regola 4 di CLAUDE.md). -->
+<div class="ag-scrim" id="scrim" hidden></div>
+
+<div class="ag-sheet" id="sheet" hidden role="dialog" aria-modal="true">
+  <div class="ag-sheet__grip"></div>
+  <div id="sheet-body"></div>
+</div>
+
+<div class="ag-toasts" id="toasts" aria-live="polite"></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

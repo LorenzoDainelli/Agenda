@@ -1,0 +1,4 @@
+# Gli strumenti in tools/ sono script Python: la cache dei bytecode non è
+# roba di progetto.
+__pycache__/
+*.pyc

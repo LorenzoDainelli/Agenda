@@ -1,0 +1,12 @@
+/* Agenda — foglio di stile principale.
+ * Solo import, in ordine: token → componenti → layout dell'app.
+ *
+ * I file di tokens/ e components.css sono COPIE di design_handoff/:
+ * si aggiornano copiandoli da lì, non modificandoli qui.
+ */
+
+@import "tokens/colors.css";
+@import "tokens/typography.css";
+@import "tokens/space.css";
+@import "components.css";
+@import "app.css";
