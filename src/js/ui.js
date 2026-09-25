@@ -11,7 +11,7 @@
 
 import {
   today as todayISO, addMonths, addDays, daysInMonth, dow, firstOfMonth,
-  monthYear, weekdayInitials, dayNumber,
+  monthYear, weekdayInitials, dayNumber, dowShort,
 } from "./days.js";
 import { t, getLang } from "./i18n.js";
 
@@ -193,6 +193,19 @@ export function weightTicks(weight) {
     .map((n) => `<span class="ag-weight__tick ${n <= weight ? "ag-weight__tick--on" : ""}"></span>`)
     .join("");
   return `<span class="ag-weight" role="img" aria-label="${esc(t(`weight.${weight}`))}">${ticks}</span>`;
+}
+
+/** Un giorno detto come si dice a voce: "oggi", "domani", "mer 23". */
+export function relativeDay(day, today = todayISO()) {
+  if (day === today) return t("common.today").toLowerCase();
+  if (day === addDays(today, 1)) return t("common.tomorrow").toLowerCase();
+  return `${dowShort(day, getLang())} ${dayNumber(day)}`;
+}
+
+/** Il giorno e il momento di una parte, uguali nell'elenco e nel pannello:
+ *  "oggi · sera", "mer 23 · pomerig.". */
+export function whenLabel(day, slot, today = todayISO()) {
+  return `${relativeDay(day, today)} · ${t(`slot.${slot}.short`)}`;
 }
 
 export function checkIcon() {

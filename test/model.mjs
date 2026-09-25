@@ -96,6 +96,55 @@ eq("un compito lasciato cadere non viene chiuso da una parte",
 const semplice = task("2026-09-25");
 eq("senza parti non cambia niente", M.settleParts(semplice, OGGI), semplice);
 
+console.log("i giorni delle parti (§5.1)");
+// lunedì 21 le frasi, martedì 22 gli esercizi; scadenza giovedì 24
+const LUN = "2026-09-21", MAR = "2026-09-22", MER = "2026-09-23";
+let d = { ...task("2026-09-24", { weight: 3 }), parts: [M.newPart("frasi", 5), M.newPart("esercizi", 2)] };
+const [fr, es] = d.parts.map((x) => x.id);
+eq("una parte nuova segue il compito", M.partDay(d.parts[0]), null);
+eq("niente scelto: da pianificare", M.hasPlan(d), false);
+d = M.setPartPick(d, fr, LUN, "evening");
+d = M.setPartPick(d, es, MAR, "afternoon");
+eq("ogni parte ha il suo giorno", d.parts.map(M.partDay), [LUN, MAR]);
+eq("e il suo momento", d.parts[0].pick, { [LUN]: "evening" });
+eq("un momento che non esiste diventa pomeriggio", M.setPartPick(d, fr, LUN, "notte").parts[0].pick, { [LUN]: "afternoon" });
+eq("togliere il giorno", M.partDay(M.setPartPick(d, fr, null).parts[0]), null);
+eq("con i giorni delle parti non è più da pianificare", M.hasPlan(d), true);
+eq("i giorni in cui c'è qualcosa da fare", M.plannedDays(d), [LUN, MAR]);
+eq("lunedì il compito sta lunedì", M.workDate(d, LUN), LUN);
+const frasiFatte = M.setPartDone(d, fr, 5);
+eq("finite le frasi, passa al martedì degli esercizi", M.workDate(frasiFatte, LUN), MAR);
+eq("una parte non fatta di un giorno passato è roba di oggi", M.workDate(d, MER), MER);
+
+console.log("i giorni del compito valgono per le parti che non ne hanno uno (A13)");
+const conGiorno = M.togglePick(d, MER, "evening");
+eq("se ogni parte da fare ha il suo giorno, quello del compito non conta",
+   M.plannedDays(conGiorno), [LUN, MAR]);
+const unaSegue = M.setPartPick(conGiorno, es, null);
+eq("se una parte non ha un giorno, conta anche quello del compito",
+   M.plannedDays(unaSegue), [LUN, MER]);
+eq("fatte tutte le parti con un giorno, restano i giorni del compito",
+   M.plannedDays(M.setPartDone(M.setPartDone(conGiorno, fr, 5), es, 2)), [MER]);
+
+console.log("il peso si divide fra le parti (A14)");
+eq("pesante in due parti su due giorni: 1.5 arrotondato a 2", [M.dayLoad([d], LUN), M.dayLoad([d], MAR)], [2, 2]);
+eq("una parte fatta non pesa più", M.dayLoad([frasiFatte], LUN), 0);
+eq("un giorno senza parti non pesa", M.dayLoad([d], MER), 0);
+let leggero = { ...task("2026-09-25", { weight: 1 }), parts: [M.newPart("a"), M.newPart("b"), M.newPart("c")] };
+leggero = M.setPartPick(leggero, leggero.parts[0].id, LUN);
+eq("un terzo di leggero non scende a zero: un giorno con qualcosa pesa almeno 1", M.dayLoad([leggero], LUN), 1);
+eq("le parti che seguono il compito pesano nei suoi giorni",
+   M.dayLoad([M.togglePick(leggero, MAR)], MAR), 1);
+eq("due compiti medi interi su un giorno fanno 4, come prima",
+   M.dayLoad([M.togglePick(task("2026-09-24", { weight: 2 }), LUN), M.togglePick(task("2026-09-24", { weight: 2 }), LUN)], LUN), 4);
+
+console.log("escludere un giorno o spostare la scadenza (A16)");
+eq("escludere martedì toglie il giorno agli esercizi", M.toggleSkip(d, MAR).parts.map(M.partDay), [LUN, null]);
+eq("rimetterlo dentro non glielo ridà", M.toggleSkip(M.toggleSkip(d, MAR), MAR).parts.map(M.partDay), [LUN, null]);
+eq("spostare la scadenza a martedì toglie il giorno agli esercizi",
+   M.reschedule(d, MAR, LUN).parts.map(M.partDay), [LUN, null]);
+eq("e le parti restano dove sono", M.reschedule(d, MAR, LUN).parts.map((x) => x.title), ["frasi", "esercizi"]);
+
 console.log("peso della giornata");
 const tasks = [
   M.togglePick({ ...M.newTask({ title: "a", due: "2026-09-25", weight: 3 }) }, "2026-09-22"),

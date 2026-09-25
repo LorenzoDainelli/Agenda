@@ -110,7 +110,11 @@ riscrivere l'app.
 | il tocco su una parte con un numero («5 frasi») | **si sceglie dalle impostazioni**: `+1 a ogni tocco` oppure `un tocco la fa tutta` |
 | il petrolio nel tema scuro | i due petrolio distavano dal colore d'azione ΔE 10.8 e 12.2, sotto la soglia di 15 che vale per tutte le altre materie. Gli è stata mostrata la correzione prima/dopo (tinta da 217° a 200°, luminosità e intensità invariate) e ha scelto di **correggerlo**, in tutti e due i temi. Ora la materia più vicina al colore d'azione sta a ΔE 16.1 |
 | il nome di una parte, toccato dall'elenco | **apre il compito**, come il titolo; la parte si spunta solo dal suo cerchio |
-| giorni diversi per le singole parti | **sì, dal compito aperto**. Il come è ancora da chiarire con lui: vedi le domande del prossimo giro |
+| giorni diversi per le singole parti | **sì, dal compito aperto** |
+| come si dà un giorno a una parte | un **chip «quando»** su ogni parte, nel compito aperto: toccandolo sale un foglio coi giorni della finestra e i tre momenti |
+| una parte con un giorno, nell'elenco | il compito compare **una volta sola, nel giorno della prossima parte da fare**, con sotto tutte le parti e accanto a ognuna il suo giorno. Finita quella, passa al giorno della successiva |
+| una parte con un giorno, nel calendario | **un blocchetto per ogni parte**, nel suo giorno e nel suo momento; sotto la griglia, il nome della parte accanto al compito |
+| il peso di un compito diviso in parti | **si divide fra le parti**: un compito pesante (3) in due parti su due giorni fa 1.5 per giorno, arrotondato |
 
 #### Assunzioni prese nel farlo (si ribaltano senza discutere)
 
@@ -123,6 +127,12 @@ riscrivere l'app.
 | A9 | Le cose **lasciate cadere** («non serve più») vanno subito nell'archivio: non sono fatte, e barrarle nell'elenco direbbe il falso. | `isShownInList()` in `tasks.js` |
 | A10 | A mezzanotte l'elenco si aggiorna **anche se l'app è aperta davanti**, con un timer puntato alla mezzanotte, e non solo quando torna in primo piano. | `scheduleMidnight()` in `app.js` |
 | A11 | Le parti si spuntano dall'elenco **e basta**: il calendario resta una cosa che si guarda (§6.2). | — |
+| A12 | Una parte ha **un giorno solo** (e un momento). Una parte che si fa in due giorni sono due parti: «5 frasi» lunedì e martedì diventano «3 frasi» e «2 frasi». Un foglio con più giorni per parte sarebbe la fila dei giorni del compito dentro ogni parte, cioè l'opzione che l'utente ha scartato. | `setPartPick()` in `model.js` |
+| A13 | I giorni scelti per il compito valgono per **le parti che non hanno un giorno loro**. Se ogni parte ancora da fare ha il suo giorno, i giorni del compito non contano più né per l'elenco né per il calendario: resterebbero un blocchetto senza niente dentro. | `followsTask()` in `model.js` |
+| A14 | Nel peso di un giorno una parte **fatta non pesa**, come un compito fatto. Le parti senza un giorno loro portano la loro quota nei giorni scelti per il compito, ognuno per intero, come succedeva già al compito. Si arrotonda il totale del giorno, non la quota di ogni parte. | `dayLoad()` in `model.js` |
+| A15 | Un compito **senza scadenza** non ha una finestra, e quindi le sue parti non hanno il chip «quando»: vale la stessa regola del compito. | `partsBlock()` in `compose.js` |
+| A16 | Escludere un giorno dalla fila o spostare la scadenza **toglie il giorno alle parti** che ci cadevano fuori, come succede già ai giorni scelti per il compito. | `toggleSkip()` e `reschedule()` in `model.js` |
+| A17 | La fila dei giorni del compito **non** mostra i giorni delle parti: quelli si leggono sui loro chip, subito sotto. Due posti che dicono la stessa cosa sono uno di troppo. | — |
 
 Rimasta aperta e **non** decisa: la forma definitiva dell'ambito privato
 (vedi §6.4). Il nome dell'app non è più in questa lista.
@@ -287,8 +297,10 @@ c'è), **copiando la griglia dell'ultimo orario esistente**. Si corregge da lì.
 
 - `total: 1` è una parte a spunta secca; `total > 1` è una parte con quantità e
   barra di progresso. Una parte senza `pick` è una voce di checklist: la
-  pianificazione resta del compito intero. **Le tre forme chieste dall'utente
-  sono lo stesso oggetto**, non tre tipi diversi.
+  pianificazione resta del compito intero. Una parte **con** `pick` ha il suo
+  giorno — uno solo (assunzione A12) — scelto dal chip «quando» (§6.5).
+  **Le tre forme chieste dall'utente sono lo stesso oggetto**, non tre tipi
+  diversi.
 - `momento` ∈ `"morning" | "afternoon" | "evening"`.
 
 ### 4.4 `agenda:review`
@@ -327,10 +339,17 @@ finestra(compito) = [ oggi … due − 1 giorno ] − plan.skip
 ### 5.1 Il giorno in cui un compito "compare"
 
 ```
-giornoDiLavoro(compito) = il più piccolo dei giorni in plan.pick,
+giorniScelti(compito)   = i giorni delle parti ancora da fare che ne hanno uno
+                          + plan.pick, se qualche parte da fare non ha un giorno
+                            suo (o se il compito non ha parti da fare)
+giornoDiLavoro(compito) = il più piccolo dei giorniScelti da oggi in avanti,
+                          oggi se ci sono giorni scelti ma sono tutti passati,
                           altrimenti due,
                           altrimenti nessuno (cosa senza data)
 ```
+
+Le parti fatte non contano: è quello che fa passare un compito dal giorno
+delle frasi a quello degli esercizi quando le frasi sono finite.
 
 È questo che decide dove il compito sta nell'elenco e nel calendario. Un
 compito senza giorni scelti compare sulla sua scadenza, marcato **da
@@ -382,7 +401,8 @@ Ogni riga: titolo, riga secondaria con materia (col suo pallino) · scadenza ·
 peso, e il cerchio della spunta a destra (44×44).
 
 **Sotto la riga, le sue parti**, tutte, ognuna col suo cerchio: si spuntano
-senza aprire il compito. Quelle fatte restano barrate, perché la domanda vera
+senza aprire il compito. Una parte che ha un suo giorno lo porta scritto sotto
+il nome («oggi · sera», «mar 22 · pomerig.»). Quelle fatte restano barrate, perché la domanda vera
 è *che cosa mi manca* e la risposta si legge meglio accanto a quello che è già
 fatto. Una parte con un numero («5 frasi») porta il conto dentro il cerchio
 (`3/5`), e il tocco fa quello che dice l'impostazione (§6.4): +1, oppure tutta
@@ -415,7 +435,11 @@ Due viste commutabili, **settimana** (di partenza) e **mese**.
 - **Settimana**: una **griglia** con la stessa forma di quella dell'orario —
   sette colonne (i giorni) per tre righe (mattina, pomeriggio, sera), più una
   quarta riga per quello che scade quel giorno senza essere stato pianificato.
-  Dentro le caselle, blocchetti col colore della materia e la sua sigla.
+  Dentro le caselle, blocchetti col colore della materia e la sua sigla:
+  **uno per ogni parte che ha un suo giorno**, nel suo momento, e uno per il
+  compito nei giorni scelti per lui quando ha parti senza un giorno loro (o
+  non ha parti). Il peso di un compito si divide fra le sue parti
+  (assunzione A14).
   L'intestazione di ogni colonna porta il fondo del **peso** di quel giorno,
   sui gradini fissi dei token (gradini fissi e non calcolati, così il
   contrasto del testo sopra è garantito per costruzione).
@@ -465,6 +489,12 @@ Quattro gruppi:
 Un pannello, non una schermata: titolo, materia, tipo, scadenza, peso, la fila
 dei giorni della finestra (§5), le parti con le loro spunte e quantità, e in
 fondo `Elimina`. Tutto modificabile sul posto.
+
+Sotto il nome di ogni parte c'è il suo **chip «quando»**: dice «quando?» se la
+parte segue il compito, o il suo giorno e il suo momento («mar 22 · sera»).
+Toccandolo sale un foglio coi giorni della finestra — quelli esclusi no — e i
+tre momenti: un tocco sul giorno, uno sul momento, fatto. Se la parte ha già
+un giorno, il foglio offre anche «Nessun giorno».
 
 ---
 

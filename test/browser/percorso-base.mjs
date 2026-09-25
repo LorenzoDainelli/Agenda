@@ -209,6 +209,54 @@ await page.locator('#lang-seg [data-lang="it"]').click(); await page.waitForTime
 await page.locator('[data-theme=""]').click(); await page.waitForTimeout(250);
 await page.click('[data-close="settings-layer"]');
 
+console.log("\n== giorni diversi per le parti ==");
+await page.evaluate(() => {
+  const tasks = JSON.parse(localStorage.getItem("agenda:tasks"));
+  tasks.push({ id:"t-parti", area:"school", subjectId:"s-stor", subjectName:"Storia", kind:"homework",
+    title:"Riassunto di storia", due:"2026-09-24", weight:3, createdAt:"2026-09-21", doneAt:null, droppedAt:null,
+    plan:{skip:[],pick:{}},
+    parts:[{id:"p-a",title:"prima metà",total:1,done:0,pick:{}},{id:"p-b",title:"seconda metà",total:1,done:0,pick:{}}] });
+  localStorage.setItem("agenda:tasks", JSON.stringify(tasks));
+});
+await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(300);
+const rigaParti = page.locator("#list .ag-task", { hasText: "Riassunto di storia" });
+check("senza giorni è da pianificare", await rigaParti.locator(".ag-task__flag--plan").count() === 1);
+await rigaParti.locator(".ag-task__main").click(); await page.waitForTimeout(300);
+check("nel compito aperto ogni parte ha il suo chip «quando»", (await all("#task-body .ag-part__pill")).join("/") === "quando?/quando?",
+      (await all("#task-body .ag-part__pill")).join("/"));
+await page.locator("#task-body [data-part-when]").first().click(); await page.waitForTimeout(250);
+check("il foglio offre i giorni della finestra", (await all("#when-days [data-when-day]")).join("/") === "oggi/domani/mer 23",
+      (await all("#when-days [data-when-day]")).join("/"));
+check("e il primo è già scelto", (await page.locator('#when-days [data-when-day="2026-09-21"]').getAttribute("aria-pressed")) === "true");
+await page.locator('[data-when-slot="evening"]').click(); await page.waitForTimeout(250);
+await page.locator("#task-body [data-part-when]").nth(1).click(); await page.waitForTimeout(250);
+await page.locator('#when-days [data-when-day="2026-09-23"]').click();
+await page.locator('[data-when-slot="afternoon"]').click(); await page.waitForTimeout(250);
+check("i chip dicono il giorno e il momento", (await all("#task-body .ag-part__pill")).join("/") === "oggi · sera/mer 23 · pomerig.",
+      (await all("#task-body .ag-part__pill")).join("/"));
+await page.click("#task-save"); await page.waitForTimeout(300);
+check("non è più da pianificare", await rigaParti.locator(".ag-task__flag--plan").count() === 0);
+check("nell'elenco ogni parte porta il suo giorno", (await rigaParti.locator(".ag-subpart__when").allTextContents()).join("/") === "oggi · sera/mer 23 · pomerig.",
+      (await rigaParti.locator(".ag-subpart__when").allTextContents()).join("/"));
+const sezioneDi = async (loc) => loc.evaluate((n) => n.closest(".ag-section").querySelector(".ag-section__title").textContent.trim());
+check("il compito sta nel giorno della prossima parte: oggi", (await sezioneDi(rigaParti)) === "Oggi", await sezioneDi(rigaParti));
+await rigaParti.locator("[data-part]").first().click(); await page.waitForTimeout(300);
+check("finita la prima metà, passa a mercoledì", (await sezioneDi(rigaParti)) === "Questa settimana", await sezioneDi(rigaParti));
+await page.click("#open-calendar"); await page.waitForTimeout(350);
+check("nel calendario un blocchetto per ogni parte",
+      await page.locator('.ag-wblock[aria-label="Riassunto di storia · prima metà"]').count() === 1
+      && await page.locator('.ag-wblock[aria-label="Riassunto di storia · seconda metà"]').count() === 1);
+check("quella fatta è barrata", (await page.locator('.ag-wblock[aria-label="Riassunto di storia · prima metà"]').getAttribute("class")).includes("ag-wblock--done"));
+check("e sotto la griglia c'è il nome della parte", (await all(".ag-pellet__title")).includes("Riassunto di storia · prima metà"),
+      (await all(".ag-pellet__title")).join(" | "));
+await page.click('[data-close="calendar-layer"]'); await page.waitForTimeout(200);
+await rigaParti.locator(".ag-task__main").click(); await page.waitForTimeout(300);
+await page.locator("#task-body [data-part-when]").nth(1).click(); await page.waitForTimeout(250);
+await page.locator("[data-when-none]").click(); await page.waitForTimeout(250);
+check("«Nessun giorno» rimette la parte a seguire il compito", (await all("#task-body .ag-part__pill")).at(1) === "quando?",
+      (await all("#task-body .ag-part__pill")).join("/"));
+await page.click("#task-save"); await page.waitForTimeout(300);
+
 console.log("\n== a mezzanotte le cose fatte vanno nell'archivio ==");
 await page.locator("#list [data-check]").first().click(); await page.waitForTimeout(250);
 const fattoTitolo = await txt("#list .ag-task--done .ag-task__title");

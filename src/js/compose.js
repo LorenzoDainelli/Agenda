@@ -18,14 +18,15 @@
 import { today as todayISO, addDays, dowShort, dayMonth, dayNumber } from "./days.js";
 import { t, getLang } from "./i18n.js";
 import {
-  newTask, newPart, KINDS, WEIGHTS, AREA_SCHOOL, AREA_PRIVATE,
+  newTask, newPart, KINDS, WEIGHTS, SLOTS, AREA_SCHOOL, AREA_PRIVATE,
   progress, isPartDone, setPartDone, reschedule, isOpen,
+  windowDays, pickedDays, partDay, setPartPick,
 } from "./model.js";
 import { findSubject, colorStyle } from "./subjects.js";
 import { nextLessons, subjectsOn } from "./timetable.js";
 import {
   el, esc, openLayer, closeLayer, toast, confirmSheet, datePickerSheet, onEach,
-  dot, checkIcon,
+  dot, checkIcon, openSheet, closeSheet, whenLabel, relativeDay,
 } from "./ui.js";
 import * as planner from "./planner.js";
 
@@ -203,7 +204,78 @@ function weightSeg() {
     </div>`;
 }
 
+/**
+ * Il chip «quando» di una parte (§6.5): "quando?" se segue il compito, il suo
+ * giorno se ne ha uno. Senza una finestra di giorni non c'è niente da
+ * scegliere, e il chip non c'è (assunzione A15) — a meno che la parte un
+ * giorno ce l'abbia già: allora si vede, perché è un'informazione vera.
+ */
+function whenChip(part, conFinestra) {
+  const giorno = partDay(part);
+  if (!conFinestra && !giorno) return "";
+  const testo = giorno ? whenLabel(giorno, part.pick[giorno]) : t("part.when");
+  return `
+    <button class="ag-part__when" type="button" data-part-when="${esc(part.id)}"
+            ${conFinestra ? "" : "disabled"}>
+      <span class="ag-part__pill ${giorno ? "ag-part__pill--set" : ""}">${esc(testo)}</span>
+    </button>`;
+}
+
+/**
+ * Il foglio del chip «quando»: i giorni della finestra del compito (quelli
+ * esclusi no) e i tre momenti. Un tocco sul giorno, uno sul momento, fatto.
+ *
+ * Il giorno parte già scelto — quello della parte, o il primo scelto per il
+ * compito, o il primo della finestra — così nel caso comune basta toccare il
+ * momento.
+ */
+function whenSheet(partId) {
+  const part = draft.parts.find((entry) => entry.id === partId);
+  if (!part) return;
+  const today = todayISO();
+  const giorni = windowDays(draft, today);
+  const attuale = partDay(part);
+  let scelto = giorni.includes(attuale) ? attuale
+    : pickedDays(draft).find((day) => giorni.includes(day)) || giorni[0];
+
+  const body = openSheet(`
+    <p class="ag-sheet__title">${esc(t("part.when.title", { title: part.title }))}</p>
+    <div class="ag-chips" id="when-days">
+      ${giorni.map((day) => `
+        <button class="ag-chip" type="button" data-when-day="${day}"
+                aria-pressed="${day === scelto ? "true" : "false"}">${esc(relativeDay(day, today))}</button>`).join("")}
+    </div>
+    <div class="ag-group">
+      ${SLOTS.map((slot) => `
+        <button class="ag-sheet__option" type="button" data-when-slot="${slot}"
+                aria-selected="${attuale && part.pick[attuale] === slot ? "true" : "false"}">
+          <span>${esc(t(`slot.${slot}`))}</span>
+        </button>`).join("")}
+    </div>
+    ${attuale ? `<button class="ag-btn ag-btn--ghost" type="button" data-when-none>${esc(t("part.when.none"))}</button>` : ""}
+  `);
+
+  onEach(body, "[data-when-day]", "click", (event) => {
+    scelto = event.currentTarget.dataset.whenDay;
+    for (const chip of body.querySelectorAll("[data-when-day]")) {
+      chip.setAttribute("aria-pressed", chip.dataset.whenDay === scelto ? "true" : "false");
+    }
+  });
+  onEach(body, "[data-when-slot]", "click", (event) => {
+    const slot = event.currentTarget.dataset.whenSlot;
+    closeSheet();
+    draft = setPartPick(draft, partId, scelto, slot);
+    render();
+  });
+  body.querySelector("[data-when-none]")?.addEventListener("click", () => {
+    closeSheet();
+    draft = setPartPick(draft, partId, null);
+    render();
+  });
+}
+
 function partsBlock() {
+  const conFinestra = Boolean(draft.due) && windowDays(draft, todayISO()).length > 0;
   const rows = (draft.parts || []).map((part) => {
     const done = isPartDone(part);
     const counter = part.total > 1
@@ -229,6 +301,7 @@ function partsBlock() {
       <div class="ag-part ${done ? "ag-part--done" : ""}">
         <span class="ag-part__main">
           <span class="ag-part__title">${esc(part.title)}</span>
+          ${whenChip(part, conFinestra)}
         </span>
         ${counter}
         <button class="ag-iconbtn ag-iconbtn--plain ag-iconbtn--tight" type="button" data-part-del="${esc(part.id)}"
@@ -397,6 +470,10 @@ function bind(body) {
     if (event.key === "Enter") { event.preventDefault(); addPart(); }
   });
 
+  onEach(body, "[data-part-when]", "click", (event) => {
+    readTitle();
+    whenSheet(event.currentTarget.dataset.partWhen);
+  });
   onEach(body, "[data-part-toggle]", "click", (event) => {
     readTitle();
     const id = event.currentTarget.dataset.partToggle;

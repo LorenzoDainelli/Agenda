@@ -22,7 +22,8 @@ const scenari = [
   ["calendario settimana", async () => { await page.click("#open-calendar"); await page.waitForTimeout(400); }],
   ["calendario mese", async () => { await page.locator('#cal-mode [data-mode="month"]').click(); await page.waitForTimeout(400); }],
   ["impostazioni", async () => { await page.click('[data-close="calendar-layer"]'); await page.click("#open-settings"); await page.waitForTimeout(400); }],
-  ["pannello compito", async () => { await page.click('[data-close="settings-layer"]'); await page.locator("#list [data-open]").first().click(); await page.waitForTimeout(400); }],
+  // il compito con le parti, così si misurano anche i chip «quando»
+  ["pannello compito", async () => { await page.click('[data-close="settings-layer"]'); await page.locator("#list .ag-task__main", { hasText: "Compito con parti" }).click(); await page.waitForTimeout(400); }],
   ["archivio", async () => { await page.click('[data-close="task-layer"]'); await page.click("#open-archive"); await page.waitForTimeout(400); }],
 ];
 
@@ -40,7 +41,7 @@ for (const tema of ["light", "dark"]) {
       base({title:"Verifica di storia", kind:"test", subjectId:"s-violet", subjectName:"Materia violet", due:"2026-09-25", weight:3, plan:{skip:[],pick:{"2026-09-22":"evening","2026-09-23":"afternoon"}}}),
       base({title:"Compito in ritardo", subjectId:"s-sky", subjectName:"Materia sky", due:"2026-09-18", weight:2}),
       base({title:"Compito con parti", subjectId:"s-amber", subjectName:"Materia amber", due:"2026-09-24", weight:3,
-            parts:[{id:"p1",title:"cinque frasi",total:5,done:2,pick:{}},{id:"p2",title:"due esercizi",total:2,done:0,pick:{}}],
+            parts:[{id:"p1",title:"cinque frasi",total:5,done:2,pick:{"2026-09-22":"morning"}},{id:"p2",title:"due esercizi",total:2,done:0,pick:{}}],
             plan:{skip:[],pick:{"2026-09-22":"morning","2026-09-23":"evening"}}}),
       base({title:"Giornata pesante", subjectId:"s-rose", subjectName:"Materia rose", due:"2026-09-26", weight:3, plan:{skip:[],pick:{"2026-09-22":"afternoon"}}}),
       base({title:"Cosa privata", area:"private", kind:"todo"}),

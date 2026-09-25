@@ -8,7 +8,8 @@
 
 import { today as todayISO, addDays, mondayOf, monthKey } from "./days.js";
 import {
-  isOpen, isDone, isDropped, isLate, workDate, AREA_PRIVATE, SLOTS,
+  isOpen, isDone, isDropped, isLate, workDate, isPartDone, partDay, hasPlan,
+  AREA_PRIVATE, SLOTS,
 } from "./model.js";
 
 /** Le sezioni dell'elenco, nell'ordine in cui si mostrano. */
@@ -142,25 +143,49 @@ export function summary(tasks, { today = todayISO(), area = "all" } = {}) {
   return { forToday, late, dueTomorrow, open: open.length };
 }
 
-/** Le cose scelte per un certo giorno, per il calendario. */
-export function onDay(tasks, day) {
-  return tasks
-    .filter((task) => {
-      if (isDropped(task)) return false;
-      if (task.plan?.pick && day in task.plan.pick) return true;
-      // una verifica compare anche nel giorno in cui si svolge, sempre
-      return task.kind === "test" && task.due === day;
-    })
-    .sort(compare);
+/**
+ * Le voci di un giorno, per il calendario: `{ task, part, slot, done }`.
+ *
+ * Una voce è un compito (`part` null) o una sua parte che ha quel giorno
+ * (§6.2): un compito con le frasi lunedì e gli esercizi martedì dà una voce
+ * lunedì e una martedì, ognuna col suo nome. Il compito stesso compare nei
+ * giorni scelti per lui solo se ha parti senza un giorno loro, o non ha parti
+ * — se no sarebbe un blocchetto senza niente dentro (assunzione A13).
+ *
+ * `done` dice se la voce va barrata: la parte fatta, o il compito fatto, o —
+ * per la voce del compito — tutte le parti che la seguono fatte.
+ */
+export function entriesOn(tasks, day) {
+  const out = [];
+  for (const task of tasks) {
+    if (isDropped(task)) continue;
+    const parts = task.parts || [];
+    const seguono = parts.filter((part) => !partDay(part));
+    const suo = task.plan?.pick?.[day];
+    // una verifica compare nel giorno in cui si svolge, sempre
+    if (task.kind === "test" && task.due === day) {
+      out.push({ task, part: null, slot: suo || "morning", done: isDone(task) });
+    } else if (suo && (parts.length === 0 || seguono.length > 0)) {
+      out.push({ task, part: null, slot: suo,
+                 done: isDone(task) || (seguono.length > 0 && seguono.every(isPartDone)) });
+    }
+    for (const part of parts) {
+      if (partDay(part) !== day) continue;
+      out.push({ task, part, slot: part.pick[day], done: isDone(task) || isPartDone(part) });
+    }
+  }
+  // l'ordine dei compiti è quello dell'elenco; dentro lo stesso compito, prima
+  // la sua voce e poi le parti nell'ordine in cui sono state scritte
+  const posto = (entry) => (entry.part ? entry.task.parts.indexOf(entry.part) + 1 : 0);
+  return out.sort((a, b) => compare(a.task, b.task) || (a.task.id === b.task.id ? posto(a) - posto(b) : 0));
 }
 
 /** Come sopra, divise per momento della giornata. Una verifica sta nel suo giorno
  *  anche se non è stata pianificata: il momento in quel caso è "mattina". */
 export function onDayBySlot(tasks, day) {
   const out = { morning: [], afternoon: [], evening: [] };
-  for (const task of onDay(tasks, day)) {
-    const scelto = task.plan?.pick?.[day]
-      || (task.kind === "test" && task.due === day ? "morning" : "afternoon");
+  for (const entry of entriesOn(tasks, day)) {
+    const scelto = entry.slot;
     // Un momento che non conosciamo finisce nel pomeriggio invece di far
     // saltare tutto. Non è una cortesia: i dati possono arrivare da una copia
     // ripristinata, scritta da una versione futura o modificata a mano, e un
@@ -168,17 +193,18 @@ export function onDayBySlot(tasks, day) {
     // completamente vuoto — cioè il difetto peggiore possibile, perché non
     // sembra un errore, sembra che non ci sia niente da fare.
     const slot = SLOTS.includes(scelto) ? scelto : "afternoon";
-    out[slot].push(task);
+    out[slot].push(entry);
   }
   return out;
 }
 
-/** Le cose che scadono in un giorno ma non sono state pianificate da nessuna parte. */
+/** Le cose che scadono in un giorno ma non sono state pianificate da nessuna
+ *  parte: né un giorno del compito, né un giorno di una sua parte. */
 export function unplannedOn(tasks, day) {
   return tasks
     .filter((task) => isOpen(task)
       && task.due === day
-      && Object.keys(task.plan?.pick || {}).length === 0
+      && !hasPlan(task)
       && task.kind !== "test")
     .sort(compare);
 }

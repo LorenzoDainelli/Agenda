@@ -81,17 +81,17 @@ console.log("calendario: cosa c'è in un giorno");
 let studio = mk("studia storia", { due: "2026-09-25", weight: 2 });
 studio = M.togglePick(studio, "2026-09-24", "evening");
 const conVerifica = [studio, mk("verifica storia", { kind: "test", due: "2026-09-25" })];
-eq("il giorno dello studio", Q.onDay(conVerifica, "2026-09-24").map(t => t.title), ["studia storia"]);
-eq("il giorno della verifica", Q.onDay(conVerifica, "2026-09-25").map(t => t.title), ["verifica storia"]);
-eq("diviso per momento", Q.onDayBySlot(conVerifica, "2026-09-24").evening.map(t => t.title), ["studia storia"]);
-eq("una verifica non pianificata va di mattina", Q.onDayBySlot(conVerifica, "2026-09-25").morning.map(t => t.title), ["verifica storia"]);
+eq("il giorno dello studio", Q.entriesOn(conVerifica, "2026-09-24").map(e => e.task.title), ["studia storia"]);
+eq("il giorno della verifica", Q.entriesOn(conVerifica, "2026-09-25").map(e => e.task.title), ["verifica storia"]);
+eq("diviso per momento", Q.onDayBySlot(conVerifica, "2026-09-24").evening.map(e => e.task.title), ["studia storia"]);
+eq("una verifica non pianificata va di mattina", Q.onDayBySlot(conVerifica, "2026-09-25").morning.map(e => e.task.title), ["verifica storia"]);
 // Un momento che l'app non conosce può arrivare da una copia ripristinata o
 // scritta da una versione successiva. Prima faceva saltare l'intera griglia
 // della settimana, che restava vuota: non sembrava un errore, sembrava che
 // non ci fosse niente da fare.
 const inventato = { ...studio, plan: { skip: [], pick: { "2026-09-24": "sera" } } };
 eq("un momento sconosciuto non svuota il calendario",
-   Q.onDayBySlot([inventato], "2026-09-24").afternoon.map(t => t.title), ["studia storia"]);
+   Q.onDayBySlot([inventato], "2026-09-24").afternoon.map(e => e.task.title), ["studia storia"]);
 eq("e non finisce in nessun altro momento",
    [Q.onDayBySlot([inventato], "2026-09-24").morning.length,
     Q.onDayBySlot([inventato], "2026-09-24").evening.length], [0, 0]);
@@ -99,6 +99,25 @@ eq("e non finisce in nessun altro momento",
 eq("da pianificare nel giorno della scadenza",
    Q.unplannedOn([mk("non pianificato", { due: "2026-09-25" })], "2026-09-25").length, 1);
 eq("se l'ha pianificato non è più da pianificare", Q.unplannedOn([studio], "2026-09-25").length, 0);
+
+console.log("calendario: le parti coi loro giorni (§6.2)");
+{
+  const LUN = "2026-09-21", MAR = "2026-09-22", MER = "2026-09-23";
+  let c = { ...mk("compiti di inglese", { due: "2026-09-24", weight: 2 }), parts: [M.newPart("frasi", 5), M.newPart("esercizi", 2)] };
+  c = M.setPartPick(c, c.parts[0].id, LUN, "evening");
+  c = M.setPartPick(c, c.parts[1].id, MAR, "afternoon");
+  const voce = (e) => [e.task.title, e.part?.title ?? null, e.slot, e.done];
+  eq("lunedì: una voce, le frasi di sera", Q.entriesOn([c], LUN).map(voce), [["compiti di inglese", "frasi", "evening", false]]);
+  eq("martedì: gli esercizi di pomeriggio", Q.onDayBySlot([c], MAR).afternoon.map(voce), [["compiti di inglese", "esercizi", "afternoon", false]]);
+  const conGiorno = M.togglePick(c, MER, "evening");
+  eq("il giorno del compito non dà una voce se ogni parte ha il suo", Q.entriesOn([conGiorno], MER).length, 0);
+  const unaSegue = M.setPartPick(conGiorno, c.parts[1].id, null);
+  eq("la dà se una parte lo segue", Q.entriesOn([unaSegue], MER).map(voce), [["compiti di inglese", null, "evening", false]]);
+  eq("una parte fatta resta, barrata", Q.entriesOn([M.setPartDone(c, c.parts[0].id, 5)], LUN).map((e) => e.done), [true]);
+  eq("nell'elenco, lunedì è di oggi", Q.sectionOf(c, LUN), "today");
+  eq("finite le frasi, è di domani", Q.sectionOf(M.setPartDone(c, c.parts[0].id, 5), LUN), "tomorrow");
+  eq("con i giorni delle parti non è da pianificare", Q.unplannedOn([c], "2026-09-24").length, 0);
+}
 
 console.log("arretrati in ordine, i più vecchi prima");
 eq("ordine", Q.lateTasks([mk("b",{due:"2026-09-22"}), mk("a",{due:"2026-09-19"})], OGGI).map(t => t.title), ["a","b"]);

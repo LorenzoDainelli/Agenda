@@ -22,16 +22,16 @@ import {
 } from "./storage.js";
 import {
   markDone, markOpen, isLate, isDone, isDropped, isOpen, isPartDone,
-  dayLoad, loadStep, tapPart, settleParts, AREA_PRIVATE,
+  dayLoad, loadStep, tapPart, settleParts, hasPlan, partDay, AREA_PRIVATE,
 } from "./model.js";
 import {
   sections, summary, countsByArea, replaceTask, removeTask, findTask, archive,
-  byArea, onDay,
+  byArea, entriesOn,
 } from "./tasks.js";
 import { subjectLabel, subjectColor, colorStyle } from "./subjects.js";
 import {
   el, esc, toast, openLayer, closeLayer, topLayer, closeSheet, isSheetOpen,
-  onEach, dot, weightTicks, checkIcon, emptyState,
+  onEach, dot, weightTicks, checkIcon, emptyState, whenLabel,
 } from "./ui.js";
 import * as compose from "./compose.js";
 import * as calendar from "./calendar.js";
@@ -151,7 +151,7 @@ function renderNext() {
   el("next-days").innerHTML = days.map((d) => {
     const load = dayLoad(filtered, d);
     const step = loadStep(load);
-    const n = onDay(filtered, d).filter(isOpen).length;
+    const n = entriesOn(filtered, d).filter((entry) => !entry.done).length;
     const hasTest = filtered.some((task) => isOpen(task) && task.kind === "test" && task.due === d);
     return `
       <button class="ag-nday ${d === day ? "ag-nday--today" : ""} ${hasTest ? "ag-nday--test" : ""}"
@@ -224,9 +224,16 @@ function partRow(task, part) {
   const label = counted
     ? t("part.count", { title: part.title, done: part.done, total: part.total })
     : t("part.check", { title: part.title });
+  // il suo giorno, se ne ha uno (§6.1): è quello che dice perché il compito
+  // sta in questa sezione e non in un'altra
+  const giorno = partDay(part);
+  const quando = giorno ? whenLabel(giorno, part.pick[giorno], day) : "";
   return `
     <li class="ag-subpart ${done ? "ag-subpart--done" : ""}">
-      <button class="ag-subpart__title" type="button" data-open="${esc(task.id)}">${esc(part.title)}</button>
+      <button class="ag-subpart__title" type="button" data-open="${esc(task.id)}">
+        <span class="ag-subpart__name">${esc(part.title)}</span>
+        ${quando ? `<span class="ag-subpart__when">${esc(quando)}</span>` : ""}
+      </button>
       <button class="ag-check ${counted && !done ? "ag-check--count" : ""}" type="button"
               data-part="${esc(task.id)}" data-part-id="${esc(part.id)}"
               aria-pressed="${done ? "true" : "false"}"
@@ -240,7 +247,7 @@ function taskRow(task) {
   const subject = subjectLabel(state.settings.subjects, task);
   const color = subjectColor(state.settings.subjects, task);
   const due = dueLabel(task);
-  const unplanned = task.due && Object.keys(task.plan?.pick || {}).length === 0;
+  const unplanned = task.due && !hasPlan(task);
 
   const classes = [
     "ag-task",

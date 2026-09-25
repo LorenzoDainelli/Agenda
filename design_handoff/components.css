@@ -530,18 +530,32 @@ button { cursor: pointer; touch-action: manipulation; }
   min-width: 0;
   min-height: var(--ag-touch-min);
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
   text-align: left;
+}
+
+.ag-subpart__name {
   font-size: var(--ag-size-sm);
   font-weight: var(--ag-weight-medium);
   line-height: var(--ag-leading-snug);
   color: var(--ag-text);
 }
 
-/* Fatta: come il compito fatto, coi colori e non con l'opacità. Muted:
-   5.31:1 su --ag-surface e 5.18:1 su --ag-test-soft nel chiaro, 7.34:1 e
-   6.83:1 nello scuro. */
-.ag-subpart--done .ag-subpart__title { color: var(--ag-text-muted); text-decoration: line-through; }
+/* Il giorno di una parte che ne ha uno (§6.1): «oggi · sera». Muted: 5.31:1
+   su --ag-surface e 5.18:1 su --ag-test-soft nel chiaro, 7.34:1 e 6.83:1
+   nello scuro. */
+.ag-subpart__when {
+  font-size: var(--ag-size-2xs);
+  color: var(--ag-text-muted);
+}
+
+/* Fatta: come il compito fatto, coi colori e non con l'opacità. Muted, con
+   gli stessi numeri qui sopra. Si barra il nome e non il giorno: il giorno
+   di una cosa fatta resta un'informazione vera. */
+.ag-subpart--done .ag-subpart__name { color: var(--ag-text-muted); text-decoration: line-through; }
 
 /* ── 7. Parti e avanzamento ───────────────────────────────────────── */
 
@@ -569,6 +583,35 @@ button { cursor: pointer; touch-action: manipulation; }
 }
 
 .ag-part__meta { font-size: var(--ag-size-2xs); color: var(--ag-text-muted); }
+
+/* Il chip «quando» di una parte, nel pannello del compito (§6.5). Come il
+   cerchio della spunta: la pillola si vede alta 28px, il pulsante è alto 44
+   perché l'area di tocco è la regola. Sta sotto il nome e non accanto, perché
+   accanto ci sono già il contatore e la ✕ e il nome resterebbe senza spazio.
+   "quando?": muted su --ag-bg, 5.86:1 nel chiaro e 8.10:1 nello scuro.
+   Con un giorno: --ag-primary-ink su --ag-primary-soft, 9.25:1 e 8.90:1. */
+.ag-part__when {
+  align-self: flex-start;
+  padding: 0;  /* il margine di serie del pulsante la staccava dal nome */
+  min-height: var(--ag-touch-min);
+  display: inline-flex;
+  align-items: center;
+}
+
+.ag-part__pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--ag-check-size);
+  padding: 0 var(--ag-space-3);
+  border-radius: var(--ag-radius-pill);
+  background: var(--ag-bg);
+  color: var(--ag-text-muted);
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-semibold);
+}
+
+.ag-part__pill--set { background: var(--ag-primary-soft); color: var(--ag-primary-ink); }
+.ag-part__when:active .ag-part__pill { box-shadow: inset 0 0 0 2px var(--ag-primary); }
 
 /* Il contatore di una parte con quantità: − 3/5 +. I due pulsanti sono
    rotondi e grandi, il numero in mezzo è tabellare così non balla. */

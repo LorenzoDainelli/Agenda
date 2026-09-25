@@ -16,7 +16,7 @@ import {
   addMonths, daysInMonth, dowShort, monthYear, dayMonth, weekdayInitials, full,
 } from "./days.js";
 import { t, getLang } from "./i18n.js";
-import { dayLoad, loadStep, isDone, isOpen } from "./model.js";
+import { dayLoad, loadStep, isOpen } from "./model.js";
 import { onDayBySlot, unplannedOn } from "./tasks.js";
 import { subjectColor, colorStyle } from "./subjects.js";
 import { el, esc, onEach, emptyState } from "./ui.js";
@@ -79,24 +79,38 @@ function blockLabel(task) {
   return task.title.trim().slice(0, 4).toUpperCase();
 }
 
+/** Il nome per esteso di una voce: il compito, e la parte se è una parte. */
+function entryTitle(entry) {
+  return entry.part ? `${entry.task.title} · ${entry.part.title}` : entry.task.title;
+}
+
 /**
- * Un blocchetto. L'ambra della verifica vale SOLO nel giorno in cui la
- * verifica si svolge: nei giorni prima quello che c'è è lo studio, e
- * dipingerlo come la verifica farebbe sembrare che ci siano tre verifiche
- * invece di una. Nei giorni di studio vale il colore della materia.
+ * Un blocchetto: un compito, o una sua parte che ha quel giorno (§6.2). La
+ * sigla è la stessa — è la materia — e il nome della parte si legge
+ * nell'elenco sotto la griglia.
+ *
+ * L'ambra della verifica vale SOLO nel giorno in cui la verifica si svolge:
+ * nei giorni prima quello che c'è è lo studio, e dipingerlo come la verifica
+ * farebbe sembrare che ci siano tre verifiche invece di una. Nei giorni di
+ * studio vale il colore della materia.
  */
-function block(task, day) {
+function block(entry, day) {
+  const { task } = entry;
   const color = subjectColor(ctx.settings.subjects, task);
-  const eVerifica = task.kind === "test" && task.due === day;
+  const eVerifica = !entry.part && task.kind === "test" && task.due === day;
   const classes = [
     "ag-wblock",
     eVerifica ? "ag-wblock--test" : "",
-    isDone(task) ? "ag-wblock--done" : "",
+    entry.done ? "ag-wblock--done" : "",
   ].filter(Boolean).join(" ");
   const style = eVerifica ? "" : colorStyle(color);
   return `<button class="${classes}" type="button" data-task="${esc(task.id)}"
-            style="${style}" aria-label="${esc(task.title)}">${esc(blockLabel(task))}</button>`;
+            style="${style}" aria-label="${esc(entryTitle(entry))}">${esc(blockLabel(task))}</button>`;
 }
+
+/** Le cose da pianificare sono compiti interi: le vestiamo da voce per
+ *  disegnarle con gli stessi blocchetti. */
+const asEntry = (task) => ({ task, part: null, slot: null, done: false });
 
 function weekDays() {
   return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -131,8 +145,8 @@ function grid() {
     const nome = slot === "unplanned" ? "slot.unplanned" : `slot.${slot}`;
     const etichetta = `<span class="ag-wgrid__slot" title="${esc(t(nome))}">${esc(t(`${nome}.tiny`))}</span>`;
     const dayCells = days.map((d) => {
-      const lista = slot === "unplanned" ? unplannedOn(ctx.tasks, d) : onDayBySlot(ctx.tasks, d)[slot];
-      return `<div class="ag-wgrid__cell ${lista.length ? "" : "ag-wgrid__cell--empty"}">${lista.map((task) => block(task, d)).join("")}</div>`;
+      const lista = slot === "unplanned" ? unplannedOn(ctx.tasks, d).map(asEntry) : onDayBySlot(ctx.tasks, d)[slot];
+      return `<div class="ag-wgrid__cell ${lista.length ? "" : "ag-wgrid__cell--empty"}">${lista.map((entry) => block(entry, d)).join("")}</div>`;
     });
     return [etichetta, ...dayCells];
   });
@@ -149,7 +163,7 @@ function dayDetail() {
   const lang = getLang();
   const load = dayLoad(ctx.tasks, selectedDay);
   const bySlot = onDayBySlot(ctx.tasks, selectedDay);
-  const unplanned = unplannedOn(ctx.tasks, selectedDay);
+  const unplanned = unplannedOn(ctx.tasks, selectedDay).map(asEntry);
 
   const gruppi = [
     ...SLOT_ROWS.map((slot) => [t(`slot.${slot}`), bySlot[slot]]),
@@ -160,7 +174,7 @@ function dayDetail() {
     ? gruppi.map(([nome, lista]) => `
         <div class="ag-slot">
           <span class="ag-slot__label">${esc(nome)}</span>
-          ${lista.map((task) => pellet(task, selectedDay)).join("")}
+          ${lista.map((entry) => pellet(entry, selectedDay)).join("")}
         </div>`).join("")
     : `<p class="ag-group__note">${esc(t("cal.day.nothing"))}</p>`;
 
@@ -174,18 +188,19 @@ function dayDetail() {
     </div>`;
 }
 
-function pellet(task, day) {
+function pellet(entry, day) {
+  const { task } = entry;
   const color = subjectColor(ctx.settings.subjects, task);
-  const eVerifica = task.kind === "test" && task.due === day;
+  const eVerifica = !entry.part && task.kind === "test" && task.due === day;
   const classes = [
     "ag-pellet",
     eVerifica ? "ag-pellet--test" : "",
-    isDone(task) ? "ag-pellet--done" : "",
+    entry.done ? "ag-pellet--done" : "",
   ].filter(Boolean).join(" ");
   return `
     <button class="${classes}" type="button" data-task="${esc(task.id)}">
       ${eVerifica ? "" : `<span class="ag-dot" style="${colorStyle(color)}" aria-hidden="true"></span>`}
-      <span class="ag-pellet__title">${esc(task.title)}</span>
+      <span class="ag-pellet__title">${esc(entryTitle(entry))}</span>
     </button>`;
 }
 
