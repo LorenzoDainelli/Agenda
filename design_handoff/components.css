@@ -1140,9 +1140,10 @@ button { cursor: pointer; touch-action: manipulation; }
 
 .ag-wgrid {
   display: grid;
-  /* 3.1rem è la larghezza della più lunga delle forme brevi ("SCADE") a
-     11px maiuscoletto, misurata. Le sette colonne si dividono il resto. */
-  grid-template-columns: 3.1rem repeat(7, 1fr);
+  /* 1rem è la larghezza dell'icona del momento. Con le scritte ("SCADE",
+     3.1rem) sull'iPhone 15 le colonne restavano a 40px, sotto i 44 del
+     tocco minimo; con le icone arrivano a 45 (assunzione A25 nel piano). */
+  grid-template-columns: 1rem repeat(7, 1fr);
   gap: 3px;
 }
 
@@ -1188,13 +1189,10 @@ button { cursor: pointer; touch-action: manipulation; }
 .ag-wgrid__slot {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  font-size: var(--ag-size-2xs);
-  font-weight: var(--ag-weight-semibold);
-  letter-spacing: var(--ag-tracking-wide);
+  justify-content: center;
+  /* testo secondario sulla superficie: 4.5:1 o più, come ogni --ag-text-muted
+     (misurato nei token). Un'icona è un elemento grafico: basterebbe 3:1. */
   color: var(--ag-text-muted);
-  padding-inline-end: var(--ag-space-1);
-  white-space: nowrap;
 }
 
 .ag-wgrid__cell {

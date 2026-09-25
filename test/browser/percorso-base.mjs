@@ -193,7 +193,9 @@ check("annullando torna da fare", !(await page.locator("#list .ag-task").first()
 console.log("\n== calendario ==");
 await page.click("#open-calendar"); await page.waitForTimeout(350);
 check("la griglia ha sette intestazioni di giorno", await page.locator(".ag-wgrid__head").count() === 7);
-check("i momenti della giornata sono righe", (await all(".ag-wgrid__slot")).length >= 3, (await all(".ag-wgrid__slot")).join("/"));
+// i momenti sono icone (A25): il nome si legge dall'aria-label, non dal testo
+const momenti = await page.locator(".ag-wgrid__slot").evaluateAll(els => els.map(e => e.getAttribute("aria-label")));
+check("i momenti della giornata sono righe, con un nome", momenti.length >= 3 && momenti.every(Boolean), momenti.join("/"));
 console.log("   blocchi nella griglia:", (await all(".ag-wblock")).join(" "));
 check("il giorno scelto ha il suo dettaglio sotto", await page.locator(".ag-wday-detail__title").count() === 1,
       await txt(".ag-wday-detail__title"));

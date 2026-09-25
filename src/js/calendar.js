@@ -69,6 +69,20 @@ function loadStyle(step) {
 
 const SLOT_ROWS = ["morning", "afternoon", "evening"];
 
+/* Le icone dei momenti al posto delle scritte: una scritta breve ("SCADE")
+   voleva una colonna da 3.1rem e lasciava ai giorni 40px, sotto il tocco
+   minimo. Sole, mezzo sole, luna, bandierina della scadenza. */
+const SLOT_ICONS = {
+  morning: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  afternoon: '<path d="M4 18h16M7 18a5 5 0 0 1 10 0"/><path d="M12 8v2M5.6 11.6l1.4 1.4M18.4 11.6 17 13"/>',
+  evening: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
+  unplanned: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+};
+
+function slotIcon(slot) {
+  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SLOT_ICONS[slot]}</svg>`;
+}
+
 /** L'etichetta dentro un blocchetto: la sigla della materia, o le prime
  *  lettere del titolo per le cose che non hanno una materia. */
 function blockLabel(task) {
@@ -147,7 +161,7 @@ function grid() {
 
   const celle = righe.flatMap((slot) => {
     const nome = slot === "unplanned" ? "slot.unplanned" : `slot.${slot}`;
-    const etichetta = `<span class="ag-wgrid__slot" title="${esc(t(nome))}">${esc(t(`${nome}.tiny`))}</span>`;
+    const etichetta = `<span class="ag-wgrid__slot" role="img" title="${esc(t(nome))}" aria-label="${esc(t(nome))}">${slotIcon(slot)}</span>`;
     const dayCells = days.map((d) => {
       const lista = slot === "unplanned" ? unplannedOn(ctx.tasks, d).map(asEntry) : onDayBySlot(ctx.tasks, d)[slot];
       // ogni casella porta il suo giorno: toccandone una qualsiasi si sceglie

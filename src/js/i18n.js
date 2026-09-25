@@ -61,10 +61,6 @@ const DICT = {
     "cal.day.load": "peso {n}",
     "cal.tap": "Tocca un giorno per vedere cosa c'\u00e8. Tocca una cosa per aprirla.",
     "slot.unplanned": "Da pianificare",
-    "slot.morning.tiny": "MATT",
-    "slot.afternoon.tiny": "POM",
-    "slot.evening.tiny": "SERA",
-    "slot.unplanned.tiny": "SCADE",
     "todo.filter.all": "Tutto",
     "todo.add": "Aggiungi",
 
@@ -256,10 +252,6 @@ const DICT = {
     "cal.day.load": "weight {n}",
     "cal.tap": "Tap a day to see what's on it. Tap a thing to open it.",
     "slot.unplanned": "Needs planning",
-    "slot.morning.tiny": "MORN",
-    "slot.afternoon.tiny": "AFT",
-    "slot.evening.tiny": "EVE",
-    "slot.unplanned.tiny": "DUE",
     "todo.filter.all": "All",
     "todo.add": "Add",
 
