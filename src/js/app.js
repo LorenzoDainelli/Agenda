@@ -18,7 +18,7 @@ import {
 import { t, setLang, deviceLang, getLang, apply as applyI18n } from "./i18n.js";
 import {
   loadSettings, saveSettings, loadTasks, saveTasks, loadTimetables, saveTimetables,
-  loadReview, saveReview,
+  loadReview, saveReview, loadBackupInfo,
 } from "./storage.js";
 import {
   markDone, markOpen, isLate, isDone, isDropped, isOpen, isPartDone,
@@ -228,11 +228,14 @@ function partRow(task, part) {
   // sta in questa sezione e non in un'altra
   const giorno = partDay(part);
   const quando = giorno ? whenLabel(giorno, part.pick[giorno], day) : "";
+  // il suo giorno è passato e non è fatta: in rosso, come una scadenza
+  // passata (§6.1)
+  const inRitardo = Boolean(giorno) && giorno < day && !done;
   return `
     <li class="ag-subpart ${done ? "ag-subpart--done" : ""}">
       <button class="ag-subpart__title" type="button" data-open="${esc(task.id)}">
         <span class="ag-subpart__name">${esc(part.title)}</span>
-        ${quando ? `<span class="ag-subpart__when">${esc(quando)}</span>` : ""}
+        ${quando ? `<span class="ag-subpart__when ${inRitardo ? "ag-subpart__when--late" : ""}">${esc(quando)}</span>` : ""}
       </button>
       <button class="ag-check ${counted && !done ? "ag-check--count" : ""}" type="button"
               data-part="${esc(task.id)}" data-part-id="${esc(part.id)}"
@@ -320,12 +323,28 @@ function renderReviewAlert() {
   el("review-open").textContent = t("common.done");
 }
 
+/** Il promemoria della copia, una volta al mese (assunzioni A18–A20). */
+function renderBackupAlert() {
+  const box = el("backup-alert");
+  const info = loadBackupInfo();
+  const due = backup.isDue(state.tasks, info, day);
+  box.hidden = !due;
+  if (!due) return;
+  el("backup-alert-title").textContent = t("backup.title");
+  el("backup-alert-note").textContent = info.lastSavedOn
+    ? t("backup.note.last", { date: dayMonth(info.lastSavedOn, getLang()) })
+    : t("backup.note.never");
+  el("backup-save").textContent = t("backup.save");
+  el("backup-later").textContent = t("backup.later");
+}
+
 function renderAll() {
   renderHeader();
   renderUrgent();
   renderNext();
   renderFilters();
   renderReviewAlert();
+  renderBackupAlert();
   renderList();
   // I livelli aperti si ridisegnano insieme al resto: se si spunta una cosa
   // dal pannello del compito, il calendario dietro non deve restare vecchio.
@@ -499,6 +518,8 @@ function openSettings() {
     onSettings: (next) => saveSettingsAndRender(next),
     onTimetables: (list) => saveTimetablesAndRender(list),
     onTasks: (tasks) => saveTasksAndRender(tasks),
+    // una copia scaricata dalle impostazioni fa sparire il promemoria
+    onBackup: () => renderAll(),
   });
 }
 
@@ -522,6 +543,14 @@ function bindChrome() {
   el("open-archive").addEventListener("click", openArchive);
   el("open-settings").addEventListener("click", openSettings);
   el("review-open").addEventListener("click", openReview);
+  el("backup-save").addEventListener("click", async () => {
+    if (await backup.download()) toast(t("settings.data.saved"));
+    renderAll();
+  });
+  el("backup-later").addEventListener("click", () => {
+    backup.snooze(day);
+    renderAll();
+  });
 
   el("add").addEventListener("click", () => {
     compose.openNew(ctx(), taskHandlers, { area });

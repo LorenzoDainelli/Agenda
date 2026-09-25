@@ -257,6 +257,24 @@ check("«Nessun giorno» rimette la parte a seguire il compito", (await all("#ta
       (await all("#task-body .ag-part__pill")).join("/"));
 await page.click("#task-save"); await page.waitForTimeout(300);
 
+console.log("\n== una parte rimasta indietro ==");
+await page.evaluate(() => {
+  const tasks = JSON.parse(localStorage.getItem("agenda:tasks"));
+  tasks.push({ id:"t-indietro", area:"school", subjectId:"s-mate", subjectName:"Matematica", kind:"homework",
+    title:"Problemi di geometria", due:"2026-09-25", weight:2, createdAt:"2026-09-18", doneAt:null, droppedAt:null,
+    plan:{skip:[],pick:{}},
+    parts:[{id:"p-x",title:"primi tre",total:1,done:0,pick:{"2026-09-20":"evening"}},
+           {id:"p-y",title:"gli altri",total:1,done:0,pick:{"2026-09-23":"afternoon"}}] });
+  localStorage.setItem("agenda:tasks", JSON.stringify(tasks));
+});
+await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(300);
+const rigaIndietro = page.locator("#list .ag-task", { hasText: "Problemi di geometria" });
+check("sta in Oggi, anche se l'altra parte è mercoledì", (await sezioneDi(rigaIndietro)) === "Oggi", await sezioneDi(rigaIndietro));
+const quandoIndietro = rigaIndietro.locator(".ag-subpart__when").first();
+check("il giorno passato si legge «ieri · sera»", (await quandoIndietro.textContent()).trim() === "ieri · sera", await quandoIndietro.textContent());
+check("ed è rosso", (await quandoIndietro.getAttribute("class")).includes("ag-subpart__when--late"));
+check("l'altra no", !(await rigaIndietro.locator(".ag-subpart__when").nth(1).getAttribute("class")).includes("--late"));
+
 console.log("\n== a mezzanotte le cose fatte vanno nell'archivio ==");
 await page.locator("#list [data-check]").first().click(); await page.waitForTimeout(250);
 const fattoTitolo = await txt("#list .ag-task--done .ag-task__title");

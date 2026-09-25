@@ -41,10 +41,12 @@ for (const tema of ["light", "dark"]) {
       base({title:"Verifica di storia", kind:"test", subjectId:"s-violet", subjectName:"Materia violet", due:"2026-09-25", weight:3, plan:{skip:[],pick:{"2026-09-22":"evening","2026-09-23":"afternoon"}}}),
       base({title:"Compito in ritardo", subjectId:"s-sky", subjectName:"Materia sky", due:"2026-09-18", weight:2}),
       base({title:"Compito con parti", subjectId:"s-amber", subjectName:"Materia amber", due:"2026-09-24", weight:3,
-            parts:[{id:"p1",title:"cinque frasi",total:5,done:2,pick:{"2026-09-22":"morning"}},{id:"p2",title:"due esercizi",total:2,done:0,pick:{}}],
+            parts:[{id:"p1",title:"cinque frasi",total:5,done:2,pick:{"2026-09-22":"morning"}},{id:"p2",title:"due esercizi",total:2,done:0,pick:{}},
+                   {id:"p5",title:"rimasta indietro",total:1,done:0,pick:{"2026-09-20":"evening"}}],
             plan:{skip:[],pick:{"2026-09-22":"morning","2026-09-23":"evening"}}}),
       base({title:"Giornata pesante", subjectId:"s-rose", subjectName:"Materia rose", due:"2026-09-26", weight:3, plan:{skip:[],pick:{"2026-09-22":"afternoon"}}}),
-      base({title:"Cosa privata", area:"private", kind:"todo"}),
+      // creata a luglio e nessuna copia mai scaricata: compare il promemoria
+      base({title:"Cosa privata", area:"private", kind:"todo", createdAt:"2026-07-01"}),
       // fatte oggi: restano nell'elenco barrate, ed è il caso che prima non si
       // guardava perché sparivano subito
       base({title:"Fatto stamattina", subjectId:"s-petrolio", subjectName:"Materia petrolio", due:"2026-09-23", weight:2,

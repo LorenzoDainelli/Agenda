@@ -115,6 +115,10 @@ eq("lunedì il compito sta lunedì", M.workDate(d, LUN), LUN);
 const frasiFatte = M.setPartDone(d, fr, 5);
 eq("finite le frasi, passa al martedì degli esercizi", M.workDate(frasiFatte, LUN), MAR);
 eq("una parte non fatta di un giorno passato è roba di oggi", M.workDate(d, MER), MER);
+eq("anche se un'altra parte è più avanti", M.workDate(M.setPartPick(d, es, MER), MAR), MAR);
+eq("ma se la parte passata è fatta, vale quella più avanti", M.workDate(frasiFatte, MAR), MAR);
+const dopo = M.setPartPick(frasiFatte, es, MER);
+eq("…e il compito aspetta il suo giorno", M.workDate(dopo, MAR), MER);
 
 console.log("i giorni del compito valgono per le parti che non ne hanno uno (A13)");
 const conGiorno = M.togglePick(d, MER, "evening");

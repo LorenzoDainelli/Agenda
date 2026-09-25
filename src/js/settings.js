@@ -413,6 +413,7 @@ export function render() {
   body.querySelector("#data-download")?.addEventListener("click", async () => {
     const saved = await backup.download();
     if (saved) toast(t("settings.data.saved"));
+    handlers.onBackup?.();
   });
   body.querySelector("#data-restore")?.addEventListener("click", () => {
     el("restore-file").click();

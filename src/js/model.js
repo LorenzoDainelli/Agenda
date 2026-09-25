@@ -151,8 +151,16 @@ export function hasPlan(task) {
  * I giorni sono quelli delle parti ancora da fare più quelli del compito
  * (vedi plannedDays): finite le frasi di lunedì, il compito passa al martedì
  * degli esercizi.
+ *
+ * Una parte non fatta nel giorno che le era stato dato porta il compito a
+ * oggi anche se un'altra parte è più avanti: con i giorni del compito non si
+ * sa se in un giorno passato ha lavorato o no, con quelli di una parte sì —
+ * la parte è lì, non spuntata.
  */
 export function workDate(task, today = todayISO()) {
+  const indietro = (task.parts || []).some((part) =>
+    !isPartDone(part) && partDay(part) && partDay(part) < today);
+  if (indietro) return today;
   const picks = plannedDays(task);
   const ahead = picks.find((day) => day >= today);
   if (ahead) return ahead;

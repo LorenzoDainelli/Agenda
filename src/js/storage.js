@@ -14,6 +14,10 @@ const KEY_SETTINGS = "agenda:settings";
 const KEY_TASKS = "agenda:tasks";
 const KEY_TIMETABLES = "agenda:timetables";
 const KEY_REVIEW = "agenda:review";
+// La data dell'ultima copia scaricata. NON entra nel file della copia
+// (assunzione A20): dice qualcosa di questo telefono, e ripristinare una copia
+// vecchia non deve far credere all'app di averne appena fatta una.
+const KEY_BACKUP = "agenda:backup";
 
 /*
  * Numero di versione del file esportato.
@@ -130,6 +134,21 @@ export function saveReview(state) {
   return write(KEY_REVIEW, state);
 }
 
+/* ── Promemoria della copia ───────────────────────────────────────── */
+
+export function loadBackupInfo() {
+  const stored = read(KEY_BACKUP, null);
+  const iso = (value) => (typeof value === "string" ? value : null);
+  return {
+    lastSavedOn: iso(stored?.lastSavedOn),
+    snoozedUntil: iso(stored?.snoozedUntil),
+  };
+}
+
+export function saveBackupInfo(info) {
+  return write(KEY_BACKUP, info);
+}
+
 /* ── Copie di sicurezza ───────────────────────────────────────────── */
 
 export function exportAll(todayISO) {
@@ -212,7 +231,7 @@ export function applyBackup(parsed) {
 
 /** Per il pulsante "ricomincia da zero", se un giorno servirà. Oggi non è usato. */
 export function wipe() {
-  for (const key of [KEY_SETTINGS, KEY_TASKS, KEY_TIMETABLES, KEY_REVIEW]) {
+  for (const key of [KEY_SETTINGS, KEY_TASKS, KEY_TIMETABLES, KEY_REVIEW, KEY_BACKUP]) {
     try { localStorage.removeItem(key); } catch { /* niente da fare */ }
   }
 }

@@ -115,6 +115,10 @@ riscrivere l'app.
 | una parte con un giorno, nell'elenco | il compito compare **una volta sola, nel giorno della prossima parte da fare**, con sotto tutte le parti e accanto a ognuna il suo giorno. Finita quella, passa al giorno della successiva |
 | una parte con un giorno, nel calendario | **un blocchetto per ogni parte**, nel suo giorno e nel suo momento; sotto la griglia, il nome della parte accanto al compito |
 | il peso di un compito diviso in parti | **si divide fra le parti**: un compito pesante (3) in due parti su due giorni fa 1.5 per giorno, arrotondato |
+| la domenica | **vale come gli altri giorni**: se una domenica non si vuole fare niente, la si esclude a mano |
+| una parte non fatta nel suo giorno | il suo giorno si legge **in rosso** («ieri · sera»), come la scadenza di un compito in ritardo; il compito sta già in Oggi |
+| copia di sicurezza | l'app **ricorda di scaricarla una volta al mese**, con un avviso sulla strada come quello della rassegna |
+| quando per oggi è tutto fatto | **niente**: le righe restano barrate fino a mezzanotte, il numerino dice 0, l'app non fa i complimenti |
 
 #### Assunzioni prese nel farlo (si ribaltano senza discutere)
 
@@ -133,6 +137,10 @@ riscrivere l'app.
 | A15 | Un compito **senza scadenza** non ha una finestra, e quindi le sue parti non hanno il chip «quando»: vale la stessa regola del compito. | `partsBlock()` in `compose.js` |
 | A16 | Escludere un giorno dalla fila o spostare la scadenza **toglie il giorno alle parti** che ci cadevano fuori, come succede già ai giorni scelti per il compito. | `toggleSkip()` e `reschedule()` in `model.js` |
 | A17 | La fila dei giorni del compito **non** mostra i giorni delle parti: quelli si leggono sui loro chip, subito sotto. Due posti che dicono la stessa cosa sono uno di troppo. | — |
+| A18 | L'avviso della copia compare quando l'ultima copia scaricata da questo telefono ha **30 giorni o più**. Se non ne è mai stata scaricata una, si conta dal compito più vecchio: nei primi giorni d'uso non c'è ancora niente che valga un avviso, e senza compiti l'avviso non compare mai. | `isDue()` in `backup.js` |
+| A19 | L'avviso ha due pulsanti: **Scarica** e **Più tardi**, che lo fa sparire per 7 giorni. Senza il secondo, un giorno in cui la copia non si può fare l'avviso resterebbe lì a ogni apertura, e un avviso che c'è sempre smette di essere letto. | `SNOOZE_DAYS` in `backup.js` |
+| A20 | La data dell'ultima copia sta in una chiave sua (`agenda:backup`, §4.5) e **non entra nel file** della copia: dice qualcosa di questo telefono, e ripristinare una copia vecchia non deve far credere all'app di averne appena fatta una. | `storage.js` |
+| A21 | Anche il chip «quando» nel compito aperto diventa **rosso** quando il giorno della parte è passato e la parte non è fatta: il pannello e l'elenco devono dire la stessa cosa. | `whenChip()` in `compose.js` |
 
 Rimasta aperta e **non** decisa: la forma definitiva dell'ambito privato
 (vedi §6.4). Il nome dell'app non è più in questa lista.
@@ -190,6 +198,7 @@ Il progetto sta **alla radice della repo** (decisione dell'utente): la repo
     model.mjs                   la finestra, lo stato, le parti, il peso
     timetable.mjs               orari nel tempo, blocchi, proposta scadenza
     tasks.mjs                   sezioni, ordinamenti, archivio
+    backup.mjs                  quando compare il promemoria della copia
     browser/                    prove che guidano l'app in un browser vero
                                 (servono Playwright: vedi test/browser/LEGGIMI.md)
       audit.mjs                 il controllo dei contrasti sulla pagina renderizzata
@@ -309,6 +318,17 @@ c'è), **copiando la griglia dell'ultimo orario esistente**. Si corregge da lì.
 { lastReviewedOn: "2026-09-21" }   // ultimo giorno in cui ha risposto alla rassegna
 ```
 
+### 4.5 `agenda:backup`
+
+```js
+{
+  lastSavedOn: "2026-09-25" | null,  // l'ultima copia scaricata da questo telefono
+  snoozedUntil: "2026-10-02" | null  // «Più tardi»: l'avviso non compare prima di questo giorno
+}
+```
+
+Non entra nel file della copia (assunzione A20).
+
 ---
 
 ## 5. La regola della finestra (il cuore dell'app)
@@ -342,14 +362,18 @@ finestra(compito) = [ oggi … due − 1 giorno ] − plan.skip
 giorniScelti(compito)   = i giorni delle parti ancora da fare che ne hanno uno
                           + plan.pick, se qualche parte da fare non ha un giorno
                             suo (o se il compito non ha parti da fare)
-giornoDiLavoro(compito) = il più piccolo dei giorniScelti da oggi in avanti,
+giornoDiLavoro(compito) = oggi, se una parte da fare aveva un giorno già passato,
+                          altrimenti il più piccolo dei giorniScelti da oggi in avanti,
                           oggi se ci sono giorni scelti ma sono tutti passati,
                           altrimenti due,
                           altrimenti nessuno (cosa senza data)
 ```
 
 Le parti fatte non contano: è quello che fa passare un compito dal giorno
-delle frasi a quello degli esercizi quando le frasi sono finite.
+delle frasi a quello degli esercizi quando le frasi sono finite. E una parte
+rimasta indietro porta il compito a oggi anche se un'altra è più avanti: dei
+giorni del compito non si sa se in un giorno passato ha lavorato o no, di
+quelli di una parte sì — la parte è lì, non spuntata.
 
 È questo che decide dove il compito sta nell'elenco e nel calendario. Un
 compito senza giorni scelti compare sulla sua scadenza, marcato **da
@@ -386,7 +410,9 @@ Testata: titolo + tre icone (calendario, archivio, impostazioni).
 Sotto, due cose e in quest'ordine:
 
 1. un **avviso**, che compare *solo* quando c'è un arretrato o una verifica
-   entro domani. Un avviso che c'è sempre non è un avviso;
+   entro domani. Un avviso che c'è sempre non è un avviso. Più giù, sulla
+   strada fra i filtri e l'elenco, l'avviso della rassegna (§7) e quello della
+   **copia di sicurezza**, una volta al mese (assunzioni A18–A20);
 2. la **striscia dei prossimi sette giorni**, ognuno col fondo del suo peso e
    il numero di cose che ci sono. Non è un riepilogo, è uno strumento: serve a
    rispondere alla domanda «dove lo metto?», che è il problema dell'app — e a

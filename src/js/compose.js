@@ -214,10 +214,12 @@ function whenChip(part, conFinestra) {
   const giorno = partDay(part);
   if (!conFinestra && !giorno) return "";
   const testo = giorno ? whenLabel(giorno, part.pick[giorno]) : t("part.when");
+  // passato e non fatto: rosso, come nell'elenco (assunzione A21)
+  const stato = !giorno ? "" : giorno < todayISO() && !isPartDone(part) ? "ag-part__pill--late" : "ag-part__pill--set";
   return `
     <button class="ag-part__when" type="button" data-part-when="${esc(part.id)}"
             ${conFinestra ? "" : "disabled"}>
-      <span class="ag-part__pill ${giorno ? "ag-part__pill--set" : ""}">${esc(testo)}</span>
+      <span class="ag-part__pill ${stato}">${esc(testo)}</span>
     </button>`;
 }
 

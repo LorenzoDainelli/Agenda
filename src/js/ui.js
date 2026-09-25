@@ -195,10 +195,11 @@ export function weightTicks(weight) {
   return `<span class="ag-weight" role="img" aria-label="${esc(t(`weight.${weight}`))}">${ticks}</span>`;
 }
 
-/** Un giorno detto come si dice a voce: "oggi", "domani", "mer 23". */
+/** Un giorno detto come si dice a voce: "oggi", "domani", "ieri", "mer 23". */
 export function relativeDay(day, today = todayISO()) {
   if (day === today) return t("common.today").toLowerCase();
   if (day === addDays(today, 1)) return t("common.tomorrow").toLowerCase();
+  if (day === addDays(today, -1)) return t("common.yesterday").toLowerCase();
   return `${dowShort(day, getLang())} ${dayNumber(day)}`;
 }
 

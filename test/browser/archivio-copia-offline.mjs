@@ -1,4 +1,5 @@
 import { chromium, devices } from "playwright";
+import { readFileSync } from "node:fs";
 const CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 const browser = await chromium.launch({ executablePath: CHROME });
 const ctx = await browser.newContext({
@@ -59,6 +60,29 @@ check("rimettere da fare lo toglie dall'archivio", await page.locator("#archive-
 await page.click('[data-close="archive-layer"]'); await page.waitForTimeout(250);
 check("ed è tornato nell'elenco", (await all("#list .ag-task__title")).includes(rimesso), `${rimesso} in ${(await all("#list .ag-task__title")).join("/")}`);
 
+console.log("\n== il promemoria della copia, una volta al mese ==");
+check("con compiti di oggi e nessuna copia, niente promemoria", await page.locator("#backup-alert").isHidden());
+await page.evaluate(() => {
+  const tasks = JSON.parse(localStorage.getItem("agenda:tasks"));
+  tasks.push({ id:"t-vecchio", area:"private", subjectId:null, subjectName:null, kind:"todo", title:"Cosa di agosto",
+    due:null, weight:1, createdAt:"2026-08-10", doneAt:null, droppedAt:null, plan:{skip:[],pick:{}}, parts:[] });
+  localStorage.setItem("agenda:tasks", JSON.stringify(tasks));
+});
+await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(300);
+check("con un compito di più di 30 giorni e nessuna copia, compare", !(await page.locator("#backup-alert").isHidden()));
+check("e dice che non ne è mai stata fatta una", (await txt("#backup-alert-note")).includes("Non ne hai ancora fatta una"), await txt("#backup-alert-note"));
+await page.click("#backup-later"); await page.waitForTimeout(250);
+check("«Più tardi» lo fa sparire", await page.locator("#backup-alert").isHidden());
+check("per una settimana", (await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:backup")).snoozedUntil)) === "2026-09-28");
+await page.evaluate(() => localStorage.removeItem("agenda:backup"));
+await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(300);
+const dl0 = page.waitForEvent("download", { timeout: 15000 }).catch(() => null);
+await page.click("#backup-save");
+check("«Scarica» fa uscire il file", Boolean(await dl0));
+await page.waitForTimeout(300);
+check("e il promemoria sparisce", await page.locator("#backup-alert").isHidden());
+check("si ricomincia a contare da oggi", (await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:backup")).lastSavedOn)) === "2026-09-21");
+
 console.log("\n== copia di sicurezza: giro completo ==");
 await page.click("#open-settings"); await page.waitForTimeout(300);
 const dl = page.waitForEvent("download", { timeout: 15000 }).catch(() => null);
@@ -67,6 +91,8 @@ const file = await dl;
 check("il file esce dall'app", Boolean(file), file ? await file.suggestedFilename() : "nessun download");
 let percorso = null;
 if (file) { percorso = "/tmp/copia.json"; await file.saveAs(percorso); }
+// la data dell'ultima copia dice qualcosa di questo telefono: nel file non va (A20)
+check("il file non si porta dietro la data dell'ultima copia", percorso && !readFileSync(percorso, "utf8").includes("lastSavedOn"));
 // ora distruggo tutto e ripristino
 await page.evaluate(() => { localStorage.removeItem("agenda:tasks"); });
 await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(400);
@@ -90,6 +116,7 @@ await page.click("#open-settings"); await page.waitForTimeout(250);
 // i toast precedenti vanno via da soli dopo cinque secondi: se restano, il
 // controllo qui sotto leggerebbe quello vecchio
 await page.waitForFunction(() => document.querySelectorAll(".ag-toast").length === 0, null, { timeout: 8000 });
+const quantiPrima = await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:tasks")).length);
 await page.evaluate(() => {
   const dt = new DataTransfer();
   dt.items.add(new File(['{"qualcosa":"altro"}'], "finto.json", { type: "application/json" }));
@@ -99,8 +126,10 @@ await page.evaluate(() => {
 });
 await page.waitForTimeout(500);
 check("l'app lo rifiuta e lo dice", (await txt(".ag-toast__text")).includes("non è una copia"), await txt(".ag-toast__text"));
-check("e non ha toccato i dati", (await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:tasks")).length)) === 5,
-      String(await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:tasks")).length)));
+// confrontato con prima, non con un numero scritto a mano: il numero cambia
+// ogni volta che una prova qui sopra aggiunge un compito
+check("e non ha toccato i dati", (await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:tasks")).length)) === quantiPrima,
+      `${quantiPrima} → ${await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:tasks")).length)}`);
 await page.click('[data-close="settings-layer"]');
 
 console.log("\n== avvio offline (service worker) ==");

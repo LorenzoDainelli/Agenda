@@ -91,6 +91,20 @@
       <button class="ag-alert__btn" type="button" id="review-open"></button>
     </div>
 
+    <!-- Il promemoria della copia di sicurezza, una volta al mese (§6.1,
+         assunzioni A18–A20). I dati stanno solo qui: se il telefono si
+         perde, senza una copia non si recuperano. -->
+    <div class="ag-alert ag-alert--neutral" id="backup-alert" hidden>
+      <div class="ag-alert__text">
+        <span class="ag-alert__title" id="backup-alert-title"></span>
+        <span class="ag-alert__note" id="backup-alert-note"></span>
+      </div>
+      <div class="ag-alert__actions">
+        <button class="ag-alert__btn" type="button" id="backup-save"></button>
+        <button class="ag-alert__btn ag-alert__btn--quiet" type="button" id="backup-later"></button>
+      </div>
+    </div>
+
     <div class="ag-list" id="list"></div>
 
   </div>
