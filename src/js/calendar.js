@@ -89,6 +89,11 @@ function entryTitle(entry) {
  * sigla è la stessa — è la materia — e il nome della parte si legge
  * nell'elenco sotto la griglia.
  *
+ * Non si tocca: è alto 24px, e la regola è 44. Si tocca la colonna intera,
+ * che mostra il giorno per esteso sotto la griglia, e da lì si apre il
+ * compito su una riga della misura giusta. Il nome per esteso sta nel
+ * `title`, che su un computer compare passandoci sopra.
+ *
  * L'ambra della verifica vale SOLO nel giorno in cui la verifica si svolge:
  * nei giorni prima quello che c'è è lo studio, e dipingerlo come la verifica
  * farebbe sembrare che ci siano tre verifiche invece di una. Nei giorni di
@@ -104,8 +109,7 @@ function block(entry, day) {
     entry.done ? "ag-wblock--done" : "",
   ].filter(Boolean).join(" ");
   const style = eVerifica ? "" : colorStyle(color);
-  return `<button class="${classes}" type="button" data-task="${esc(task.id)}"
-            style="${style}" aria-label="${esc(entryTitle(entry))}">${esc(blockLabel(task))}</button>`;
+  return `<span class="${classes}" style="${style}" title="${esc(entryTitle(entry))}">${esc(blockLabel(task))}</span>`;
 }
 
 /** Le cose da pianificare sono compiti interi: le vestiamo da voce per
@@ -146,7 +150,9 @@ function grid() {
     const etichetta = `<span class="ag-wgrid__slot" title="${esc(t(nome))}">${esc(t(`${nome}.tiny`))}</span>`;
     const dayCells = days.map((d) => {
       const lista = slot === "unplanned" ? unplannedOn(ctx.tasks, d).map(asEntry) : onDayBySlot(ctx.tasks, d)[slot];
-      return `<div class="ag-wgrid__cell ${lista.length ? "" : "ag-wgrid__cell--empty"}">${lista.map((entry) => block(entry, d)).join("")}</div>`;
+      // ogni casella porta il suo giorno: toccandone una qualsiasi si sceglie
+      // la colonna, che è il bersaglio vero (vedi block)
+      return `<div class="ag-wgrid__cell ${lista.length ? "" : "ag-wgrid__cell--empty"}" data-pick-day="${d}">${lista.map((entry) => block(entry, d)).join("")}</div>`;
     });
     return [etichetta, ...dayCells];
   });

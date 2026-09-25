@@ -119,6 +119,10 @@ riscrivere l'app.
 | una parte non fatta nel suo giorno | il suo giorno si legge **in rosso** («ieri · sera»), come la scadenza di un compito in ritardo; il compito sta già in Oggi |
 | copia di sicurezza | l'app **ricorda di scaricarla una volta al mese**, con un avviso sulla strada come quello della rassegna |
 | quando per oggi è tutto fatto | **niente**: le righe restano barrate fino a mezzanotte, il numerino dice 0, l'app non fa i complimenti |
+| i blocchetti della settimana (24px, sotto i 44 della regola 10) | **si tocca la colonna, non il blocchetto**: un tocco in un punto qualsiasi della colonna di un giorno mostra quel giorno per esteso sotto la griglia, e da lì si apre il compito |
+| la rassegna di un compito con parti | **le parti, da spuntare una per una**; per il resto si risponde Rimanda o Non serve più |
+| spuntare scorrendo | **sì**: trascinando la riga verso destra si spunta, con l'annulla nel toast. Il cerchio resta |
+| l'ordine dentro una sezione | **resta com'è**: verifiche, poi peso, poi scadenza |
 
 #### Assunzioni prese nel farlo (si ribaltano senza discutere)
 
@@ -141,6 +145,9 @@ riscrivere l'app.
 | A19 | L'avviso ha due pulsanti: **Scarica** e **Più tardi**, che lo fa sparire per 7 giorni. Senza il secondo, un giorno in cui la copia non si può fare l'avviso resterebbe lì a ogni apertura, e un avviso che c'è sempre smette di essere letto. | `SNOOZE_DAYS` in `backup.js` |
 | A20 | La data dell'ultima copia sta in una chiave sua (`agenda:backup`, §4.5) e **non entra nel file** della copia: dice qualcosa di questo telefono, e ripristinare una copia vecchia non deve far credere all'app di averne appena fatta una. | `storage.js` |
 | A21 | Anche il chip «quando» nel compito aperto diventa **rosso** quando il giorno della parte è passato e la parte non è fatta: il pannello e l'elenco devono dire la stessa cosa. | `whenChip()` in `compose.js` |
+| A22 | Lo scorrimento fa **quello che fa il cerchio**: su una riga da fare la spunta, su una riga fatta oggi la rimette da fare. Scatta oltre un terzo della larghezza della riga; mentre si trascina, il cerchio si riempie quando rilasciando si spunterebbe. Solo nell'elenco Da fare: nell'archivio e nella rassegna no. | `bindSwipe()` in `app.js` |
+| A23 | Nella rassegna, spuntare l'**ultima** parte chiude il compito (§5.2) e fa passare al prossimo arretrato, come avrebbe fatto «Fatto». Il tocco su una parte con un numero segue l'impostazione, come nell'elenco. | `review.js` |
+| A24 | Gli altri tre posti sotto i 44px — i filtri (36), le opzioni dei selettori a segmenti (38) e le righe sotto la griglia del calendario (34) — **crescono a 44**. È un cambio visibile di pochi pixel, e l'alternativa (un'area di tocco invisibile più grande del disegno) avrebbe chiesto un altro numero scritto a mano per ciascuno. | `components.css` |
 
 Rimasta aperta e **non** decisa: la forma definitiva dell'ambito privato
 (vedi §6.4). Il nome dell'app non è più in questa lista.
@@ -479,7 +486,10 @@ Due viste commutabili, **settimana** (di partenza) e **mese**.
   c'è una verifica. Toccando un giorno si apre la settimana su quel giorno.
 
 **Il calendario non modifica niente. Si guarda.** (Toccare un compito lo apre,
-e da lì si modifica: ma il calendario in sé non ha azioni.)
+e da lì si modifica: ma il calendario in sé non ha azioni.) Nella settimana i
+blocchetti non si toccano — sono alti 24px — ma si tocca la **colonna** del
+giorno, che lo mostra per esteso sotto la griglia; è da lì, su righe alte 44px,
+che si apre un compito.
 
 ### 6.3 Archivio
 
@@ -531,6 +541,9 @@ e la rassegna non è già stata fatta oggi (`agenda:review`), si apre un pannell
 che li mostra **uno per volta**, con tre risposte grandi:
 
 - **Fatto** → `doneAt = oggi`
+- se il compito ha **parti**, sono sotto di lui, ognuna col suo cerchio: si
+  spuntano quelle fatte, e spuntata l'ultima il compito è fatto e si passa al
+  prossimo (assunzione A23)
 - **Rimanda** → sceglie la nuova scadenza fra chips (domani, dopodomani, la
   prossima lezione di quella materia, altro)
 - **Non serve più** → `droppedAt = oggi`

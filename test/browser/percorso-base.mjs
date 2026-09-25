@@ -154,6 +154,33 @@ check("l'avviso in cima non c'è (niente di urgente)", await page.locator("#urge
 await page.screenshot({ path: "/tmp/shots/07-elenco.png" });
 await page.screenshot({ path: "/tmp/shots/07b-elenco-intero.png", fullPage: true });
 
+console.log("\n== aree di tocco (regola 10) ==");
+const filtro = await page.locator(".ag-filter").first().boundingBox();
+check("i filtri sono alti almeno 44px", filtro.height >= 44, `${filtro.height.toFixed(1)}px`);
+
+console.log("\n== spuntare scorrendo ==");
+const primaRiga = page.locator("#list .ag-task").first();
+const titoloPrima = await primaRiga.locator(".ag-task__title").textContent();
+const scaglia = async (fino) => {
+  const box = await page.locator("#list .ag-task", { hasText: titoloPrima }).boundingBox();
+  const y = box.y + 18;
+  await page.mouse.move(box.x + 30, y);
+  await page.mouse.down();
+  for (let x = 40; x <= fino; x += 20) await page.mouse.move(box.x + x, y);
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+};
+await scaglia(80);
+check("uno scorrimento corto non spunta", !(await page.locator("#list .ag-task", { hasText: titoloPrima }).getAttribute("class")).includes("ag-task--done"));
+check("e non apre il compito", await page.locator("#task-layer").isHidden());
+await scaglia(260);
+check("uno scorrimento lungo verso destra spunta", (await page.locator("#list .ag-task", { hasText: titoloPrima }).getAttribute("class")).includes("ag-task--done"));
+check("con l'annulla nel toast", await page.locator(".ag-toast__undo").count() >= 1);
+check("e non apre il compito", await page.locator("#task-layer").isHidden());
+await scaglia(260);
+check("sulla riga fatta, lo stesso gesto la rimette da fare", !(await page.locator("#list .ag-task", { hasText: titoloPrima }).getAttribute("class")).includes("ag-task--done"));
+await page.waitForTimeout(5400);
+
 console.log("\n== spuntare, con annulla ==");
 const prima = await page.locator("#list .ag-task").count();
 await page.locator("#list [data-check]").first().click(); await page.waitForTimeout(250);
@@ -173,6 +200,15 @@ check("il giorno scelto ha il suo dettaglio sotto", await page.locator(".ag-wday
 await page.locator('.ag-wgrid__head[data-pick-day="2026-09-22"]').click(); await page.waitForTimeout(300);
 check("toccando un'intestazione cambia il giorno del dettaglio",
       (await txt(".ag-wday-detail__title")).includes("22"), await txt(".ag-wday-detail__title"));
+// i blocchetti non si toccano (24px): si tocca la colonna, in un punto qualsiasi
+await page.locator('.ag-wgrid__cell[data-pick-day="2026-09-24"]').last().click(); await page.waitForTimeout(300);
+check("toccando una casella qualsiasi della colonna si sceglie quel giorno",
+      (await txt(".ag-wday-detail__title")).includes("24"), await txt(".ag-wday-detail__title"));
+check("i blocchetti non sono pulsanti", await page.locator("button.ag-wblock").count() === 0);
+const colonna = await page.locator('.ag-wgrid__cell[data-pick-day="2026-09-24"]').first().boundingBox();
+check("una colonna è larga almeno 44px", colonna.width >= 44, `${colonna.width.toFixed(1)}px`);
+const pellet = await page.locator(".ag-pellet").first().boundingBox();
+check("le righe sotto la griglia sono alte almeno 44px", pellet.height >= 44, `${pellet.height.toFixed(1)}px`);
 await page.screenshot({ path: "/tmp/shots/08-settimana.png" });
 await page.screenshot({ path: "/tmp/shots/08b-settimana-intera.png", fullPage: true });
 await page.locator('#cal-mode [data-mode="month"]').click(); await page.waitForTimeout(350);
@@ -244,9 +280,9 @@ await rigaParti.locator("[data-part]").first().click(); await page.waitForTimeou
 check("finita la prima metà, passa a mercoledì", (await sezioneDi(rigaParti)) === "Questa settimana", await sezioneDi(rigaParti));
 await page.click("#open-calendar"); await page.waitForTimeout(350);
 check("nel calendario un blocchetto per ogni parte",
-      await page.locator('.ag-wblock[aria-label="Riassunto di storia · prima metà"]').count() === 1
-      && await page.locator('.ag-wblock[aria-label="Riassunto di storia · seconda metà"]').count() === 1);
-check("quella fatta è barrata", (await page.locator('.ag-wblock[aria-label="Riassunto di storia · prima metà"]').getAttribute("class")).includes("ag-wblock--done"));
+      await page.locator('.ag-wblock[title="Riassunto di storia · prima metà"]').count() === 1
+      && await page.locator('.ag-wblock[title="Riassunto di storia · seconda metà"]').count() === 1);
+check("quella fatta è barrata", (await page.locator('.ag-wblock[title="Riassunto di storia · prima metà"]').getAttribute("class")).includes("ag-wblock--done"));
 check("e sotto la griglia c'è il nome della parte", (await all(".ag-pellet__title")).includes("Riassunto di storia · prima metà"),
       (await all(".ag-pellet__title")).join(" | "));
 await page.click('[data-close="calendar-layer"]'); await page.waitForTimeout(200);
@@ -275,8 +311,37 @@ check("il giorno passato si legge «ieri · sera»", (await quandoIndietro.textC
 check("ed è rosso", (await quandoIndietro.getAttribute("class")).includes("ag-subpart__when--late"));
 check("l'altra no", !(await rigaIndietro.locator(".ag-subpart__when").nth(1).getAttribute("class")).includes("--late"));
 
+console.log("\n== la rassegna di un compito con parti ==");
+await page.evaluate(() => {
+  const tasks = JSON.parse(localStorage.getItem("agenda:tasks"));
+  tasks.push({ id:"t-rass", area:"school", subjectId:"s-info", subjectName:"Informatica", kind:"homework",
+    title:"Esercizi di informatica", due:"2026-09-19", weight:2, createdAt:"2026-09-15", doneAt:null, droppedAt:null,
+    plan:{skip:[],pick:{}},
+    parts:[{id:"r-1",title:"primo esercizio",total:1,done:0,pick:{}},{id:"r-2",title:"secondo esercizio",total:1,done:0,pick:{}}] });
+  localStorage.setItem("agenda:tasks", JSON.stringify(tasks));
+  localStorage.setItem("agenda:review", JSON.stringify({ lastReviewedOn: "2026-09-20" }));
+});
+await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(400);
+check("la rassegna si apre", !(await page.locator("#review-layer").isHidden()));
+// il compito con parti potrebbe non essere il primo della coda: si risponde
+// «Non serve più»… no — si rimanda chi c'è prima, finché non arriva lui
+for (let i = 0; i < 5 && !(await txt("#review-body .ag-task__title")).includes("informatica"); i++) {
+  await page.locator('#review-body [data-act="postpone"]').click(); await page.waitForTimeout(200);
+  await page.locator('#review-body [data-to]').first().click(); await page.waitForTimeout(300);
+}
+check("il compito con parti porta le sue parti", await page.locator("#review-body .ag-subpart").count() === 2);
+check("e il loro nome non apre niente", await page.locator("#review-body .ag-subpart__title[data-open]").count() === 0);
+await page.locator("#review-body [data-part-id]").first().click(); await page.waitForTimeout(300);
+check("spuntata una parte, il compito resta lì", (await txt("#review-body .ag-task__title")).includes("informatica")
+      && await page.locator("#review-body .ag-subpart--done").count() === 1);
+await page.locator("#review-body [data-part-id]").nth(1).click(); await page.waitForTimeout(400);
+check("spuntata l'ultima, il compito è fatto e la rassegna va avanti",
+      await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:tasks")).find((t) => t.id === "t-rass").doneAt) === "2026-09-21");
+if (!(await page.locator("#review-layer").isHidden())) { await page.click('[data-close="review-layer"]'); await page.waitForTimeout(200); }
+
 console.log("\n== a mezzanotte le cose fatte vanno nell'archivio ==");
-await page.locator("#list [data-check]").first().click(); await page.waitForTimeout(250);
+// una riga ancora da fare: quella in cima può essere già fatta (la rassegna qui sopra)
+await page.locator("#list .ag-task:not(.ag-task--done) [data-check]").first().click(); await page.waitForTimeout(250);
 const fattoTitolo = await txt("#list .ag-task--done .ag-task__title");
 await page.click("#open-archive"); await page.waitForTimeout(250);
 check("fatto oggi: non ancora nell'archivio", !(await all("#archive-body .ag-task__title")).includes(fattoTitolo), fattoTitolo);

@@ -16,11 +16,11 @@
 
 import { today as todayISO, addDays, dowShort, dayMonth, dayNumber, diffDays } from "./days.js";
 import { t, getLang } from "./i18n.js";
-import { markDone, markDropped, reschedule } from "./model.js";
+import { markDone, markDropped, reschedule, tapPart, isDone } from "./model.js";
 import { lateTasks } from "./tasks.js";
 import { subjectLabel, subjectColor, colorStyle } from "./subjects.js";
 import { nextLessons } from "./timetable.js";
-import { el, esc, openLayer, closeLayer, onEach, datePickerSheet, dot, emptyState } from "./ui.js";
+import { el, esc, openLayer, closeLayer, onEach, datePickerSheet, dot, emptyState, partItem } from "./ui.js";
 
 let ctx = null;
 let handlers = null;
@@ -76,7 +76,7 @@ function render() {
     <p class="ag-group__note">${esc(t("review.note", { n: queue.length }))}</p>
 
     <div class="ag-group">
-      <div class="ag-task ag-task--late" style="pointer-events:none">
+      <div class="ag-task ag-task--late">
         <span class="ag-task__main">
           <span class="ag-task__title">${esc(task.title)}</span>
           <span class="ag-task__meta">
@@ -86,6 +86,10 @@ function render() {
             </span>
           </span>
         </span>
+        ${task.parts?.length ? `
+          <ul class="ag-subparts">
+            ${task.parts.map((part) => partItem(task, part, todayISO(), { openable: false })).join("")}
+          </ul>` : ""}
       </div>
     </div>
 
@@ -97,6 +101,18 @@ function render() {
 
     <p class="ag-group__note">${esc(t("review.left", { n: queue.length }))}</p>
   `;
+
+  /* Le parti si spuntano qui come nell'elenco (§7). Spuntata l'ultima, il
+     compito è fatto e si passa al prossimo arretrato (assunzione A23). */
+  onEach(body, "[data-part-id]", "click", (event) => {
+    const updated = tapPart(task, event.currentTarget.dataset.partId, ctx.settings.partTap, todayISO());
+    handlers.onUpdate(updated);
+    // ctx è una copia fatta all'apertura: senza aggiornarla, ridisegnando si
+    // rivedrebbe la parte com'era prima del tocco
+    ctx.tasks = ctx.tasks.map((entry) => (entry.id === updated.id ? updated : entry));
+    if (isDone(updated)) next();
+    else render();
+  });
 
   onEach(body, "[data-act]", "click", (event) => {
     const act = event.currentTarget.dataset.act;

@@ -21,8 +21,8 @@ import {
   loadReview, saveReview, loadBackupInfo,
 } from "./storage.js";
 import {
-  markDone, markOpen, isLate, isDone, isDropped, isOpen, isPartDone,
-  dayLoad, loadStep, tapPart, settleParts, hasPlan, partDay, AREA_PRIVATE,
+  markDone, markOpen, isLate, isDone, isDropped, isOpen,
+  dayLoad, loadStep, tapPart, settleParts, hasPlan, AREA_PRIVATE,
 } from "./model.js";
 import {
   sections, summary, countsByArea, replaceTask, removeTask, findTask, archive,
@@ -31,7 +31,7 @@ import {
 import { subjectLabel, subjectColor, colorStyle } from "./subjects.js";
 import {
   el, esc, toast, openLayer, closeLayer, topLayer, closeSheet, isSheetOpen,
-  onEach, dot, weightTicks, checkIcon, emptyState, whenLabel,
+  onEach, dot, weightTicks, checkIcon, emptyState, partItem,
 } from "./ui.js";
 import * as compose from "./compose.js";
 import * as calendar from "./calendar.js";
@@ -209,43 +209,6 @@ function dueLabel(task) {
   return { text: dayMonth(task.due, getLang()), className: "" };
 }
 
-/**
- * Una parte sotto la riga del suo compito, col suo cerchio.
- *
- * Il nome apre il compito, come il titolo sopra: una riga dove solo il
- * cerchio risponde sembrerebbe rotta a chi tocca il nome. Una parte con un
- * numero porta il conto dentro il cerchio (3/5) finché non è piena, poi la
- * spunta come le altre: il numero è l'unica cosa che dice quanto manca, e
- * fuori dal cerchio sarebbe una terza colonna su una riga già stretta.
- */
-function partRow(task, part) {
-  const done = isPartDone(part);
-  const counted = Number(part.total) > 1;
-  const label = counted
-    ? t("part.count", { title: part.title, done: part.done, total: part.total })
-    : t("part.check", { title: part.title });
-  // il suo giorno, se ne ha uno (§6.1): è quello che dice perché il compito
-  // sta in questa sezione e non in un'altra
-  const giorno = partDay(part);
-  const quando = giorno ? whenLabel(giorno, part.pick[giorno], day) : "";
-  // il suo giorno è passato e non è fatta: in rosso, come una scadenza
-  // passata (§6.1)
-  const inRitardo = Boolean(giorno) && giorno < day && !done;
-  return `
-    <li class="ag-subpart ${done ? "ag-subpart--done" : ""}">
-      <button class="ag-subpart__title" type="button" data-open="${esc(task.id)}">
-        <span class="ag-subpart__name">${esc(part.title)}</span>
-        ${quando ? `<span class="ag-subpart__when ${inRitardo ? "ag-subpart__when--late" : ""}">${esc(quando)}</span>` : ""}
-      </button>
-      <button class="ag-check ${counted && !done ? "ag-check--count" : ""}" type="button"
-              data-part="${esc(task.id)}" data-part-id="${esc(part.id)}"
-              aria-pressed="${done ? "true" : "false"}"
-              aria-label="${esc(label)}">${counted && !done
-                ? `<span class="ag-check__count">${esc(`${part.done}/${part.total}`)}</span>`
-                : checkIcon()}</button>
-    </li>`;
-}
-
 function taskRow(task) {
   const subject = subjectLabel(state.settings.subjects, task);
   const color = subjectColor(state.settings.subjects, task);
@@ -254,6 +217,7 @@ function taskRow(task) {
 
   const classes = [
     "ag-task",
+    "ag-task--swipeable",
     task.kind === "test" ? "ag-task--test" : "",
     isLate(task, day) ? "ag-task--late" : "",
     isDone(task) ? "ag-task--done" : "",
@@ -271,7 +235,7 @@ function taskRow(task) {
   meta.push(weightTicks(task.weight));
 
   return `
-    <div class="${classes}">
+    <div class="${classes}" data-swipe="${esc(task.id)}">
       <button class="ag-task__main" type="button" data-open="${esc(task.id)}">
         <span class="ag-task__title">${esc(task.title)}</span>
         <span class="ag-task__meta">${meta.join("")}</span>
@@ -280,7 +244,7 @@ function taskRow(task) {
               aria-pressed="${isDone(task) ? "true" : "false"}"
               aria-label="${esc(t("common.done"))}">${checkIcon()}</button>
       ${task.parts?.length ? `
-        <ul class="ag-subparts">${task.parts.map((part) => partRow(task, part)).join("")}</ul>` : ""}
+        <ul class="ag-subparts">${task.parts.map((part) => partItem(task, part, day)).join("")}</ul>` : ""}
     </div>`;
 }
 
@@ -536,7 +500,85 @@ function openReview() {
 
 /* ── Avvio ────────────────────────────────────────────────────────── */
 
+/* ── Spuntare scorrendo (assunzione A22) ─────────────────────────────
+ *
+ * Trascinando una riga verso destra si spunta: fa quello che fa il cerchio,
+ * compreso rimettere da fare una riga già fatta. Il cerchio si riempie
+ * quando, rilasciando, si spunterebbe: è il modo di sapere in anticipo cosa
+ * succede, e di tornare indietro col dito se non era quello che si voleva.
+ */
+
+/** Prima di così è un tocco un po' mosso, non uno scorrimento. */
+const SWIPE_START_PX = 12;
+/** Oltre questa parte della riga, rilasciando si spunta. */
+const SWIPE_FRACTION = 1 / 3;
+/** Per quanto dopo uno scorrimento si ignora il click che il browser manda
+ *  comunque all'elemento sotto il dito, e che aprirebbe il compito. */
+const SWIPE_CLICK_MS = 400;
+
+function bindSwipe(box) {
+  let row = null;
+  let startX = 0;
+  let startY = 0;
+  let swiping = false;
+  let armed = false;
+  let quietUntil = 0;
+
+  const reset = () => {
+    if (row) {
+      row.style.transform = "";
+      row.classList.remove("ag-task--swiping", "ag-task--armed");
+    }
+    row = null;
+    swiping = false;
+    armed = false;
+  };
+
+  box.addEventListener("pointerdown", (event) => {
+    const target = event.target.closest?.("[data-swipe]");
+    if (!target || event.button > 0) return;
+    row = target;
+    startX = event.clientX;
+    startY = event.clientY;
+  });
+
+  box.addEventListener("pointermove", (event) => {
+    if (!row) return;
+    const dx = event.clientX - startX;
+    const dy = event.clientY - startY;
+    if (!swiping) {
+      // in verticale è l'elenco che scorre: la riga non c'entra
+      if (Math.abs(dy) > SWIPE_START_PX && Math.abs(dy) >= Math.abs(dx)) { reset(); return; }
+      if (dx <= SWIPE_START_PX || dx < Math.abs(dy)) return;
+      swiping = true;
+      row.classList.add("ag-task--swiping");
+      row.setPointerCapture?.(event.pointerId);
+    }
+    const shift = Math.max(0, dx);
+    row.style.transform = `translateX(${shift}px)`;
+    armed = shift > row.offsetWidth * SWIPE_FRACTION;
+    row.classList.toggle("ag-task--armed", armed);
+  });
+
+  box.addEventListener("pointerup", () => {
+    if (!row) return;
+    const id = swiping && armed ? row.dataset.swipe : null;
+    if (swiping) quietUntil = performance.now() + SWIPE_CLICK_MS;
+    reset();
+    if (id) tickOff(id);
+  });
+  box.addEventListener("pointercancel", reset);
+
+  box.addEventListener("click", (event) => {
+    if (performance.now() < quietUntil) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+  }, true);
+}
+
 function bindChrome() {
+  bindSwipe(el("list"));
   // La funzione avvolta, non passata: `addEventListener` passerebbe l'oggetto
   // evento come primo argomento, e openCalendar lo prenderebbe per un giorno.
   el("open-calendar").addEventListener("click", () => openCalendar());

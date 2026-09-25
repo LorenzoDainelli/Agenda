@@ -14,6 +14,7 @@ import {
   monthYear, weekdayInitials, dayNumber, dowShort,
 } from "./days.js";
 import { t, getLang } from "./i18n.js";
+import { partDay, isPartDone } from "./model.js";
 
 export const el = (id) => document.getElementById(id);
 
@@ -207,6 +208,46 @@ export function relativeDay(day, today = todayISO()) {
  *  "oggi · sera", "mer 23 · pomerig.". */
 export function whenLabel(day, slot, today = todayISO()) {
   return `${relativeDay(day, today)} · ${t(`slot.${slot}.short`)}`;
+}
+
+/**
+ * Una parte sotto la riga del suo compito, col suo cerchio. La usano
+ * l'elenco (app.js) e la rassegna (review.js): la stessa riga, così una parte
+ * si spunta nello stesso modo dovunque la si incontri. Nella rassegna il nome
+ * non apre niente (`openable` falso): lì si risponde, non si modifica.
+ *
+ * Il nome apre il compito, come il titolo sopra: una riga dove solo il
+ * cerchio risponde sembrerebbe rotta a chi tocca il nome. Una parte con un
+ * numero porta il conto dentro il cerchio (3/5) finché non è piena, poi la
+ * spunta come le altre: il numero è l'unica cosa che dice quanto manca, e
+ * fuori dal cerchio sarebbe una terza colonna su una riga già stretta.
+ */
+export function partItem(task, part, today = todayISO(), { openable = true } = {}) {
+  const done = isPartDone(part);
+  const counted = Number(part.total) > 1;
+  const label = counted
+    ? t("part.count", { title: part.title, done: part.done, total: part.total })
+    : t("part.check", { title: part.title });
+  // il suo giorno, se ne ha uno (§6.1): è quello che dice perché il compito
+  // sta in questa sezione e non in un'altra
+  const giorno = partDay(part);
+  const quando = giorno ? whenLabel(giorno, part.pick[giorno], today) : "";
+  // il suo giorno è passato e non è fatta: in rosso, come una scadenza
+  // passata (§6.1)
+  const inRitardo = Boolean(giorno) && giorno < today && !done;
+  return `
+    <li class="ag-subpart ${done ? "ag-subpart--done" : ""}">
+      <${openable ? `button type="button" data-open="${esc(task.id)}"` : "span"} class="ag-subpart__title">
+        <span class="ag-subpart__name">${esc(part.title)}</span>
+        ${quando ? `<span class="ag-subpart__when ${inRitardo ? "ag-subpart__when--late" : ""}">${esc(quando)}</span>` : ""}
+      </${openable ? "button" : "span"}>
+      <button class="ag-check ${counted && !done ? "ag-check--count" : ""}" type="button"
+              data-part="${esc(task.id)}" data-part-id="${esc(part.id)}"
+              aria-pressed="${done ? "true" : "false"}"
+              aria-label="${esc(label)}">${counted && !done
+                ? `<span class="ag-check__count">${esc(`${part.done}/${part.total}`)}</span>`
+                : checkIcon()}</button>
+    </li>`;
 }
 
 export function checkIcon() {
