@@ -1,34 +1,42 @@
-/* Agenda — impostazioni.
+/* Agenda — impostazioni (§6.4).
  *
- * Quattro gruppi: materie, orario, ambiti, i tuoi dati. Più lingua e tema, che
- * stanno in fondo perché si toccano una volta sola.
+ * Divise in pagine, come le Impostazioni dell'iPhone: la prima è un elenco
+ * corto, e ogni riga dice a destra come stanno le cose, così spesso non serve
+ * nemmeno aprirla. Prima erano una pagina sola lunga tre schermate, con
+ * l'orario in mezzo, e per cambiare il tema bisognava scorrerle tutte.
  *
- * L'orario è la parte più grossa e la sola che ha una forma sua: vedi
- * timetable.js per il perché è un elenco di griglie e non una griglia.
+ * L'orario vero non sta più qui: ha il suo pulsante nella testata
+ * (timetable-view.js). Qui resta solo l'interruttore per tornare a
+ * modificarlo quando è definitivo, che è apposta lontano dalla griglia (A31).
  */
 
-import { today as todayISO, dayMonth, dowShort, addDays, mondayOf } from "./days.js";
-import { t, getLang, LANGS } from "./i18n.js";
+import { today as todayISO, diffDays } from "./days.js";
+import { t, LANGS } from "./i18n.js";
 import { newId, AREA_PRIVATE, PART_TAP } from "./model.js";
 import { COLORS, newSubject, colorStyle, suggestShort, findSubject, countUsing, nextColor } from "./subjects.js";
-import {
-  createNext, timetableFor, blocksOf, setBlock, countHours,
-} from "./timetable.js";
 import { countInArea, moveArea } from "./tasks.js";
+import { loadBackupInfo } from "./storage.js";
 import {
-  el, esc, onEach, toast, confirmSheet, chooseSheet, openSheet, closeSheet, dot, chevron,
+  el, esc, onEach, toast, confirmSheet, openSheet, closeSheet, dot, chevron,
 } from "./ui.js";
 import * as backup from "./backup.js";
 
 let ctx = null;
 let handlers = null;
-/** Quale settimana dell'orario si sta guardando. `null` = quella di oggi. */
-let ttWeek = null;
+/** La pagina aperta. `null` = l'elenco. */
+let page = null;
+
+/** Le pagine, nell'ordine dell'elenco: prima quello che si tocca più spesso,
+ *  in fondo la copia di sicurezza (decisione del quarto giro). Ogni gruppo è
+ *  un riquadro a sé. */
+const PAGE_GROUPS = [["look"], ["subjects", "areas", "tasks", "timetable"], ["data"]];
 
 export function open(context, callbacks) {
   ctx = context;
   handlers = callbacks;
-  ttWeek = null;
+  // si riparte sempre dall'elenco: riaprire le impostazioni su una pagina
+  // lasciata aperta giorni prima farebbe cercare la strada (A34)
+  page = null;
   render();
 }
 
@@ -43,17 +51,16 @@ export function refresh(context) {
 function subjectsGroup() {
   const { subjects } = ctx.settings;
   const rows = subjects.map((subject) => `
-    <div class="ag-row ag-row--tap" data-subject="${esc(subject.id)}">
+    <button class="ag-row ag-row--tap" type="button" data-subject="${esc(subject.id)}">
       ${dot(colorStyle(subject.color))}
       <span class="ag-row__label">${esc(subject.name)}</span>
       <span class="ag-row__value">${esc(subject.short)}</span>
       ${chevron()}
-    </div>`);
+    </button>`);
 
   return `
     <div class="ag-group">
-      <span class="ag-group__label">${esc(t("settings.subjects"))}</span>
-      ${rows.join("") || `<p class="ag-group__note">${esc(t("settings.subjects.empty"))}</p>`}
+      ${rows.length ? `<div class="ag-rows">${rows.join("")}</div>` : `<p class="ag-group__note">${esc(t("settings.subjects.empty"))}</p>`}
       <div class="ag-row">
         <input class="ag-input ag-input--inline" id="subject-new" type="text"
                placeholder="${esc(t("settings.subjects.add"))}" enterkeyhint="done" autocapitalize="words">
@@ -132,107 +139,21 @@ function editSubject(id) {
 
 /* ── Orario ───────────────────────────────────────────────────────── */
 
-function currentWeekShown() {
-  return ttWeek || mondayOf(todayISO());
-}
-
+/** Dice com'è l'orario. Da definitivo, è l'unico posto da cui si torna a
+ *  modificarlo (decisione del quarto giro). */
 function timetableGroup() {
-  const { settings, timetables } = ctx;
-  const shown = currentWeekShown();
-  const timetable = timetableFor(timetables, shown);
-
-  if (!timetable) {
-    return `
-      <div class="ag-group">
-        <span class="ag-group__label">${esc(t("settings.timetable"))}</span>
-        <p class="ag-group__note">${esc(t("settings.timetable.empty"))}</p>
-        <button class="ag-btn ag-btn--secondary" type="button" id="tt-add">
-          ${esc(t("settings.timetable.add"))}
-        </button>
-      </div>`;
-  }
-
-  const lang = getLang();
-  const days = settings.schoolDays;
-  const hours = settings.lessonsPerDay;
-
-  /* La griglia. Ogni colonna è un giorno, ogni riga un'ora. Le ore
-     consecutive della stessa materia diventano una casella sola alta N
-     (blocksOf), che è come si legge un orario — e toccandola si cambiano
-     tutte le sue ore insieme. */
-  const cells = [];
-  for (let row = 0; row < hours; row += 1) {
-    cells.push(`<span class="ag-tt__hour" style="grid-row:${row + 2}">${row + 1}</span>`);
-  }
-  for (const [index, day] of days.entries()) {
-    for (const block of blocksOf(timetable.grid[String(day)], hours)) {
-      const subject = block.subjectId ? findSubject(settings.subjects, block.subjectId) : null;
-      cells.push(`
-        <button class="ag-tt__cell ${subject ? "" : "ag-tt__cell--empty"}" type="button"
-                data-cell="${day}:${block.from}:${block.span}"
-                style="grid-column:${index + 2};grid-row:${block.from + 2}/span ${block.span};${subject ? colorStyle(subject.color) : ""}"
-                aria-label="${esc(dowShort(addDays(mondayOf(shown), day - 1), lang))} ${block.from + 1}">
-          ${esc(subject ? subject.short : "")}
-        </button>`);
-    }
-  }
-
-  const heads = days.map((day) =>
-    `<span>${esc(dowShort(addDays(mondayOf(shown), day - 1), lang))}</span>`).join("");
-
-  const others = timetables.map((entry) => {
-    const isFirst = entry === timetables[timetables.length - 1];
-    const label = isFirst
-      ? t("settings.timetable.first")
-      : t("settings.timetable.current", { date: dayMonth(entry.weekStart, lang) });
-    return `
-      <div class="ag-row ag-row--tap" data-tt="${entry.weekStart}"
-           style="${entry.weekStart === timetable.weekStart ? "background:var(--ag-primary-soft)" : ""}">
-        <span class="ag-row__label">${esc(label)}</span>
-        <span class="ag-row__value">${countHours(entry)}</span>
-        ${timetables.length > 1 ? `
-          <button class="ag-iconbtn ag-iconbtn--plain ag-iconbtn--tight" type="button" data-tt-del="${entry.weekStart}"
-                  aria-label="${esc(t("common.delete"))}">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-          </button>` : ""}
-      </div>`;
-  });
-
+  const none = !ctx.timetables.length;
+  const final = Boolean(ctx.settings.timetableFinal);
+  const note = none ? "settings.timetable.none.note"
+    : final ? "settings.timetable.final.note" : "settings.timetable.draft.note";
   return `
     <div class="ag-group">
-      <span class="ag-group__label">${esc(t("settings.timetable"))}</span>
-      <div class="ag-tt" style="--ag-tt-days:${days.length}">
-        <div class="ag-tt__head"><span></span>${heads}</div>
-        <div class="ag-tt__grid">${cells.join("")}</div>
-      </div>
-      <button class="ag-btn ag-btn--secondary" type="button" id="tt-add">
-        ${esc(t("settings.timetable.add"))}
-      </button>
-      <div class="ag-tt__weeks">${others.join("")}</div>
-      <p class="ag-group__note">${esc(t("settings.timetable.note"))}</p>
+      <p class="ag-group__note">${esc(t(note))}</p>
+      ${final ? `
+        <button class="ag-btn ag-btn--secondary" type="button" id="tt-unlock">
+          ${esc(t("settings.timetable.unlock"))}
+        </button>` : ""}
     </div>`;
-}
-
-/** Tocco su una casella: scegli la materia, o liberala. */
-function editCell(day, from, span) {
-  const shown = currentWeekShown();
-  const timetable = timetableFor(ctx.timetables, shown);
-  if (!timetable) return;
-  const currentId = timetable.grid[String(day)]?.[from] ?? null;
-
-  const options = ctx.settings.subjects.map((subject) => ({
-    value: subject.id,
-    label: subject.name,
-    note: subject.short,
-    selected: subject.id === currentId,
-  }));
-  options.push({ value: "", label: t("settings.timetable.free"), selected: !currentId });
-
-  chooseSheet(t("settings.timetable.hour", { n: from + 1 }), options, (value) => {
-    const grid = setBlock(timetable.grid, day, from, span, value || null);
-    handlers.onTimetables(ctx.timetables.map((entry) =>
-      entry.weekStart === timetable.weekStart ? { ...entry, grid } : entry));
-  });
 }
 
 /* ── Ambiti ───────────────────────────────────────────────────────── */
@@ -261,8 +182,7 @@ function areasGroup() {
 
   return `
     <div class="ag-group">
-      <span class="ag-group__label">${esc(t("settings.areas"))}</span>
-      ${rows.join("")}
+      <div class="ag-rows">${rows.join("")}</div>
       <div class="ag-row">
         <input class="ag-input ag-input--inline" id="area-new" type="text"
                placeholder="${esc(t("settings.areas.add"))}" enterkeyhint="done" autocapitalize="words">
@@ -273,24 +193,37 @@ function areasGroup() {
     </div>`;
 }
 
-/* ── Dati, lingua, tema ───────────────────────────────────────────── */
+/* ── Dati ─────────────────────────────────────────────────────────── */
 
 function dataGroup() {
-  const lang = ctx.settings.lang;
-  const theme = ctx.settings.theme;
-  const partTap = ctx.settings.partTap;
   return `
     <div class="ag-group">
-      <span class="ag-group__label">${esc(t("settings.data"))}</span>
       <button class="ag-btn ag-btn--secondary" type="button" id="data-download">
         ${esc(t("settings.data.download"))}
       </button>
       <button class="ag-btn ag-btn--secondary" type="button" id="data-restore">
         ${esc(t("settings.data.restore"))}
       </button>
-      <p class="ag-group__note">${esc(t("settings.data.note"))}</p>
-    </div>
+      <p class="ag-group__note">${esc(backupAge("last"))} ${esc(t("settings.data.note"))}</p>
+    </div>`;
+}
 
+/** Di quando è l'ultima copia scaricata da questo telefono, in due forme:
+ *  corta per la riga dell'elenco ("age"), come frase nella pagina ("last"). */
+function backupAge(form) {
+  const { lastSavedOn } = loadBackupInfo();
+  if (!lastSavedOn) return t(`settings.data.${form}.never`);
+  const n = diffDays(lastSavedOn, todayISO());
+  if (n <= 0) return t(`settings.data.${form}.today`);
+  if (n === 1) return t(`settings.data.${form}.yesterday`);
+  return t(`settings.data.${form}.days`, { n });
+}
+
+/* ── Compiti ──────────────────────────────────────────────────────── */
+
+function tasksGroup() {
+  const partTap = ctx.settings.partTap;
+  return `
     <div class="ag-group">
       <span class="ag-group__label">${esc(t("settings.parttap"))}</span>
       <div class="ag-seg" id="parttap-seg">
@@ -300,21 +233,15 @@ function dataGroup() {
           </button>`).join("")}
       </div>
       <p class="ag-group__note">${esc(t("settings.parttap.note"))}</p>
-    </div>
+    </div>`;
+}
 
-    <div class="ag-group">
-      <span class="ag-group__label">${esc(t("settings.lang"))}</span>
-      <div class="ag-seg" id="lang-seg">
-        <button class="ag-seg__opt" type="button" data-lang="" aria-pressed="${!lang ? "true" : "false"}">
-          ${esc(t("settings.lang.auto"))}
-        </button>
-        ${LANGS.map((code) => `
-          <button class="ag-seg__opt" type="button" data-lang="${code}" aria-pressed="${lang === code ? "true" : "false"}">
-            ${code.toUpperCase()}
-          </button>`).join("")}
-      </div>
-    </div>
+/* ── Aspetto ──────────────────────────────────────────────────────── */
 
+/** Tema e lingua, in quest'ordine: il tema si cambia, la lingua quasi mai. */
+function lookGroup() {
+  const { lang, theme } = ctx.settings;
+  return `
     <div class="ag-group">
       <span class="ag-group__label">${esc(t("settings.theme"))}</span>
       <div class="ag-seg" id="theme-seg">
@@ -328,14 +255,93 @@ function dataGroup() {
           ${esc(t("settings.theme.dark"))}
         </button>
       </div>
+    </div>
+
+    <div class="ag-group">
+      <span class="ag-group__label">${esc(t("settings.lang"))}</span>
+      <div class="ag-seg" id="lang-seg">
+        <button class="ag-seg__opt" type="button" data-lang="" aria-pressed="${!lang ? "true" : "false"}">
+          ${esc(t("settings.lang.auto"))}
+        </button>
+        ${LANGS.map((code) => `
+          <button class="ag-seg__opt" type="button" data-lang="${code}" aria-pressed="${lang === code ? "true" : "false"}">
+            ${code.toUpperCase()}
+          </button>`).join("")}
+      </div>
+      <p class="ag-group__note">${esc(t("settings.look.note"))}</p>
     </div>`;
+}
+
+/* ── L'elenco ─────────────────────────────────────────────────────── */
+
+/** Quello che ogni riga dice a destra (A34). */
+function pageValue(id) {
+  const { settings, timetables } = ctx;
+  switch (id) {
+    case "look": {
+      const parts = [];
+      if (settings.theme) parts.push(t(`settings.theme.${settings.theme}`));
+      if (settings.lang) parts.push(settings.lang.toUpperCase());
+      return parts.length ? parts.join(" · ") : t("settings.theme.auto");
+    }
+    case "subjects": return String(settings.subjects.length);
+    case "areas": return String(2 + settings.areas.length);
+    case "tasks": return t(`settings.parttap.${settings.partTap}`);
+    case "timetable":
+      if (!timetables.length) return t("settings.timetable.state.none");
+      return t(settings.timetableFinal ? "settings.timetable.state.final" : "settings.timetable.state.draft");
+    case "data": return backupAge("age");
+    default: return "";
+  }
+}
+
+function listPage() {
+  return PAGE_GROUPS.map((group) => `
+    <div class="ag-rows">
+      ${group.map((id) => `
+        <button class="ag-row ag-row--tap" type="button" data-page="${id}">
+          <span class="ag-row__label">${esc(t(`settings.${id}`))}</span>
+          <span class="ag-row__value">${esc(pageValue(id))}</span>
+          ${chevron()}
+        </button>`).join("")}
+    </div>`).join("");
+}
+
+const PAGES = {
+  look: lookGroup,
+  subjects: subjectsGroup,
+  areas: areasGroup,
+  tasks: tasksGroup,
+  timetable: timetableGroup,
+  data: dataGroup,
+};
+
+/** Torna all'elenco. Dice se c'era una pagina da cui tornare: se no, il tasto
+ *  Esc chiude le impostazioni come gli altri livelli. */
+export function back() {
+  if (!page) return false;
+  showPage(null);
+  return true;
+}
+
+function showPage(next) {
+  page = next;
+  render();
+  // una pagina nuova si legge dall'alto, non dal punto in cui era l'elenco
+  el("settings-body").scrollTop = 0;
 }
 
 /* ── Disegno ──────────────────────────────────────────────────────── */
 
 export function render() {
   const body = el("settings-body");
-  body.innerHTML = subjectsGroup() + timetableGroup() + areasGroup() + dataGroup();
+  body.innerHTML = page ? PAGES[page]() : listPage();
+
+  // la testata: il nome della pagina, e la freccia per tornare all'elenco
+  el("settings-title").textContent = t(page ? `settings.${page}` : "settings.title");
+  el("settings-back").hidden = !page;
+
+  onEach(body, "[data-page]", "click", (event) => showPage(event.currentTarget.dataset.page));
 
   /* Materie */
   const addSubject = () => {
@@ -353,31 +359,11 @@ export function render() {
   });
   onEach(body, "[data-subject]", "click", (event) => editSubject(event.currentTarget.dataset.subject));
 
-  /* Orario */
-  body.querySelector("#tt-add")?.addEventListener("click", () => {
-    const created = createNext(ctx.timetables, ctx.settings, todayISO());
-    ttWeek = created.weekStart;
-    handlers.onTimetables([created, ...ctx.timetables]);
-    toast(t("settings.timetable.created", { date: dayMonth(created.weekStart, getLang()) }));
-  });
-  onEach(body, "[data-cell]", "click", (event) => {
-    const [day, from, span] = event.currentTarget.dataset.cell.split(":").map(Number);
-    editCell(day, from, span);
-  });
-  onEach(body, "[data-tt]", "click", (event) => {
-    if (event.target.closest("[data-tt-del]")) return;
-    ttWeek = event.currentTarget.dataset.tt;
-    render();
-  });
-  onEach(body, "[data-tt-del]", "click", (event) => {
-    event.stopPropagation();
-    const weekStart = event.currentTarget.dataset.ttDel;
-    confirmSheet(t("settings.timetable.delete.confirm", { date: dayMonth(weekStart, getLang()) }), {
-      onConfirm: () => {
-        ttWeek = null;
-        handlers.onTimetables(ctx.timetables.filter((entry) => entry.weekStart !== weekStart));
-      },
-    });
+  /* Orario: da definitivo torna modificabile. Nessuna conferma, perché non
+     si perde niente (A32). */
+  body.querySelector("#tt-unlock")?.addEventListener("click", () => {
+    handlers.onSettings({ ...ctx.settings, timetableFinal: false });
+    toast(t("settings.timetable.unlocked"));
   });
 
   /* Ambiti */

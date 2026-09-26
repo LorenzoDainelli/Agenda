@@ -109,6 +109,7 @@ await page.waitForTimeout(5400);
 
 console.log("\n== l'impostazione: un tocco la fa tutta ==");
 await page.click("#open-settings"); await page.waitForTimeout(250);
+await page.click('[data-page="tasks"]'); await page.waitForTimeout(200);
 await page.locator('[data-parttap="all"]').click(); await page.waitForTimeout(250);
 check("l'impostazione risulta scelta", (await page.locator('[data-parttap="all"]').getAttribute("aria-pressed")) === "true");
 await page.click('[data-close="settings-layer"]'); await page.waitForTimeout(200);
@@ -119,6 +120,7 @@ await page.waitForTimeout(5400);
 await riga.locator("[data-check]").click(); await page.waitForTimeout(200);
 await page.waitForTimeout(5400);
 await page.click("#open-settings"); await page.waitForTimeout(250);
+await page.click('[data-page="tasks"]'); await page.waitForTimeout(200);
 await page.locator('[data-parttap="step"]').click(); await page.waitForTimeout(200);
 await page.click('[data-close="settings-layer"]'); await page.waitForTimeout(200);
 
@@ -223,6 +225,7 @@ await page.click('[data-close="calendar-layer"]'); await page.waitForTimeout(200
 
 console.log("\n== tema scuro ==");
 await page.click("#open-settings"); await page.waitForTimeout(300);
+await page.click('[data-page="look"]'); await page.waitForTimeout(200);
 await page.locator('[data-theme="dark"]').click(); await page.waitForTimeout(300);
 check("l'attributo del tema cambia", await page.getAttribute("html","data-theme") === "dark");
 // Non il valore esatto: quello cambia con la palette e il test diventerebbe
@@ -241,8 +244,9 @@ await page.click('[data-close="calendar-layer"]');
 
 console.log("\n== lingua inglese forzata ==");
 await page.click("#open-settings"); await page.waitForTimeout(250);
+await page.click('[data-page="look"]'); await page.waitForTimeout(200);
 await page.locator('#lang-seg [data-lang="en"]').click(); await page.waitForTimeout(300);
-check("l'interfaccia passa all'inglese", (await txt('[data-i18n="settings.title"]')) === "Settings", await txt('[data-i18n="settings.title"]'));
+check("l'interfaccia passa all'inglese", (await txt("#settings-title")) === "Appearance", await txt("#settings-title"));
 await page.locator('#lang-seg [data-lang="it"]').click(); await page.waitForTimeout(250);
 await page.locator('[data-theme=""]').click(); await page.waitForTimeout(250);
 await page.click('[data-close="settings-layer"]');
@@ -340,6 +344,85 @@ await page.locator("#review-body [data-part-id]").nth(1).click(); await page.wai
 check("spuntata l'ultima, il compito è fatto e la rassegna va avanti",
       await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:tasks")).find((t) => t.id === "t-rass").doneAt) === "2026-09-21");
 if (!(await page.locator("#review-layer").isHidden())) { await page.click('[data-close="review-layer"]'); await page.waitForTimeout(200); }
+
+console.log("\n== un compito di scuola senza nome ==");
+await page.click("#add"); await page.waitForTimeout(250);
+check("nella scuola la tastiera non si apre da sola", await page.evaluate(() => document.activeElement?.tagName !== "INPUT"));
+check("la materia viene prima del nome", await page.evaluate(() => {
+  const m = document.querySelector("#task-body #subject-chips"), n = document.querySelector("#task-body #task-title");
+  return Boolean(m && n) && (m.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+}));
+await page.click("#task-save"); await page.waitForTimeout(250);
+check("senza materia e senza nome non si salva, e lo dice", !(await page.locator("#task-layer").isHidden())
+      && (await all(".ag-toast__text")).some((x) => x.includes("Scegli una materia")), (await all(".ag-toast__text")).join(" | "));
+check("un compito nuovo parte da peso medio", (await page.locator('[data-weight="2"]').getAttribute("aria-pressed")) === "true");
+await page.locator('[data-kind="test"]').click(); await page.waitForTimeout(200);
+check("in una verifica le parti sono «Cosa studiare»", (await all("#task-body .ag-group__label")).some((x) => x.startsWith("Cosa studiare")), (await all("#task-body .ag-group__label")).join(" | "));
+await page.locator('[data-kind="homework"]').click(); await page.waitForTimeout(200);
+await page.locator('#subject-chips [data-subject="s-mate"]').click(); await page.waitForTimeout(200);
+check("il nome vuoto mostra quello che prenderà", (await page.getAttribute("#task-title", "placeholder")) === "Matematica",
+      await page.getAttribute("#task-title", "placeholder"));
+await page.fill("#part-new", "problemi pag 12");
+await page.locator('[data-weight="1"]').click(); await page.waitForTimeout(200);
+check("una parte scritta e non aggiunta resta scritta dopo un altro tocco", (await page.inputValue("#part-new")) === "problemi pag 12");
+await page.click("#task-save"); await page.waitForTimeout(300);
+const senzaNome = page.locator("#list .ag-task", { has: page.locator(".ag-task__title--subject") });
+check("si chiama come la materia, col pallino davanti", (await senzaNome.locator(".ag-task__title").allTextContents()).map((x) => x.trim()).join("/") === "Matematica",
+      (await senzaNome.locator(".ag-task__title").allTextContents()).join("/"));
+check("la parte scritta e non aggiunta è diventata una parte", (await senzaNome.locator(".ag-subpart__name").allTextContents()).join("/") === "problemi pag 12",
+      (await senzaNome.locator(".ag-subpart__name").allTextContents()).join("/"));
+check("la riga sotto non ripete la materia", !((await senzaNome.locator(".ag-task__meta").textContent()) || "").includes("Matematica"));
+check("il nome salvato resta vuoto", await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:tasks")).some((x) => x.subjectId === "s-mate" && x.title === "")));
+
+console.log("\n== l'orario, dal pulsante in alto ==");
+const testata = await page.evaluate(() => {
+  const h = document.getElementById("today-title");
+  const title = h.getBoundingClientRect();
+  const btns = [...document.querySelectorAll(".ag-header__actions .ag-iconbtn")].map((b) => b.getBoundingClientRect());
+  return { n: btns.length, minW: Math.min(...btns.map((b) => b.width)), titleTop: title.top,
+           btnBottom: Math.max(...btns.map((b) => b.bottom)), oneLine: h.scrollWidth <= h.clientWidth && title.height < 40, h: title.height };
+});
+check("in testata ci sono quattro pulsanti, l'orario per primo", testata.n === 4 && (await page.locator(".ag-header__actions .ag-iconbtn").first().getAttribute("id")) === "open-timetable");
+check("larghi almeno 44px", testata.minW >= 44, `${testata.minW}px`);
+check("la data sta sotto i pulsanti, su una riga intera", testata.titleTop >= testata.btnBottom - 1 && testata.oneLine,
+      `alta ${testata.h}px, da ${testata.titleTop} (pulsanti fino a ${testata.btnBottom})`);
+await page.click("#open-timetable"); await page.waitForTimeout(300);
+check("provvisorio: le caselle si toccano", await page.locator("#timetable-body button.ag-tt__cell").count() > 0);
+await page.locator('#timetable-body [data-cell^="2:1:"]').click(); await page.waitForTimeout(250);
+await page.locator("#sheet-body .ag-sheet__option", { hasText: "Informatica" }).click(); await page.waitForTimeout(250);
+check("toccando una casella si cambia la materia",
+      await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:timetables"))[0].grid["2"][1]) === "s-info");
+await page.click("#tt-final"); await page.waitForTimeout(250);
+check("renderlo definitivo chiede conferma, e dice come si torna indietro", (await txt("#sheet-body .ag-sheet__title")).includes("Impostazioni › Orario"),
+      await txt("#sheet-body .ag-sheet__title"));
+await page.click('#sheet [data-act="yes"]'); await page.waitForTimeout(300);
+check("definitivo: le caselle non si toccano più", await page.locator("#timetable-body button.ag-tt__cell").count() === 0
+      && await page.locator("#timetable-body .ag-tt__cell").count() > 0);
+check("e non c'è più «Nuova settimana»", await page.locator("#tt-add").count() === 0);
+check("e resta definitivo", await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:settings")).timetableFinal) === true);
+await page.click('[data-close="timetable-layer"]'); await page.waitForTimeout(200);
+
+console.log("\n== impostazioni a pagine ==");
+await page.click("#open-settings"); await page.waitForTimeout(250);
+check("si parte dall'elenco: sei righe", await page.locator("#settings-body [data-page]").count() === 6);
+check("e ognuna dice come stanno le cose", (await txt('[data-page="timetable"] .ag-row__value')) === "definitivo", await txt('[data-page="timetable"] .ag-row__value'));
+check("nell'elenco non c'è la freccia indietro", await page.locator("#settings-back").isHidden());
+const riga48 = await page.locator("#settings-body [data-page]").first().boundingBox();
+check("righe compatte, ma sopra i 44px", riga48.height >= 44 && riga48.height < 60, `${riga48.height}px`);
+await page.click('[data-page="timetable"]'); await page.waitForTimeout(200);
+check("dentro una pagina: il suo nome e la freccia", (await txt("#settings-title")) === "Orario" && !(await page.locator("#settings-back").isHidden()));
+await page.click("#tt-unlock"); await page.waitForTimeout(250);
+check("da qui l'orario torna modificabile", await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:settings")).timetableFinal) === false);
+await page.click("#settings-back"); await page.waitForTimeout(200);
+check("la freccia torna all'elenco", await page.locator("#settings-body [data-page]").count() === 6 && (await txt("#settings-title")) === "Impostazioni");
+check("che ora dice provvisorio", (await txt('[data-page="timetable"] .ag-row__value')) === "provvisorio");
+await page.click('[data-page="subjects"]'); await page.waitForTimeout(200);
+await page.keyboard.press("Escape"); await page.waitForTimeout(200);
+check("Esc da una pagina torna all'elenco, non chiude", !(await page.locator("#settings-layer").isHidden()) && await page.locator("#settings-body [data-page]").count() === 6);
+await page.click('[data-close="settings-layer"]'); await page.waitForTimeout(200);
+await page.click("#open-timetable"); await page.waitForTimeout(250);
+check("e l'orario si tocca di nuovo", await page.locator("#timetable-body button.ag-tt__cell").count() > 0);
+await page.click('[data-close="timetable-layer"]'); await page.waitForTimeout(200);
 
 console.log("\n== a mezzanotte le cose fatte vanno nell'archivio ==");
 // una riga ancora da fare: quella in cima può essere già fatta (la rassegna qui sopra)

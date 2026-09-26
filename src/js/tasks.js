@@ -50,7 +50,8 @@ function compare(a, b) {
   const dueA = a.due || "9999-99-99";
   const dueB = b.due || "9999-99-99";
   if (dueA !== dueB) return dueA.localeCompare(dueB);
-  return a.title.localeCompare(b.title);
+  // un compito senza nome si chiama come la materia (A26), e lì va in ordine
+  return (a.title || a.subjectName || "").localeCompare(b.title || b.subjectName || "");
 }
 
 /** Solo l'ambito chiesto. `null` o "all" = tutti. */

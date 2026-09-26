@@ -61,6 +61,7 @@ const DEFAULT_SETTINGS = {
   lessonsPerDay: 6,
   schoolDays: [1, 2, 3, 4, 5, 6],
   partTap: "step",  // una parte con un numero, toccata dall'elenco: +1 ("step") o tutta ("all")
+  timetableFinal: false, // l'orario è definitivo: si guarda e basta (§6.6, A31)
 };
 
 export function loadSettings() {
@@ -80,6 +81,9 @@ export function loadSettings() {
     // futura) torna al modo di partenza invece di far fare al cerchio una
     // terza cosa che nessuno ha deciso
     partTap: stored.partTap === "all" ? "all" : DEFAULT_SETTINGS.partTap,
+    // solo un true vero lo rende definitivo: nel dubbio l'orario resta
+    // modificabile, che è lo stato da cui non si resta bloccati
+    timetableFinal: stored.timetableFinal === true,
   };
 }
 

@@ -20,7 +20,7 @@ import { markDone, markDropped, reschedule, tapPart, isDone } from "./model.js";
 import { lateTasks } from "./tasks.js";
 import { subjectLabel, subjectColor, colorStyle } from "./subjects.js";
 import { nextLessons } from "./timetable.js";
-import { el, esc, openLayer, closeLayer, onEach, datePickerSheet, dot, emptyState, partItem } from "./ui.js";
+import { el, esc, openLayer, closeLayer, onEach, datePickerSheet, dot, emptyState, partItem, taskTitle } from "./ui.js";
 
 let ctx = null;
 let handlers = null;
@@ -78,7 +78,7 @@ function render() {
     <div class="ag-group">
       <div class="ag-task ag-task--late">
         <span class="ag-task__main">
-          <span class="ag-task__title">${esc(task.title)}</span>
+          <span class="ag-task__title">${esc(taskTitle(ctx.settings.subjects, task))}</span>
           <span class="ag-task__meta">
             ${subject ? `<span class="ag-task__subject">${dot(colorStyle(color))}${esc(subject)}</span>` : ""}
             <span class="ag-task__due--late">

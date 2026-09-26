@@ -15,6 +15,7 @@ import {
 } from "./days.js";
 import { t, getLang } from "./i18n.js";
 import { partDay, isPartDone } from "./model.js";
+import { subjectLabel } from "./subjects.js";
 
 export const el = (id) => document.getElementById(id);
 
@@ -183,6 +184,18 @@ export function toast(message, { onUndo } = {}) {
 /* ── Pezzi ricorrenti ─────────────────────────────────────────────── */
 
 /** Il pallino colorato di una materia. */
+/**
+ * Il nome di un compito come si legge. Un compito di scuola senza nome si
+ * chiama come la sua materia, o «Verifica di …» (assunzione A26). Si calcola
+ * qui e non si salva: se la materia cambia nome, cambia anche il compito.
+ */
+export function taskTitle(subjects, task) {
+  if (task.title?.trim()) return task.title;
+  const subject = subjectLabel(subjects, task);
+  if (!subject) return "…";
+  return task.kind === "test" ? t("task.title.test", { subject }) : subject;
+}
+
 export function dot(colorStyle) {
   return `<span class="ag-dot" style="${colorStyle}" aria-hidden="true"></span>`;
 }

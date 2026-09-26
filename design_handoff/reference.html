@@ -113,6 +113,15 @@
       </ul>
     </div>
 
+    <!-- senza nome: si chiama come la materia, e il pallino passa davanti (A27) -->
+    <div class="ag-task">
+      <button class="ag-task__main" type="button">
+        <span class="ag-task__title ag-task__title--subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-oltremare)"></span>Sistemi</span>
+        <span class="ag-task__meta"><span>ven 25</span></span>
+      </button>
+      <button class="ag-check" type="button" aria-pressed="false" aria-label="Fatto"></button>
+    </div>
+
     <div class="ag-task ag-task--done">
       <button class="ag-task__main" type="button">
         <span class="ag-task__title">Relazione di informatica</span>
@@ -251,7 +260,16 @@
     </section>
   </div>
 
-  <h2>10 · Griglia dell'orario</h2>
+  <h2>10 · Righe in un riquadro (impostazioni)</h2>
+  <div class="bits">
+    <div class="ag-rows">
+      <button class="ag-row ag-row--tap" type="button"><span class="ag-row__label">Aspetto</span><span class="ag-row__value">Automatico</span></button>
+      <button class="ag-row ag-row--tap" type="button"><span class="ag-row__label">Materie</span><span class="ag-row__value">6</span></button>
+      <button class="ag-row ag-row--tap" type="button"><span class="ag-row__label">Orario</span><span class="ag-row__value">provvisorio</span></button>
+    </div>
+  </div>
+
+  <h2>11 · Griglia dell'orario</h2>
   <div class="bits">
     <div class="ag-tt" style="--ag-tt-days:6">
       <div class="ag-tt__head"><span></span><span>lun</span><span>mar</span><span>mer</span><span>gio</span><span>ven</span><span>sab</span></div>

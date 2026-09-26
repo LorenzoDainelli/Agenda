@@ -15,6 +15,9 @@ export const AREA_PRIVATE = "private";
 export const KINDS = ["homework", "test", "todo"];
 export const SLOTS = ["morning", "afternoon", "evening"];
 export const WEIGHTS = [1, 2, 3];
+/* Il peso con cui nasce un compito: medio, perché è quello che capita più
+   spesso (decisione del quarto giro). Si tocca solo quando è diverso. */
+export const DEFAULT_WEIGHT = 2;
 
 /** Un id corto, leggibile in un file di backup e abbastanza unico per un telefono. */
 export function newId(prefix) {
@@ -33,7 +36,7 @@ export function newTask(fields = {}) {
     kind: KINDS.includes(fields.kind) ? fields.kind : "homework",
     title: (fields.title || "").trim(),
     due: fields.due ?? null,
-    weight: WEIGHTS.includes(fields.weight) ? fields.weight : 1,
+    weight: WEIGHTS.includes(fields.weight) ? fields.weight : DEFAULT_WEIGHT,
     createdAt: fields.createdAt || todayISO(),
     doneAt: null,
     droppedAt: null,

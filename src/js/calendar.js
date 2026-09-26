@@ -19,7 +19,7 @@ import { t, getLang } from "./i18n.js";
 import { dayLoad, loadStep, isOpen } from "./model.js";
 import { onDayBySlot, unplannedOn } from "./tasks.js";
 import { subjectColor, colorStyle } from "./subjects.js";
-import { el, esc, onEach, emptyState } from "./ui.js";
+import { el, esc, onEach, emptyState, taskTitle } from "./ui.js";
 
 /* Quanti mesi mostra la vista mese: da questo mese a undici mesi avanti.
    Un anno è l'orizzonte oltre il quale non c'è niente da vedere, perché non
@@ -90,12 +90,13 @@ function blockLabel(task) {
     ? ctx.settings.subjects.find((s) => s.id === task.subjectId)
     : null;
   if (subject?.short) return subject.short;
-  return task.title.trim().slice(0, 4).toUpperCase();
+  return taskTitle(ctx.settings.subjects, task).trim().slice(0, 4).toUpperCase();
 }
 
 /** Il nome per esteso di una voce: il compito, e la parte se è una parte. */
 function entryTitle(entry) {
-  return entry.part ? `${entry.task.title} · ${entry.part.title}` : entry.task.title;
+  const title = taskTitle(ctx.settings.subjects, entry.task);
+  return entry.part ? `${title} · ${entry.part.title}` : title;
 }
 
 /**

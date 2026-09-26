@@ -1,6 +1,6 @@
 /* Verifica dei contrasti sulla pagina renderizzata, non sui numeri dei token.
  *
- * Guida l'app nei due temi e su sei schermate, e su ognuna passa il
+ * Guida l'app nei due temi e su undici schermate, e su ognuna passa il
  * controllo di audit.mjs. Quello che trova qui e non nei token è la differenza
  * fra un numero scritto in un commento e un pixel disegnato davvero.
  */
@@ -22,8 +22,16 @@ const scenari = [
   ["calendario settimana", async () => { await page.click("#open-calendar"); await page.waitForTimeout(400); }],
   ["calendario mese", async () => { await page.locator('#cal-mode [data-mode="month"]').click(); await page.waitForTimeout(400); }],
   ["impostazioni", async () => { await page.click('[data-close="calendar-layer"]'); await page.click("#open-settings"); await page.waitForTimeout(400); }],
+  // le pagine delle impostazioni: le righe in un riquadro solo e i segmenti
+  ["impostazioni materie", async () => { await page.click('[data-page="subjects"]'); await page.waitForTimeout(300); }],
+  ["impostazioni aspetto", async () => { await page.click("#settings-back"); await page.click('[data-page="look"]'); await page.waitForTimeout(300); }],
+  ["impostazioni dati", async () => { await page.click("#settings-back"); await page.click('[data-page="data"]'); await page.waitForTimeout(300); }],
+  ["orario", async () => { await page.click('[data-close="settings-layer"]'); await page.click("#open-timetable"); await page.waitForTimeout(400); }],
+  // il compito nuovo, con la materia scelta: il nome vuoto mostra quella
+  ["compito nuovo", async () => { await page.click('[data-close="timetable-layer"]'); await page.click("#add"); await page.waitForTimeout(300);
+    await page.locator("#subject-chips [data-subject]").first().click(); await page.waitForTimeout(300); }],
   // il compito con le parti, così si misurano anche i chip «quando»
-  ["pannello compito", async () => { await page.click('[data-close="settings-layer"]'); await page.locator("#list .ag-task__main", { hasText: "Compito con parti" }).click(); await page.waitForTimeout(400); }],
+  ["pannello compito", async () => { await page.click('[data-close="task-layer"]'); await page.locator("#list .ag-task__main", { hasText: "Compito con parti" }).click(); await page.waitForTimeout(400); }],
   ["archivio", async () => { await page.click('[data-close="task-layer"]'); await page.click("#open-archive"); await page.waitForTimeout(400); }],
 ];
 
@@ -44,6 +52,8 @@ for (const tema of ["light", "dark"]) {
             parts:[{id:"p1",title:"cinque frasi",total:5,done:2,pick:{"2026-09-22":"morning"}},{id:"p2",title:"due esercizi",total:2,done:0,pick:{}},
                    {id:"p5",title:"rimasta indietro",total:1,done:0,pick:{"2026-09-20":"evening"}}],
             plan:{skip:[],pick:{"2026-09-22":"morning","2026-09-23":"evening"}}}),
+      // senza nome: si chiama come la materia, col pallino davanti (A27)
+      base({title:"", subjectId:"s-oliva", subjectName:"Materia oliva", due:"2026-09-24", weight:2}),
       base({title:"Giornata pesante", subjectId:"s-rose", subjectName:"Materia rose", due:"2026-09-26", weight:3, plan:{skip:[],pick:{"2026-09-22":"afternoon"}}}),
       // creata a luglio e nessuna copia mai scaricata: compare il promemoria
       base({title:"Cosa privata", area:"private", kind:"todo", createdAt:"2026-07-01"}),

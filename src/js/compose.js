@@ -4,10 +4,12 @@
  * "schermata di creazione" e una "di modifica" da imparare separatamente. Un
  * compito nuovo è un compito vuoto.
  *
- * L'ordine dei campi non è quello del modello dati, è quello dei gesti: si
- * scrive il titolo (l'unica cosa che richiede la tastiera), poi tutto il resto
- * è a tocchi, nell'ordine in cui serve deciderlo. Quattro tocchi più il titolo
- * per un compito completo — criterio di accettazione del Task 4.
+ * L'ordine dei campi non è quello del modello dati, è quello dei gesti. Nella
+ * scuola si tocca la materia e si scrivono le parti, cioè quello che il
+ * professore sta dettando; il resto è a tocchi, nell'ordine in cui serve
+ * deciderlo, e il nome è in fondo e facoltativo: un compito senza nome si
+ * chiama come la sua materia (decisione del quarto giro, assunzione A26).
+ * Nel privato non c'è una materia, e il nome torna il primo campo.
  *
  * ASSUNZIONE A2 del piano: le parti stanno dentro questo pannello dall'inizio,
  * non dietro un secondo passaggio. L'utente ha chiesto "più informazioni
@@ -26,7 +28,7 @@ import { findSubject, colorStyle } from "./subjects.js";
 import { nextLessons, subjectsOn } from "./timetable.js";
 import {
   el, esc, openLayer, closeLayer, toast, confirmSheet, datePickerSheet, onEach,
-  dot, checkIcon, openSheet, closeSheet, whenLabel, relativeDay,
+  dot, checkIcon, openSheet, closeSheet, whenLabel, relativeDay, taskTitle,
 } from "./ui.js";
 import * as planner from "./planner.js";
 
@@ -36,6 +38,10 @@ let draft = null;
 let isNew = false;
 let ctx = null;      // { settings, timetables, tasks }
 let handlers = null; // { onSave, onDelete, onDone }
+/* Il testo scritto nel campo della parte nuova e non ancora aggiunto col +.
+   Ogni tocco ridisegna il pannello, e senza tenerlo da parte un tocco sulla
+   scadenza cancellerebbe una parte scritta a metà (assunzione A28). */
+let pendingPart = "";
 
 /* ── Apertura ─────────────────────────────────────────────────────── */
 
@@ -47,14 +53,15 @@ export function openNew(context, callbacks, preset = {}) {
   // spread in fondo, un filtro su "Tutto" faceva nascere il compito
   // nell'ambito "all", che non esiste — e il pannello restava senza materie.
   draft = newTask({ ...preset, area: (!preset.area || preset.area === "all") ? AREA_SCHOOL : preset.area });
+  pendingPart = "";
   el("task-layer-title").textContent = t("task.new");
   el("task-save").textContent = t("common.add");
   openLayer("task-layer");
   render();
-  // La tastiera si apre da sé: il titolo è l'unica cosa che va scritta, e
-  // aprirla dopo un tocco in più su un telefono è mezzo secondo buttato.
-  const input = el("task-body").querySelector("#task-title");
-  if (input) { input.focus(); }
+  // Nel privato la tastiera si apre da sé sul nome, che lì è la prima cosa da
+  // scrivere. Nella scuola no: il primo gesto è toccare la materia, e una
+  // tastiera aperta coprirebbe proprio le materie (assunzione A29).
+  if (!isSchool()) el("task-body").querySelector("#task-title")?.focus();
 }
 
 export function openExisting(task, context, callbacks) {
@@ -62,6 +69,7 @@ export function openExisting(task, context, callbacks) {
   handlers = callbacks;
   isNew = false;
   draft = JSON.parse(JSON.stringify(task));
+  pendingPart = "";
   el("task-layer-title").textContent = t("common.edit");
   el("task-save").textContent = t("common.save");
   openLayer("task-layer");
@@ -72,14 +80,19 @@ export function close() {
   closeLayer("task-layer");
   draft = null;
   ctx = null;
+  pendingPart = "";
 }
 
 /* ── Disegno ──────────────────────────────────────────────────────── */
 
-/** Prende dalla pagina quello che l'utente ha scritto, prima di ridisegnare. */
-function readTitle() {
-  const input = el("task-body").querySelector("#task-title");
+/** Prende dalla pagina quello che l'utente ha scritto, prima di ridisegnare:
+ *  il nome e la parte scritta ma non ancora aggiunta. */
+function readInputs() {
+  const body = el("task-body");
+  const input = body.querySelector("#task-title");
   if (input) draft.title = input.value;
+  const part = body.querySelector("#part-new");
+  if (part) pendingPart = part.value;
 }
 
 function isSchool() {
@@ -175,6 +188,25 @@ function areaChips() {
       ${esc(area.name)}
     </button>`);
   return `<div class="ag-chips" id="area-chips">${chips.join("")}</div>`;
+}
+
+/** Il campo del nome. Nel privato è il primo e serve; nella scuola sta in
+ *  fondo, facoltativo, e da vuoto mostra il nome che il compito prenderà. */
+function nameField() {
+  const input = (placeholder) => `
+      <input class="ag-input ${isSchool() ? "" : "ag-input--title"}" id="task-title" type="text"
+             value="${esc(draft.title)}" placeholder="${esc(placeholder)}"
+             enterkeyhint="done" autocomplete="off" autocapitalize="sentences">`;
+  if (!isSchool()) return input(t("task.title.placeholder"));
+  const subject = draft.subjectName;
+  const auto = subject
+    ? (draft.kind === "test" ? t("task.title.test", { subject }) : subject)
+    : t("task.name.auto");
+  return `
+    <div class="ag-group">
+      <label class="ag-group__label" for="task-title">${esc(t("task.name.optional"))}</label>
+      ${input(auto)}
+    </div>`;
 }
 
 function kindSeg() {
@@ -314,14 +346,19 @@ function partsBlock() {
   });
 
   const p = progress(draft);
+  // nella scuola le parti sono il compito stesso, e il titolo lo dice; in una
+  // verifica sono gli argomenti da studiare (decisione del quarto giro)
+  const label = !isSchool() ? t("task.parts")
+    : draft.kind === "test" ? t("task.parts.study") : t("task.parts.todo");
   return `
     <div class="ag-group">
       <span class="ag-group__label">
-        ${esc(t("task.parts"))}${p.hasParts ? ` — ${esc(t("task.progress", p))}` : ""}
+        ${esc(label)}${p.hasParts ? ` — ${esc(t("task.progress", p))}` : ""}
       </span>
       <div class="ag-parts">${rows.join("")}</div>
       <div class="ag-row">
         <input class="ag-input ag-input--inline" id="part-new" type="text"
+               value="${esc(pendingPart)}"
                placeholder="${esc(t("task.parts.placeholder"))}" enterkeyhint="done">
         <button class="ag-iconbtn" type="button" id="part-add" aria-label="${esc(t("task.parts.add"))}">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
@@ -336,22 +373,25 @@ function render({ keepFocus = false } = {}) {
   const hadFocus = keepFocus && document.activeElement?.id;
   const caret = document.activeElement?.selectionStart ?? null;
 
-  body.innerHTML = `
-    <div class="ag-group">
-      <input class="ag-input ag-input--title" id="task-title" type="text"
-             value="${esc(draft.title)}" placeholder="${esc(t("task.title.placeholder"))}"
-             enterkeyhint="done" autocomplete="off" autocapitalize="sentences">
-      ${areaChips()}
-      ${kindSeg()}
-    </div>
-    ${isSchool() ? subjectChips() : ""}
-    ${dueChips()}
-    ${weightSeg()}
+  const plan = `
     <div class="ag-group">
       <span class="ag-group__label">${esc(t("task.window"))}</span>
       ${planner.render(draft, todayISO())}
+    </div>`;
+
+  // Due ordini, uno per ambito (§6.5): nella scuola prima la materia e le
+  // parti, il nome in fondo; altrove il nome in cima, perché è tutto quello
+  // che dice che cos'è.
+  const fields = isSchool()
+    ? [subjectChips(), partsBlock(), dueChips(), weightSeg(), plan, nameField()]
+    : [dueChips(), weightSeg(), plan, partsBlock()];
+
+  body.innerHTML = `
+    <div class="ag-group">
+      ${areaChips()}
+      ${isSchool() ? kindSeg() : nameField()}
     </div>
-    ${partsBlock()}
+    ${fields.join("")}
     ${isNew ? "" : `
       <div class="ag-group">
         ${isOpen(draft) ? `
@@ -382,7 +422,7 @@ function render({ keepFocus = false } = {}) {
 
 function bind(body) {
   onEach(body, "[data-area]", "click", (event) => {
-    readTitle();
+    readInputs();
     const area = event.currentTarget.dataset.area;
     draft.area = area;
     if (area !== AREA_SCHOOL) {
@@ -396,14 +436,14 @@ function bind(body) {
   });
 
   onEach(body, "[data-kind]", "click", (event) => {
-    readTitle();
+    readInputs();
     const kind = event.currentTarget.dataset.kind;
     draft.kind = KINDS.includes(kind) ? kind : draft.kind;
     render();
   });
 
   onEach(body, "[data-subject]", "click", (event) => {
-    readTitle();
+    readInputs();
     const id = event.currentTarget.dataset.subject;
     if (draft.subjectId === id) {
       draft.subjectId = null;
@@ -423,7 +463,7 @@ function bind(body) {
   });
 
   onEach(body, "[data-due]", "click", (event) => {
-    readTitle();
+    readInputs();
     const value = event.currentTarget.dataset.due;
     if (value === "pick") {
       datePickerSheet(draft.due, {
@@ -440,13 +480,13 @@ function bind(body) {
   });
 
   onEach(body, "[data-weight]", "click", (event) => {
-    readTitle();
+    readInputs();
     draft.weight = Number(event.currentTarget.dataset.weight);
     render();
   });
 
   planner.bind(body, draft, todayISO(), (updated) => {
-    readTitle();
+    readInputs();
     draft = { ...updated, title: draft.title };
     render();
   });
@@ -456,15 +496,13 @@ function bind(body) {
     const input = body.querySelector("#part-new");
     const value = input.value.trim();
     if (!value) return;
-    readTitle();
-    // "5 frasi" o "2 esercizi": il numero davanti diventa la quantità, il
-    // resto il nome. È l'unico pezzo di interpretazione del testo in tutta
-    // l'app, e sta qui perché è come si scrivono i compiti sul diario.
-    const match = value.match(/^(\d{1,3})\s+(.+)$/);
-    const total = match ? Number(match[1]) : 1;
-    const title = match ? match[2] : value;
-    draft.parts = [...(draft.parts || []), newPart(title, total)];
+    readInputs();
+    draft.parts = [...(draft.parts || []), parsePart(value)];
+    pendingPart = "";
     render();
+    // il cursore resta nel campo: le parti si dettano una dopo l'altra, e
+    // richiudere e riaprire la tastiera a ogni parte è un gesto buttato
+    el("task-body").querySelector("#part-new")?.focus();
   };
 
   body.querySelector("#part-add")?.addEventListener("click", addPart);
@@ -473,32 +511,32 @@ function bind(body) {
   });
 
   onEach(body, "[data-part-when]", "click", (event) => {
-    readTitle();
+    readInputs();
     whenSheet(event.currentTarget.dataset.partWhen);
   });
   onEach(body, "[data-part-toggle]", "click", (event) => {
-    readTitle();
+    readInputs();
     const id = event.currentTarget.dataset.partToggle;
     const part = draft.parts.find((p) => p.id === id);
     draft = setPartDone(draft, id, isPartDone(part) ? 0 : part.total);
     render();
   });
   onEach(body, "[data-part-plus]", "click", (event) => {
-    readTitle();
+    readInputs();
     const id = event.currentTarget.dataset.partPlus;
     const part = draft.parts.find((p) => p.id === id);
     draft = setPartDone(draft, id, part.done + 1);
     render();
   });
   onEach(body, "[data-part-minus]", "click", (event) => {
-    readTitle();
+    readInputs();
     const id = event.currentTarget.dataset.partMinus;
     const part = draft.parts.find((p) => p.id === id);
     draft = setPartDone(draft, id, part.done - 1);
     render();
   });
   onEach(body, "[data-part-del]", "click", (event) => {
-    readTitle();
+    readInputs();
     const id = event.currentTarget.dataset.partDel;
     draft.parts = draft.parts.filter((p) => p.id !== id);
     render();
@@ -506,31 +544,49 @@ function bind(body) {
 
   /* Azioni su un compito che esiste già */
   body.querySelector("#task-done")?.addEventListener("click", () => {
-    readTitle();
+    readInputs();
     handlers.onDone(draft);
     close();
   });
   body.querySelector("#task-reopen")?.addEventListener("click", () => {
-    readTitle();
+    readInputs();
     handlers.onReopen(draft);
     close();
   });
   body.querySelector("#task-delete")?.addEventListener("click", () => {
-    readTitle();
-    confirmSheet(t("task.delete.confirm", { title: draft.title || "…" }), {
+    readInputs();
+    confirmSheet(t("task.delete.confirm", { title: taskTitle(ctx.settings.subjects, draft) }), {
       onConfirm: () => { handlers.onDelete(draft); close(); },
     });
   });
 }
 
-/** Il pulsante in fondo: salva e chiude. Un titolo vuoto non si salva. */
+/** "5 frasi" o "2 esercizi": il numero davanti diventa la quantità, il resto
+ *  il nome. È l'unico pezzo di interpretazione del testo in tutta l'app, e sta
+ *  qui perché è come si scrivono i compiti sul diario. */
+function parsePart(value) {
+  const match = value.match(/^(\d{1,3})\s+(.+)$/);
+  return match ? newPart(match[2], Number(match[1])) : newPart(value, 1);
+}
+
+/** Il pulsante in fondo: salva e chiude.
+ *  Nel privato serve un nome; nella scuola basta la materia (A30). */
 export function save() {
   if (!draft) return;
-  readTitle();
+  readInputs();
   draft.title = draft.title.trim();
-  if (!draft.title) {
-    toast(t("task.needtitle"));
-    el("task-body").querySelector("#task-title")?.focus();
+  // una parte scritta e non aggiunta col + è una parte: toccare Aggiungi
+  // non deve buttarla (A28, e regola 4: mai perdere dati in silenzio)
+  if (pendingPart.trim()) {
+    draft.parts = [...(draft.parts || []), parsePart(pendingPart.trim())];
+    pendingPart = "";
+  }
+  const named = draft.title || (isSchool() && draft.subjectName);
+  if (!named) {
+    toast(t(isSchool() ? "task.needname" : "task.needtitle"));
+    // senza materia, il posto giusto dove guardare sono le materie; il campo
+    // del nome sta in fondo e la tastiera le coprirebbe
+    if (!isSchool()) el("task-body").querySelector("#task-title")?.focus();
     return;
   }
   handlers.onSave(draft, { isNew });
