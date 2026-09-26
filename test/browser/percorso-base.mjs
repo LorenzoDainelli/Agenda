@@ -153,6 +153,8 @@ console.log("   ", (await all(".ag-section__title")).join(" · "));
 console.log("   prossimi giorni:", (await all("#next-days .ag-nday")).join(" | "));
 check("la striscia mostra sette giorni", await page.locator("#next-days .ag-nday").count() === 7);
 check("l'avviso in cima non c'è (niente di urgente)", await page.locator("#urgent").isHidden());
+const metaVerifica = await page.locator("#list .ag-task", { hasText: "Verifica di storia" }).locator(".ag-task__meta").textContent();
+check("una verifica conta i giorni che mancano", metaVerifica.includes("tra 4 giorni"), metaVerifica.trim().replace(/\s+/g, " "));
 await page.screenshot({ path: "/tmp/shots/07-elenco.png" });
 await page.screenshot({ path: "/tmp/shots/07b-elenco-intero.png", fullPage: true });
 

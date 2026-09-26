@@ -138,6 +138,7 @@ const DICT = {
     "task.due.in": "fra {n} giorni",
     "task.due.inone": "domani",
     "task.due.overdue": "in ritardo di {n} giorni",
+    "task.due.in": "tra {n} giorni",
     "task.due.overdueone": "in ritardo di un giorno",
     "task.due.on": "per {date}",
 
@@ -353,6 +354,7 @@ const DICT = {
     "task.due.in": "in {n} days",
     "task.due.inone": "tomorrow",
     "task.due.overdue": "{n} days overdue",
+    "task.due.in": "in {n} days",
     "task.due.overdueone": "one day overdue",
     "task.due.on": "due {date}",
 

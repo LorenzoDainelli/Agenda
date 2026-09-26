@@ -204,6 +204,10 @@ function dueLabel(task) {
   }
   if (left === 0) return { text: t("common.today"), className: "ag-task__due--soon" };
   if (left === 1) return { text: t("common.tomorrow"), className: "ag-task__due--soon" };
+  // Una verifica conta i giorni che mancano, fino a una settimana prima: per
+  // una verifica la domanda è «quanto tempo ho per studiare», non «che giorno
+  // è» (decisione del quarto giro). Oltre la settimana torna la data.
+  if (task.kind === "test" && left <= 7) return { text: t("task.due.in", { n: left }), className: "" };
   if (left <= 6) {
     return { text: `${dowShort(task.due, getLang())} ${dayNumber(task.due)}`, className: "" };
   }

@@ -166,6 +166,10 @@ Dopo averla installata sul telefono.
 | le parti di una verifica | la sezione si chiama **«Cosa studiare»**: in una verifica le parti sono gli argomenti |
 | la data in cima | **più piccola e su una riga**: sta sotto i pulsanti, larga quanto lo schermo |
 | il peso di un compito nuovo | parte da **Medio**, che è quello che capita più spesso |
+| una verifica nell'elenco | conta i giorni: **«tra 3 giorni»** fino a una settimana prima, poi la data |
+| il privato | ci vanno **cose da fare e la lista della spesa** |
+| le notifiche (fase successiva) | **una sola, alle 15:00** (§8) |
+| spuntare dal calendario | **no**: il calendario si guarda e basta |
 | impostazioni | **tutto quello proposto**: divise in pagine (Aspetto, Materie, Ambiti, Compiti, Orario, I tuoi dati) con un elenco corto all'inizio; «Automatica» al posto di «Come il telefono»; righe più compatte; lingua e tema in cima, la copia in fondo |
 
 #### Assunzioni prese nel farlo (si ribaltano senza discutere)
@@ -621,8 +625,10 @@ stato ambiguo, ma non si viene mai bloccati.
 
 ## 8. Notifiche — fuori da questa fase, e perché
 
-L'utente le ha messe in stand-by. Restano qui scritte le due cose da sapere
-quando si riprenderà il discorso, per non rifare il ragionamento da zero:
+L'utente le ha messe in stand-by. Quando si riprenderanno, ne ha chiesta
+**una sola al giorno, alle 15:00** (quarto giro): dopo la scuola, quando si
+decide cosa fare nel pomeriggio. Restano qui scritte le due cose da sapere,
+per non rifare il ragionamento da zero:
 
 1. Un'app web non può programmare una notifica da sola: ad app chiusa non
    esegue codice. Serve un pezzo nel cloud con una sveglia (gratis: Cloudflare
