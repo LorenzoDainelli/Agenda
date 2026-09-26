@@ -22,16 +22,17 @@ import {
 } from "./storage.js";
 import {
   markDone, markOpen, isLate, isDone, isDropped, isOpen,
-  dayLoad, loadStep, tapPart, settleParts, hasPlan, AREA_PRIVATE,
+  dayLoad, loadStep, tapPart, settleParts, progress, partDay, isPartDone, AREA_PRIVATE,
 } from "./model.js";
 import {
   sections, summary, countsByArea, replaceTask, removeTask, findTask, archive,
   byArea, entriesOn,
 } from "./tasks.js";
-import { subjectLabel, subjectColor, colorStyle } from "./subjects.js";
+import { subjectLabel, subjectColor, colorStyle, modeOf } from "./subjects.js";
 import {
   el, esc, toast, openLayer, closeLayer, topLayer, closeSheet, isSheetOpen,
-  onEach, dot, weightTicks, checkIcon, emptyState, partItem, taskTitle,
+  onEach, dot, weightTicks, checkIcon, emptyState, partItem, partCheck, expandIcon,
+  taskTitle, relativeDay, bindSwipe,
 } from "./ui.js";
 import * as compose from "./compose.js";
 import * as calendar from "./calendar.js";
@@ -54,6 +55,10 @@ let state = {
 
 /** L'ambito su cui è puntato il filtro. Non si salva: è una vista, non un dato. */
 let area = "all";
+
+/** I compiti con le parti aperte dalla freccia (A50). Come il filtro, una
+ *  vista: non si salva, e alla riapertura ogni riga parte chiusa. */
+const expanded = new Set();
 
 /** Il giorno che l'app crede sia oggi. Serve a accorgersi della mezzanotte. */
 let day = todayISO();
@@ -223,15 +228,40 @@ function dueLabel(task) {
   return { text: dayMonth(task.due, getLang()), className: "" };
 }
 
+/** Il nome di una parte sola nella riga sotto il titolo, col suo giorno se
+ *  ne ha uno (A49): «esercizi oggi sera». In rosso se il giorno è passato e
+ *  non è fatta, come sotto la riga (§6.1). */
+function singlePartMeta(part) {
+  const giorno = partDay(part);
+  const late = Boolean(giorno) && giorno < day && !isPartDone(part);
+  const when = giorno ? `${relativeDay(giorno, day)} ${t(`slot.${part.pick[giorno]}.short`)}` : "";
+  return `
+    <span class="ag-task__part">${esc(part.title)}${when
+      ? ` <span class="ag-subpart__when ${late ? "ag-subpart__when--late" : ""}">${esc(when)}</span>`
+      : ""}</span>`;
+}
+
+/**
+ * La riga di un compito. A destra c'è una cosa sola, e dipende dalle parti
+ * (quinto giro, §6.1): nessuna → il cerchio del compito; una → il cerchio
+ * della parte, senza una seconda riga sotto (A49); due o più → la freccia che
+ * le apre (A50). Serve a far entrare nell'elenco più compiti possibile: con
+ * le parti sempre aperte, un compito da tre parti prendeva il posto di tre.
+ */
 function taskRow(task) {
   const subject = subjectLabel(state.settings.subjects, task);
   const color = subjectColor(state.settings.subjects, task);
   const due = dueLabel(task);
-  const unplanned = task.due && !hasPlan(task);
+  const parts = task.parts || [];
+  const single = parts.length === 1 ? parts[0] : null;
+  const many = parts.length > 1;
+  const open = many && expanded.has(task.id);
+  const mode = modeOf(state.settings.subjects, task);
 
   const classes = [
     "ag-task",
     "ag-task--swipeable",
+    many ? "ag-task--parts" : "",
     task.kind === "test" ? "ag-task--test" : "",
     isLate(task, day) ? "ag-task--late" : "",
     isDone(task) ? "ag-task--done" : "",
@@ -244,16 +274,31 @@ function taskRow(task) {
     ? `<span class="ag-task__title ag-task__title--subject">${dot(colorStyle(color))}${esc(taskTitle(state.settings.subjects, task))}</span>`
     : `<span class="ag-task__title">${esc(task.title)}</span>`;
 
+  // Prima quello che c'è da fare: la parte sola, o quante ne restano.
   const meta = [];
+  if (single) meta.push(singlePartMeta(single));
+  if (many) meta.push(`<span>${esc(t("task.progress", progress(task)))}</span>`);
   if (subject && !namedBySubject) meta.push(`<span class="ag-task__subject">${dot(colorStyle(color))}${esc(subject)}</span>`);
-  if (task.kind === "test") meta.push(`<span class="ag-task__flag ag-task__flag--test">${esc(t("kind.test"))}</span>`);
+  if (mode) meta.push(`<span class="ag-task__flag ag-task__flag--mode">${esc(t(mode === "lab" ? "mode.lab.short" : "mode.theory"))}</span>`);
+  // una verifica senza nome si chiama già «Verifica di …»: la pillola lo
+  // direbbe due volte, e in una riga stretta manda a capo il resto (A46)
+  if (task.kind === "test" && !namedBySubject) meta.push(`<span class="ag-task__flag ag-task__flag--test">${esc(t("kind.test"))}</span>`);
   if (due) meta.push(`<span class="${due.className}">${esc(due.text)}</span>`);
-  // Le parti non sono più scritte qui ("restano: …"): stanno sotto la riga,
-  // tutte, e ripeterle accanto al titolo le farebbe leggere due volte.
-  if (unplanned && !isLate(task, day) && isOpen(task)) {
-    meta.push(`<span class="ag-task__flag ag-task__flag--plan">${esc(t("task.plan.needed"))}</span>`);
-  }
   meta.push(weightTicks(task.weight));
+
+  let side;
+  if (single) side = partCheck(task, single);
+  else if (many) {
+    side = `
+      <button class="ag-expand" type="button" data-expand="${esc(task.id)}"
+              aria-expanded="${open ? "true" : "false"}"
+              aria-label="${esc(t(open ? "task.parts.hide" : "task.parts.show"))}">${expandIcon()}</button>`;
+  } else {
+    side = `
+      <button class="ag-check" type="button" data-check="${esc(task.id)}"
+              aria-pressed="${isDone(task) ? "true" : "false"}"
+              aria-label="${esc(t("common.done"))}">${checkIcon()}</button>`;
+  }
 
   return `
     <div class="${classes}" data-swipe="${esc(task.id)}">
@@ -261,11 +306,9 @@ function taskRow(task) {
         ${title}
         <span class="ag-task__meta">${meta.join("")}</span>
       </button>
-      <button class="ag-check" type="button" data-check="${esc(task.id)}"
-              aria-pressed="${isDone(task) ? "true" : "false"}"
-              aria-label="${esc(t("common.done"))}">${checkIcon()}</button>
-      ${task.parts?.length ? `
-        <ul class="ag-subparts">${task.parts.map((part) => partItem(task, part, day)).join("")}</ul>` : ""}
+      ${side}
+      ${open ? `
+        <ul class="ag-subparts">${parts.map((part) => partItem(task, part, day)).join("")}</ul>` : ""}
     </div>`;
 }
 
@@ -294,6 +337,12 @@ function renderList() {
   onEach(box, "[data-part]", "click", (event) => {
     const { part, partId } = event.currentTarget.dataset;
     tapPartInList(part, partId);
+  });
+  onEach(box, "[data-expand]", "click", (event) => {
+    const id = event.currentTarget.dataset.expand;
+    if (expanded.has(id)) expanded.delete(id);
+    else expanded.add(id);
+    renderList();
   });
 }
 
@@ -417,7 +466,9 @@ function tapPartInList(taskId, partId) {
   partsBeforeTick.delete(taskId);
   saveTasksAndRender(replaceTask(state.tasks, after));
   const undo = { onUndo: () => saveTasksAndRender(replaceTask(state.tasks, before)) };
-  if (isDone(after) && !isDone(task)) toast(t("task.done.auto.toast"), undo);
+  // con una parte sola, spuntare la parte è spuntare il compito (A49): dire
+  // «fatte tutte le parti» sarebbe strano per una
+  if (isDone(after) && !isDone(task)) toast(t(task.parts.length === 1 ? "task.done.toast" : "task.done.auto.toast"), undo);
   else if (!isDone(after) && isDone(task)) toast(t("task.undone.toast"), undo);
   else if (reset) toast(t("part.reset.toast", { title: part.title }), undo);
 }
@@ -547,85 +598,18 @@ function openReview() {
 
 /* ── Avvio ────────────────────────────────────────────────────────── */
 
-/* ── Spuntare scorrendo (assunzione A22) ─────────────────────────────
- *
- * Trascinando una riga verso destra si spunta: fa quello che fa il cerchio,
- * compreso rimettere da fare una riga già fatta. Il cerchio si riempie
- * quando, rilasciando, si spunterebbe: è il modo di sapere in anticipo cosa
- * succede, e di tornare indietro col dito se non era quello che si voleva.
- */
-
-/** Prima di così è un tocco un po' mosso, non uno scorrimento. */
-const SWIPE_START_PX = 12;
-/** Oltre questa parte della riga, rilasciando si spunta. */
-const SWIPE_FRACTION = 1 / 3;
-/** Per quanto dopo uno scorrimento si ignora il click che il browser manda
- *  comunque all'elemento sotto il dito, e che aprirebbe il compito. */
-const SWIPE_CLICK_MS = 400;
-
-function bindSwipe(box) {
-  let row = null;
-  let startX = 0;
-  let startY = 0;
-  let swiping = false;
-  let armed = false;
-  let quietUntil = 0;
-
-  const reset = () => {
-    if (row) {
-      row.style.transform = "";
-      row.classList.remove("ag-task--swiping", "ag-task--armed");
-    }
-    row = null;
-    swiping = false;
-    armed = false;
-  };
-
-  box.addEventListener("pointerdown", (event) => {
-    const target = event.target.closest?.("[data-swipe]");
-    if (!target || event.button > 0) return;
-    row = target;
-    startX = event.clientX;
-    startY = event.clientY;
+/* Spuntare scorrendo (A22): verso destra fa quello che fa il cerchio,
+   compreso rimettere da fare una riga già fatta. Il gesto sta in ui.js. */
+function bindListSwipe() {
+  bindSwipe(el("list"), {
+    selector: "[data-swipe]",
+    directions: ["right"],
+    onSwipe: (row) => tickOff(row.dataset.swipe),
   });
-
-  box.addEventListener("pointermove", (event) => {
-    if (!row) return;
-    const dx = event.clientX - startX;
-    const dy = event.clientY - startY;
-    if (!swiping) {
-      // in verticale è l'elenco che scorre: la riga non c'entra
-      if (Math.abs(dy) > SWIPE_START_PX && Math.abs(dy) >= Math.abs(dx)) { reset(); return; }
-      if (dx <= SWIPE_START_PX || dx < Math.abs(dy)) return;
-      swiping = true;
-      row.classList.add("ag-task--swiping");
-      row.setPointerCapture?.(event.pointerId);
-    }
-    const shift = Math.max(0, dx);
-    row.style.transform = `translateX(${shift}px)`;
-    armed = shift > row.offsetWidth * SWIPE_FRACTION;
-    row.classList.toggle("ag-task--armed", armed);
-  });
-
-  box.addEventListener("pointerup", () => {
-    if (!row) return;
-    const id = swiping && armed ? row.dataset.swipe : null;
-    if (swiping) quietUntil = performance.now() + SWIPE_CLICK_MS;
-    reset();
-    if (id) tickOff(id);
-  });
-  box.addEventListener("pointercancel", reset);
-
-  box.addEventListener("click", (event) => {
-    if (performance.now() < quietUntil) {
-      event.stopPropagation();
-      event.preventDefault();
-    }
-  }, true);
 }
 
 function bindChrome() {
-  bindSwipe(el("list"));
+  bindListSwipe();
   // La funzione avvolta, non passata: `addEventListener` passerebbe l'oggetto
   // evento come primo argomento, e openCalendar lo prenderebbe per un giorno.
   el("open-calendar").addEventListener("click", () => openCalendar());

@@ -87,6 +87,41 @@ export function addItem(items, text, today) {
   };
 }
 
+/** Una cosa scritta come la si scrive nel campo: «2 latte», «500 g farina».
+ *  È il testo da cui parte la correzione (A54), e rileggendolo con parseItem
+ *  torna la stessa cosa. */
+export function itemText(item) {
+  return item.qty ? `${item.qty} ${item.name}` : item.name;
+}
+
+/**
+ * Corregge una cosa col testo nuovo, quantità compresa (A54). Dice cosa è
+ * successo:
+ *   "edited"  — cambiata
+ *   "same"    — il testo è quello di prima
+ *   "empty"   — senza un nome non si cambia niente
+ *   "taken"   — c'è già un'altra cosa con quel nome (A55): non si cambia
+ *   "missing" — la cosa non c'è più
+ * La cosa corretta resta dov'era e com'era (comprata o no): cambia solo come
+ * si chiama.
+ */
+export function editItem(items, id, text) {
+  const item = items.find((entry) => entry.id === id);
+  if (!item) return { items, status: "missing" };
+  const { name, qty } = parseItem(text);
+  if (!name) return { items, status: "empty" };
+  if (name === item.name && qty === item.qty) return { items, status: "same" };
+  const other = items.find((entry) => entry.id !== id && key(entry.name) === key(name));
+  if (other) return { items, status: "taken" };
+  return { items: items.map((entry) => (entry.id === id ? { ...entry, name, qty } : entry)), status: "edited" };
+}
+
+/** Toglie una cosa. La conferma la chiede chi la chiama (regola 4), e
+ *  l'annulla rimette l'elenco di prima. */
+export function removeItem(items, id) {
+  return items.filter((item) => item.id !== id);
+}
+
 /** Il cerchio: da comprare → comprata oggi, e viceversa. Una cosa comprata
  *  un altro giorno torna da comprare (è il tocco sulle «Già comprate»). */
 export function toggleItem(items, id, today) {

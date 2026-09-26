@@ -116,15 +116,52 @@
     <!-- senza nome: si chiama come la materia, e il pallino passa davanti (A27) -->
     <div class="ag-task">
       <button class="ag-task__main" type="button">
-        <span class="ag-task__title ag-task__title--subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-oltremare)"></span>Sistemi</span>
+        <span class="ag-task__title ag-task__title--subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-oltremare)"></span>Geografia</span>
         <span class="ag-task__meta"><span>ven 25</span></span>
       </button>
       <button class="ag-check" type="button" aria-pressed="false" aria-label="Fatto"></button>
     </div>
 
+    <!-- una parte sola: il cerchio è quello della parte, e il suo nome sta
+         per primo nella riga sotto (A49); di laboratorio, con la pillola (A46) -->
+    <div class="ag-task">
+      <button class="ag-task__main" type="button">
+        <span class="ag-task__title ag-task__title--subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-muschio)"></span>Scienze</span>
+        <span class="ag-task__meta">
+          <span class="ag-task__part">relazione <span class="ag-subpart__when ag-subpart__when--late">ieri pomerig.</span></span>
+          <span class="ag-task__flag ag-task__flag--mode">Lab</span>
+          <span>gio 24</span>
+          <span class="ag-weight" role="img" aria-label="Medio"><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick"></span></span>
+        </span>
+      </button>
+      <button class="ag-check ag-check--count" type="button" aria-pressed="false" aria-label="«relazione»: 1 di 3"><span class="ag-check__count">1/3</span></button>
+    </div>
+
+    <!-- due o più parti: chiuse, con la freccia al posto del cerchio (A50) -->
+    <div class="ag-task ag-task--parts">
+      <button class="ag-task__main" type="button">
+        <span class="ag-task__title ag-task__title--subject"><span class="ag-dot" style="--ag-dot:var(--ag-subj-prugna)"></span>Storia</span>
+        <span class="ag-task__meta">
+          <span>1 di 3</span>
+          <span>gio 24</span>
+          <span class="ag-weight" role="img" aria-label="Pesante"><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick ag-weight__tick--on"></span><span class="ag-weight__tick ag-weight__tick--on"></span></span>
+        </span>
+      </button>
+      <button class="ag-expand" type="button" aria-expanded="false" aria-label="Mostra le parti"><svg class="ag-expand__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+    </div>
+
+    <!-- mentre la si fa scorrere verso destra: rilasciando si spunterebbe (A51) -->
+    <div class="ag-task ag-task--parts" data-armed="right">
+      <button class="ag-task__main" type="button">
+        <span class="ag-task__title">Ripasso per la verifica</span>
+        <span class="ag-task__meta"><span>0 di 2</span><span class="ag-task__flag ag-task__flag--mode">Teoria</span><span>ven 25</span></span>
+      </button>
+      <button class="ag-expand" type="button" aria-expanded="true" aria-label="Nascondi le parti"><svg class="ag-expand__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+    </div>
+
     <div class="ag-task ag-task--done">
       <button class="ag-task__main" type="button">
-        <span class="ag-task__title">Relazione di informatica</span>
+        <span class="ag-task__title">Relazione di scienze</span>
         <span class="ag-task__meta"><span>fatto oggi</span></span>
       </button>
       <button class="ag-check" type="button" aria-pressed="true" aria-label="Fatto">
@@ -267,9 +304,13 @@
       <button class="ag-row ag-row--tap" type="button"><span class="ag-row__label">Materie</span><span class="ag-row__value">6</span></button>
       <button class="ag-row ag-row--tap" type="button"><span class="ag-row__label">Orario</span><span class="ag-row__value">provvisorio</span></button>
     </div>
-    <!-- la spesa: una da comprare, una comprata oggi (§6.7) -->
+    <!-- la spesa: una da comprare, una comprata oggi (§6.7), e le due che si
+         stanno facendo scorrere: verso sinistra si corregge, verso destra si
+         toglie (A54) -->
     <div class="ag-rows">
       <button class="ag-row ag-row--tap ag-shop" type="button" aria-pressed="false"><span class="ag-row__label">latte</span><span class="ag-check" aria-hidden="true" aria-pressed="false"></span></button>
+      <button class="ag-row ag-row--tap ag-shop ag-swipe--moving" type="button" aria-pressed="false" data-armed="left"><span class="ag-row__label">farina</span><span class="ag-row__value">500 g</span><span class="ag-check" aria-hidden="true" aria-pressed="false"></span></button>
+      <button class="ag-row ag-row--tap ag-shop ag-swipe--moving" type="button" aria-pressed="false" data-armed="right"><span class="ag-row__label">uova</span><span class="ag-row__value">×6</span><span class="ag-check" aria-hidden="true" aria-pressed="false"></span></button>
       <button class="ag-row ag-row--tap ag-shop" type="button" aria-pressed="true"><span class="ag-row__label">pane</span><span class="ag-check" aria-hidden="true" aria-pressed="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></button>
     </div>
   </div>
@@ -298,18 +339,20 @@ document.getElementById("subj-swatches").innerHTML = SUBJ.map((c) => `
 document.getElementById("load-swatches").innerHTML = [0,1,2,3,4,5].map((n) => `
   <div class="sw" style="background:var(--ag-load-${n});color:var(--ag-load-ink-${n})">gradino ${n}</div>`).join("");
 
-/* Un orario finto: lunedì ha due ore di Inglese di fila, fuse in un blocco. */
+/* Un orario finto: lunedì ha due ore di Inglese di fila, fuse in un blocco;
+   venerdì un'ora di laboratorio, con «Lab» sotto la sigla (A44). */
 const cells = [];
 for (let r = 0; r < 6; r += 1) cells.push(`<span class="ag-tt__hour" style="grid-row:${r+2}">${r+1}</span>`);
 const filled = [
   [1, 0, 2, "INGL", "petrolio"], [1, 2, 1, "MATE", "mattone"],
   [2, 0, 1, "STOR", "prugna"], [3, 0, 1, "ITAL", "muschio"],
   [4, 0, 1, "MATE", "mattone"], [4, 1, 1, "INGL", "petrolio"],
+  [5, 0, 1, "SCIE", "oliva", true],
 ];
 const busy = new Set();
-for (const [d, from, span, short, color] of filled) {
+for (const [d, from, span, short, color, lab] of filled) {
   for (let i = 0; i < span; i += 1) busy.add(`${d}:${from+i}`);
-  cells.push(`<button class="ag-tt__cell" style="grid-column:${d+1};grid-row:${from+2}/span ${span};--ag-chip-soft:var(--ag-subj-${color}-soft);--ag-chip-ink:var(--ag-subj-${color}-ink)">${short}</button>`);
+  cells.push(`<button class="ag-tt__cell" style="grid-column:${d+1};grid-row:${from+2}/span ${span};--ag-chip-soft:var(--ag-subj-${color}-soft);--ag-chip-ink:var(--ag-subj-${color}-ink)"><span>${short}</span>${lab ? '<span class="ag-tt__lab">Lab</span>' : ""}</button>`);
 }
 for (let d = 1; d <= 6; d += 1) {
   for (let h = 0; h < 6; h += 1) {

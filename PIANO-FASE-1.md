@@ -195,11 +195,42 @@ Dopo averla installata sul telefono.
 | A36 | Le righe delle impostazioni stanno **in un unico riquadro**, separate da una riga sottile, alte 48px invece di 60: è la forma delle Impostazioni dell'iPhone, ed è quella che rende l'elenco delle materie compatto. | `.ag-rows` in `components.css` |
 | A37 | «Se ne vanno a mezzanotte» **non vuol dire cancellate** (regola 4): le cose comprate passano in **«Già comprate»**, sotto la lista, e un tocco le rimette in lista. È anche la cosa più utile: latte e pane tornano ogni settimana, e riscriverli ogni volta è testo libero dove basta un tocco (regola 5). | `shopping.js` |
 | A38 | Scrivere una cosa che è già fra le «Già comprate» (stesso nome, maiuscole a parte) **la rimette in lista** invece di farne una seconda; se è già in lista, non si aggiunge due volte. | `addItem()` in `shopping.js` |
-| A39 | Una cosa della lista **non si cancella da sola, e nemmeno con un tocco**: una cosa scritta per sbaglio si spunta, e finisce fra le «Già comprate». Quelle si svuotano tutte insieme con «Svuota», che chiede conferma coi numeri. Una × su ogni riga sarebbe stata una cancellazione per riga, e ognuna avrebbe voluto la sua conferma. | `shopping-view.js` |
+| A39 | Una cosa della lista **non si cancella da sola, e nemmeno con un tocco**: una cosa scritta per sbaglio si spunta, e finisce fra le «Già comprate». Quelle si svuotano tutte insieme con «Svuota», che chiede conferma coi numeri. Una × su ogni riga sarebbe stata una cancellazione per riga, e ognuna avrebbe voluto la sua conferma. *In parte superata da A54: ora si toglie anche facendo scorrere la riga, sempre con la conferma.* | `shopping-view.js` |
 | A40 | Il carrello sta **per primo** in testata, a sinistra dell'orario: è l'unico pulsante che non riguarda la scuola, e così non si mette in mezzo a quelli che la riguardano. Con cinque pulsanti la testata regge perché la data sta già su una riga sua. | `index.html` |
 | A41 | La lista della spesa **entra nella copia di sicurezza** e si ripristina come i compiti: si unisce per `id`, non si cancella niente che nel file non c'è. Il formato del file resta alla versione 1: un campo in più lo ignora solo chi non lo conosce. | `storage.js` |
 | A42 | La quantità si scrive **davanti al nome**, come le parti di un compito («5 frasi»): «2 latte», «500 g farina», «1,5 kg mele», «2 litri latte». Le unità riconosciute sono quelle della spesa (g, hg, kg, ml, cl, dl, l, pz, e le forme per esteso); un numero da solo si legge «×2». Un numero attaccato al nome («3uova») resta nel nome: meglio un nome strano che una quantità inventata. | `parseItem()` in `shopping.js` |
 | A43 | Riscrivere una cosa già in lista **con un'altra quantità la cambia** (e lo dice), invece di fare un doppione; senza numero non cambia niente. Una cosa che torna dalle «Già comprate» tiene la quantità dell'ultima volta, a meno di scriverne una nuova. | `addItem()` in `shopping.js` |
+
+### Decise dall'utente il 26 settembre 2026, nel quinto giro di domande
+
+Dopo qualche giorno d'uso.
+
+| cosa | decisione |
+|---|---|
+| materie con il laboratorio | alcune materie si dividono in **teoria e laboratorio**. Si segna nelle impostazioni, materia per materia; poi nel compito, nella verifica e nella casella dell'orario si sceglie **Teoria** o **Laboratorio** |
+| un compito da fare o da studiare | **nessun campo nuovo**: sotto «Cosa c'è da fare» ci sono le parti **consigliate** — Esercizi, Studiare e quelle che si scrivono più spesso — e un tocco le aggiunge. Scrivendo, restano quelle che cominciano così |
+| un compito con una parte sola | **un cerchio solo**: la riga del compito porta il cerchio della parte, e non c'è una seconda riga sotto |
+| un compito con due o più parti | a destra **solo una freccia**, che apre e chiude le parti. Da chiusa la riga dice «1 di 3». Il compito si spunta aprendolo o facendo scorrere la riga |
+| «Da pianificare» | **non serve**: sparisce dall'elenco. La fila dei giorni resta nel compito, ma **chiusa** sotto «Quando lo fai» |
+| le verifiche in cima | **solo a 7 giorni o meno**; prima stanno **in coda** alla loro sezione |
+| modificare o togliere una cosa della spesa | **facendo scorrere la riga**: verso sinistra si modifica, verso destra si toglie |
+
+#### Assunzioni prese nel farlo (si ribaltano senza discutere)
+
+| # | Assunzione | Come si ribalta |
+|---|---|---|
+| A44 | Una materia col laboratorio ha `lab: true` (§4.1). Nell'orario un'ora di laboratorio vale `"<id>@lab"` (§4.2): gli orari già salvati restano validi, e un'ora senza `@lab` è teoria. Nella casella la sigla porta sotto «LAB». Scegliendo la materia di una casella, una materia col laboratorio compare due volte: «· Teoria» e «· Laboratorio». | `timetable.js`, `timetable-view.js` |
+| A45 | Un compito di una materia col laboratorio **nasce Teoria**, e il tocco «Teoria · Laboratorio» compare solo per quelle materie. La «prossima lezione» proposta come scadenza segue la scelta: le ore di laboratorio per il laboratorio, le altre per la teoria; se l'orario non le distingue ancora, vale qualunque ora della materia. Cambiando Teoria/Laboratorio la scadenza si sposta **solo se l'aveva proposta l'app** e non è stata toccata. | `task.lab` (§4.3), `compose.js`, `nextLessons()` |
+| A46 | Nell'elenco un compito di una materia col laboratorio porta la pillola **«Teoria» o «Lab»** nella riga sotto il titolo. Nel calendario no: in una colonna da 45px ci sta la sigla e basta. Una verifica senza nome, che si chiama già «Verifica di …», non porta anche la pillola «Verifica»: la direbbe due volte, e in una riga stretta mandava a capo il peso. | `taskRow()` in `app.js` |
+| A47 | Togliere il laboratorio a una materia **non cambia niente di quello che c'è**: le ore e i compiti già segnati di laboratorio restano tali, e si leggono ancora «Lab». | — |
+| A48 | Le parti consigliate sono **Esercizi e Studiare più quelle già scritte** nei compiti dello stesso ambito: prima quelle già usate con la stessa materia, poi Esercizi e Studiare (che così ci sono sempre, anche con uno storico lungo), poi le altre, le più usate e le più recenti per prime; al massimo otto, in una fila che scorre. Quelle già nel compito non si ripropongono. Nel privato non ci sono consigliati di partenza, solo quello che si è già scritto lì. Un tocco **aggiunge subito** la parte, e un numero scritto davanti resta suo: «5 » e poi Esercizi fa «5 esercizi», con il conto. | `partSuggestions()` in `tasks.js`, `compose.js` |
+| A49 | Con **una parte sola** il cerchio della riga è quello della parte (col conto «2/5» se ha un numero), e il nome della parte sta per primo nella riga sotto il titolo, col suo giorno se ne ha uno. Spuntarla spunta il compito (§5.2), e il toast dice «Fatto» con l'annulla. | `taskRow()` in `app.js` |
+| A50 | Le parti aperte con la freccia **restano aperte finché l'app è aperta**: non si salvano, e alla riapertura ogni riga parte chiusa. È una vista, come il filtro. | `expanded` in `app.js` |
+| A51 | Una riga con la freccia **si spunta scorrendo** come le altre (A22); non avendo il cerchio, mentre si trascina è il contorno della riga a diventare verde quando rilasciando si spunterebbe. | `components.css` |
+| A52 | «Da pianificare» esce dall'elenco. Nel calendario la quarta riga (la bandierina) si chiama **«In scadenza»**: le cose che scadono quel giorno senza un giorno scelto. Nel compito la fila dei giorni sta chiusa sotto **«Quando lo fai»** e si apre con un tocco; è già aperta se il compito ha giorni scelti o esclusi, o una parte ha il suo giorno. Il chip «quando?» delle parti c'è solo con la fila aperta, o se la parte un giorno ce l'ha già. | `app.js`, `compose.js`, `i18n.js` |
+| A53 | «7 giorni o meno» si conta come «tra 3 giorni» (§6.1): da oggi al giorno della verifica. Una verifica in ritardo è vicina. Oltre i 7 giorni una verifica va **in fondo alla sua sezione**, dopo i compiti, e fra loro vale il solito ordine (peso, scadenza, nome). | `compare()` in `tasks.js` |
+| A54 | Nella spesa lo scorrimento funziona come nell'elenco: scatta **oltre un terzo della riga**. Verso destra togliere chiede **conferma** (regola 4), poi il toast offre l'annulla; verso sinistra sale un foglio col testo com'era scritto («2 latte») da correggere. Supera A39 dove diceva «nemmeno con un tocco»: uno scorrimento non si fa per sbaglio come un tocco, e la conferma c'è. Le «Già comprate» si svuotano sempre e solo con «Svuota». Sotto la lista una nota dice i due gesti: un gesto che non si sa che c'è, non c'è. | `bindSwipe()` in `ui.js`, `shopping-view.js` |
+| A55 | Correggere una cosa col **nome di un'altra che c'è già** (in lista o fra le comprate) non si fa: l'avviso lo dice e non cambia niente. Due righe con lo stesso nome sarebbero la stessa cosa scritta due volte. | `editItem()` in `shopping.js` |
 
 Rimasta aperta e **non** decisa: la forma definitiva dell'ambito privato
 (vedi §6.4). Il nome dell'app non è più in questa lista.
@@ -265,7 +296,7 @@ Il progetto sta **alla radice della repo** (decisione dell'utente): la repo
     browser/                    prove che guidano l'app in un browser vero
                                 (servono Playwright: vedi test/browser/LEGGIMI.md)
       audit.mjs                 il controllo dei contrasti sulla pagina renderizzata
-      contrasti.mjs             lo passa su dodici schermate dell'app, nei due temi
+      contrasti.mjs             lo passa su quattordici schermate dell'app, nei due temi
       cattura-schermate.mjs     salva il markup vero dell'app, per il confronto palette
       confronto-palette.mjs     guarda le palette candidate e le verifica
       percorso-base.mjs         il giro completo: creare, pianificare, spuntare
@@ -307,7 +338,8 @@ I giorni della settimana sono numeri **1 = lunedì … 7 = domenica** (ISO).
   lang: null,          // null = segue il telefono; "it" | "en"
   theme: null,         // null = segue il telefono; "light" | "dark"
   subjects: [          // le materie dell'anno, inserite da lui
-    { id: "s-1", name: "Inglese", short: "INGL", color: "petrolio" }
+    { id: "s-1", name: "Inglese", short: "INGL", color: "petrolio",
+      lab: false }     // true = si divide in teoria e laboratorio (A44)
   ],
   areas: [             // SOLO gli ambiti personalizzati: i due fissi non stanno qui
     { id: "a-1", name: "Palestra", color: "oliva" }
@@ -331,8 +363,9 @@ Shift Hours gestisce le paghe orarie nel tempo.
 [
   {
     weekStart: "2026-09-21",
-    // chiave = giorno 1..6; array lungo lessonsPerDay; null = ora libera
-    grid: { "1": ["s-1","s-1","s-3",null,null,null], "2": [...] }
+    // chiave = giorno 1..6; array lungo lessonsPerDay; null = ora libera;
+    // "s-3@lab" = ora di laboratorio di quella materia (A44)
+    grid: { "1": ["s-1","s-1","s-3@lab",null,null,null], "2": [...] }
   }
 ]
 ```
@@ -349,6 +382,8 @@ c'è), **copiando la griglia dell'ultimo orario esistente**. Si corregge da lì.
     area: "school" | "private" | "a-1",
     subjectId: "s-1" | null,       // sempre null fuori da "school"
     kind: "homework" | "test" | "todo",
+    lab: false,                    // true = di laboratorio; conta solo se la
+                                   // materia ha il laboratorio (A45)
     title: "Compiti di inglese",  // "" = si chiama come la materia (A26)
     due: "2026-09-25" | null,      // per una verifica è il GIORNO della verifica
     weight: 1 | 2 | 3,             // leggero | medio | pesante
@@ -502,12 +537,20 @@ Sotto, due cose e in quest'ordine:
 
 Elenco a sezioni, nell'ordine: **In ritardo**, **Oggi**, **Domani**,
 **Questa settimana**, **Più avanti**, **Senza data**. Dentro ogni sezione:
-prima le verifiche, poi per peso decrescente, poi per titolo.
+prima le verifiche **a 7 giorni o meno**, poi per peso decrescente, poi per
+titolo; le verifiche più lontane **in fondo** (A53).
 
 Ogni riga: titolo, riga secondaria con materia (col suo pallino) · scadenza ·
-peso, e il cerchio della spunta a destra (44×44).
+peso, e a destra una cosa sola (44×44), che dipende dalle parti — perché
+nell'elenco entrino più compiti possibile (quinto giro):
 
-**Sotto la riga, le sue parti**, tutte, ognuna col suo cerchio: si spuntano
+- **nessuna parte**: il cerchio della spunta;
+- **una parte**: il cerchio **della parte**, e il suo nome per primo nella
+  riga secondaria (A49). Una sola riga, un solo cerchio;
+- **due o più parti**: una **freccia** che apre e chiude le parti sotto la
+  riga; da chiusa, la riga secondaria dice «1 di 3» (A50–A51).
+
+**Le parti aperte** stanno sotto la riga, ognuna col suo cerchio: si spuntano
 senza aprire il compito. Una parte che ha un suo giorno lo porta scritto sotto
 il nome («oggi · sera», «mar 22 · pomerig.»). Quelle fatte restano barrate, perché la domanda vera
 è *che cosa mi manca* e la risposta si legge meglio accanto a quello che è già
@@ -515,6 +558,9 @@ fatto. Una parte con un numero («5 frasi») porta il conto dentro il cerchio
 (`3/5`), e il tocco fa quello che dice l'impostazione (§6.4): +1, oppure tutta
 in una volta. Quando l'ultima parte si spunta, si spunta da sé anche il
 compito (§5.2).
+
+Una materia col laboratorio porta la pillola «Teoria» o «Lab» (A46). La
+pillola «Da pianificare» non c'è più (A52).
 
 *(La prima versione diceva «restano: esercizi sul libro» accanto al titolo, e
 sotto aveva una barra di avanzamento. Con le parti in vista erano due doppioni,
@@ -541,7 +587,8 @@ Due viste commutabili, **settimana** (di partenza) e **mese**.
 
 - **Settimana**: una **griglia** con la stessa forma di quella dell'orario —
   sette colonne (i giorni) per tre righe (mattina, pomeriggio, sera), più una
-  quarta riga per quello che scade quel giorno senza essere stato pianificato.
+  quarta riga, **«In scadenza»**, per quello che scade quel giorno senza un
+  giorno scelto (A52).
   Dentro le caselle, blocchetti col colore della materia e la sua sigla:
   **uno per ogni parte che ha un suo giorno**, nel suo momento, e uno per il
   compito nei giorni scelti per lui quando ha parti senza un giorno loro (o
@@ -583,7 +630,7 @@ un unico riquadro, e ogni riga dice a destra come stanno le cose:
 1. **Aspetto** — tema e lingua, in quest'ordine: `Automatico · Chiaro ·
    Scuro` e `Automatica · IT · EN`. «Automatico» segue il telefono.
 2. **Materie** — elenco con nome, sigla e colore. Aggiungi, rinomina, cambia
-   colore, elimina. Eliminare una materia **non cancella i compiti**: restano
+   colore, elimina, e **«Solo teoria · Teoria e laboratorio»** (A44). Eliminare una materia **non cancella i compiti**: restano
    col nome che avevano (come il `typeName` congelato di Shift Hours).
 3. **Ambiti** — Scuola e Privato ci sono sempre; qui si aggiungono gli altri.
 4. **Compiti** — **cosa fa un tocco su una parte con un numero** dall'elenco:
@@ -604,16 +651,19 @@ L'orario vero non sta più qui: ha il suo pulsante nella testata (§6.6).
 Un pannello, non una schermata, uguale per il compito nuovo e per quello
 aperto. Tutto modificabile sul posto. L'ordine è quello dei gesti:
 
-- **scuola**: scuola/privato, compito/verifica, **materia**, **le parti**
-  (quello che c'è da fare, una riga per parte), scadenza, peso, la fila dei
-  giorni della finestra (§5), e in fondo il **nome, facoltativo**: se resta
-  vuoto il compito si chiama come la materia (A26);
+- **scuola**: scuola/privato, compito/verifica, **materia** (e, se la materia
+  ha il laboratorio, **Teoria · Laboratorio**, A45), **le parti** (quello che
+  c'è da fare, una riga per parte, con sotto i **consigliati**, A48),
+  scadenza, peso, **«Quando lo fai»** — la fila dei giorni della finestra
+  (§5), chiusa finché non la si apre (A52) — e in fondo il **nome,
+  facoltativo**: se resta vuoto il compito si chiama come la materia (A26);
 - **privato** e gli altri ambiti: il **nome**, che qui è obbligatorio e viene
-  per primo, poi scadenza, peso, la fila dei giorni e le parti.
+  per primo, poi scadenza, peso, «Quando lo fai» e le parti.
 
 Su un compito che esiste già, in fondo, `Fatto` ed `Elimina`.
 
-Sotto il nome di ogni parte c'è il suo **chip «quando»**: dice «quando?» se la
+Sotto il nome di ogni parte c'è il suo **chip «quando»** (con «Quando lo fai»
+aperto, o se la parte ha già un giorno: A52): dice «quando?» se la
 parte segue il compito, o il suo giorno e il suo momento («mar 22 · sera»).
 Toccandolo sale un foglio coi giorni della finestra — quelli esclusi no — e i
 tre momenti: un tocco sul giorno, uno sul momento, fatto. Se la parte ha già
@@ -625,7 +675,9 @@ Un pannello che si apre dal pulsante con la tabella, nella testata. La griglia
 è quella di sempre: giorni in colonna, ore in riga, le ore consecutive della
 stessa materia fuse in una casella sola.
 
-- **Provvisorio** (a inizio anno): toccando una casella si cambia la materia;
+- **Provvisorio** (a inizio anno): toccando una casella si cambia la materia
+  (una materia col laboratorio si sceglie come teoria o come laboratorio, e
+  la casella di laboratorio porta «LAB» sotto la sigla: A44);
   c'è «Nuova settimana», che crea l'orario della prossima copiando l'ultimo,
   e l'elenco delle settimane da cui vale ognuno. In fondo, «È l'orario
   definitivo», con una conferma che dice come si torna indietro.
@@ -639,7 +691,9 @@ Un pannello che si apre dal carrello, il primo pulsante della testata.
 
 - **La lista**: una riga per cosa, col cerchio a destra come i compiti. Un
   tocco la spunta; la riga resta barrata al suo posto **fino a mezzanotte**,
-  come un compito fatto, e ritoccandola torna da comprare.
+  come un compito fatto, e ritoccandola torna da comprare. Facendola
+  **scorrere verso sinistra** si modifica, **verso destra** si toglie, con la
+  conferma (A54–A55).
 - Sotto, il campo **«Aggiungi…»** col `+`. Dopo aver aggiunto una cosa il
   cursore resta lì, pronto per la prossima. La **quantità** si scrive davanti
   («2 latte», «500 g farina») e si legge a destra della riga (A42–A43).
@@ -736,7 +790,9 @@ pannello impostazioni.
   di una settimana passata non cambia quando si crea quello nuovo; scegliendo
   una materia il pannello di inserimento propone la data della sua prossima
   lezione. Da definitivo le caselle dell'orario non si toccano e non c'è
-  «Nuova settimana»; dalle impostazioni torna modificabile.
+  «Nuova settimana»; dalle impostazioni torna modificabile. Una materia col
+  laboratorio si mette nell'orario come teoria o come laboratorio, e un
+  compito di laboratorio propone la prossima ora di laboratorio.
 
 ### Task 4 — Inserimento e compito aperto
 `src/js/compose.js`, `src/js/planner.js`.
@@ -744,14 +800,17 @@ pannello impostazioni.
 - **Accettazione**: un compito di scuola con materia, scadenza e peso si crea
   in **quattro tocchi più le parti**, senza scrivere un nome; nessuna tastiera
   per le date; le parti si aggiungono senza uscire dal pannello, e una parte
-  scritta ma non ancora aggiunta non si perde (A28).
+  scritta ma non ancora aggiunta non si perde (A28). Una parte consigliata
+  si aggiunge con un tocco, senza tastiera; la fila dei giorni è chiusa.
 
 ### Task 5 — Elenco Da fare
 `src/js/tasks.js`, `src/js/app.js`.
 
 - **Accettazione**: sezioni nell'ordine di §6.1; spunta con annulla; il filtro
   per ambito non fa sparire le sezioni vuote in modo confuso (una sezione vuota
-  non si disegna).
+  non si disegna). Un compito con una parte ha un cerchio solo e nessuna riga
+  sotto; con due o più parti la freccia le apre e le chiude; una verifica fra
+  più di 7 giorni sta in fondo alla sua sezione.
 
 ### Task 6 — Calendario
 `src/js/calendar.js`.
@@ -791,7 +850,8 @@ pannello impostazioni.
   resta nel campo; spuntata resta barrata fino a mezzanotte e poi è fra le
   «Già comprate»; un tocco la rimette in lista; scriverla di nuovo non fa un
   doppione; «Svuota» chiede conferma coi numeri; la lista esce nella copia e
-  torna col ripristino.
+  torna col ripristino. Scorrendo verso sinistra una cosa si corregge,
+  verso destra si toglie dopo una conferma, e l'annulla la rimette.
 
 ## 9-bis. Cosa si controlla da sé
 

@@ -1,6 +1,7 @@
 /* Agenda — materie.
  *
- * Una materia è un nome, una sigla e un colore. Il colore non è un valore
+ * Una materia è un nome, una sigla e un colore, e può dividersi in teoria e
+ * laboratorio (`lab: true`, A44). Il colore non è un valore
  * esadecimale: è il NOME di un token (`sky`, `teal`, …). Nessun colore viene
  * mai scritto nel JavaScript — qui si sceglie quale token usare, e il valore
  * vero vive solo in `design_handoff/tokens/colors.css` (regola 3 di CLAUDE.md).
@@ -68,6 +69,7 @@ export function newSubject(name, subjects = []) {
     name: clean,
     short: suggestShort(clean),
     color: nextColor(subjects),
+    lab: false,
   };
 }
 
@@ -86,6 +88,20 @@ export function findSubject(subjects, id) {
 export function subjectLabel(subjects, task) {
   const found = task.subjectId ? findSubject(subjects, task.subjectId) : null;
   return found?.name ?? task.subjectName ?? null;
+}
+
+/**
+ * Teoria o laboratorio, per un compito (A44–A47): "lab", "theory", oppure
+ * null quando la cosa non si pone.
+ *
+ * Si pone se la materia ha il laboratorio, o se il compito è segnato di
+ * laboratorio: togliere il laboratorio a una materia non deve far dimenticare
+ * che quel compito era di laboratorio (A47).
+ */
+export function modeOf(subjects, task) {
+  if (task.lab) return "lab";
+  const found = task.subjectId ? findSubject(subjects, task.subjectId) : null;
+  return found?.lab ? "theory" : null;
 }
 
 export function subjectColor(subjects, task) {

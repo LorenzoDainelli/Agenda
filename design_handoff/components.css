@@ -360,18 +360,32 @@ button { cursor: pointer; touch-action: manipulation; }
 /* Spuntare scorrendo (A22). `pan-y` lascia al browser lo scorrimento in
    verticale e dà all'app quello in orizzontale: senza, su iPhone il gesto
    verso destra verrebbe preso dal browser e annullato a metà. Mentre si
-   trascina la riga segue il dito senza transizione; rilasciata, torna al suo
-   posto con la transizione qui sopra. */
+   trascina la riga segue il dito senza transizione (`.ag-swipe--moving`, lo
+   mette bindSwipe in ui.js); rilasciata, torna al suo posto con la
+   transizione qui sopra. */
 .ag-task--swipeable { touch-action: pan-y; }
-.ag-task--swiping { transition: none; }
+.ag-swipe--moving { transition: none; }
 
 /* Il cerchio anticipa cosa succede rilasciando: si riempie su una riga da
-   fare, si svuota su una riga fatta. Gli stessi colori della spunta vera. */
-.ag-task--armed .ag-check[data-check] { color: var(--ag-done); }
-.ag-task--armed .ag-check[data-check]::before { background: var(--ag-done); box-shadow: none; }
-.ag-task--armed .ag-check[data-check] svg { display: block; color: var(--ag-bg); }
-.ag-task--done.ag-task--armed .ag-check[data-check]::before { background: none; box-shadow: inset 0 0 0 2px var(--ag-text-faint); }
-.ag-task--done.ag-task--armed .ag-check[data-check] svg { display: none; }
+   fare, si svuota su una riga fatta. Gli stessi colori della spunta vera.
+   Solo il cerchio della riga (figlio diretto), che è quello del compito o
+   della sua parte sola (A49); quelli delle parti aperte sotto no. */
+.ag-task[data-armed="right"] > .ag-check { color: var(--ag-done); }
+.ag-task[data-armed="right"] > .ag-check::before { background: var(--ag-done); box-shadow: none; }
+.ag-task[data-armed="right"] > .ag-check svg { display: block; color: var(--ag-bg); }
+.ag-task--done[data-armed="right"] > .ag-check::before { background: none; box-shadow: inset 0 0 0 2px var(--ag-text-faint); }
+.ag-task--done[data-armed="right"] > .ag-check svg { display: none; }
+/* il conto «2/5» di una parte sola non si riempie (il numero resterebbe su un
+   fondo non misurato): diventa verde il suo contorno */
+.ag-task[data-armed="right"] > .ag-check--count .ag-check__count { box-shadow: inset 0 0 0 2px var(--ag-done); }
+
+/* Una riga con la freccia non ha un cerchio che anticipi la spunta (A51):
+   è il contorno della riga a diventare verde. Non è testo: --ag-done su
+   --ag-surface 6.38:1 nel chiaro e 7.22:1 nello scuro, su --ag-test-soft
+   6.22:1 e 6.72:1, sopra i 3:1 di un elemento grafico. Su una riga fatta,
+   dove rilasciando si toglierebbe la spunta, il contorno è spento. */
+.ag-task--parts[data-armed="right"] { box-shadow: inset 0 0 0 2px var(--ag-done); }
+.ag-task--parts.ag-task--done[data-armed="right"] { box-shadow: inset 0 0 0 2px var(--ag-text-faint); }
 
 /* Una verifica non è una riga come le altre: porta la sua barra a sinistra e
    il suo fondo. È l'unica cosa che non si può rimandare, e si deve vedere
@@ -492,7 +506,41 @@ button { cursor: pointer; touch-action: manipulation; }
 }
 
 .ag-task__flag--test { color: var(--ag-test-ink); background: var(--ag-bg); }
-.ag-task__flag--plan { color: var(--ag-text-muted); }
+/* Teoria o laboratorio (A46). Muted sul fondo della pillola, che è --ag-bg
+   anche su una verifica: 5.86:1 nel chiaro, 8.10:1 nello scuro. */
+.ag-task__flag--mode { color: var(--ag-text-muted); }
+
+/* La parte sola di un compito, per prima nella riga sotto il titolo (A49).
+   È quello che c'è da fare, e si legge come la materia accanto: --ag-text,
+   16.50:1 su --ag-surface e 16.10:1 su --ag-test-soft nel chiaro, 14.85:1 e
+   13.82:1 nello scuro. Il suo giorno usa i colori di .ag-subpart__when. */
+.ag-task__part {
+  font-weight: var(--ag-weight-medium);
+  color: var(--ag-text);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* La freccia che apre le parti di un compito che ne ha due o più (A50): sta
+   dove starebbe il cerchio, sensibile su 44×44 come lui. È un'icona e non
+   testo: muted su --ag-surface 5.31:1 nel chiaro e 7.34:1 nello scuro, sopra
+   i 3:1 di un elemento grafico. Da aperta si gira verso l'alto. */
+.ag-expand {
+  flex: none;
+  align-self: center;
+  width: var(--ag-touch-min);
+  height: var(--ag-touch-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ag-radius-pill);
+  color: var(--ag-text-muted);
+}
+
+.ag-expand:active { background: var(--ag-surface-strong); }
+
+.ag-expand__icon { transition: transform var(--ag-motion-fast) var(--ag-motion-ease); }
+[aria-expanded="true"] > .ag-expand__icon { transform: rotate(180deg); }
 
 /* Il peso: tre tacche, piene quante ne vale il compito. Non è un numero da
    leggere, è una forma da riconoscere. */
@@ -1069,6 +1117,23 @@ button.ag-row { width: 100%; text-align: start; }
   color: var(--ag-text-muted);
   text-decoration: line-through;
 }
+
+/* Far scorrere una cosa della spesa (A54): verso sinistra si corregge, verso
+   destra si toglie. Mentre si trascina la riga prende il fondo di quando la
+   si preme, così si vede che si muove lei e non il testo (il nome resta
+   leggibile: --ag-text 14.89:1 e muted 4.79:1 nel chiaro, 12.92:1 e 6.39:1
+   nello scuro). Il contorno dice cosa succede rilasciando: blu d'azione per
+   correggere, rosso per togliere. Non è testo: --ag-primary su
+   --ag-surface-strong 8.93:1 e --ag-late 4.88:1 nel chiaro, 6.59:1 e 5.72:1
+   nello scuro, sopra i 3:1 di un elemento grafico. Il selettore passa da
+   .ag-rows per vincere sulla riga sottile che separa le righe. */
+.ag-shop {
+  touch-action: pan-y;
+  transition: transform var(--ag-motion-fast) var(--ag-motion-ease);
+}
+.ag-rows > .ag-shop.ag-swipe--moving { background: var(--ag-surface-strong); transition: none; }
+.ag-rows > .ag-shop[data-armed="left"] { box-shadow: inset 0 0 0 2px var(--ag-primary); }
+.ag-rows > .ag-shop[data-armed="right"] { box-shadow: inset 0 0 0 2px var(--ag-late); }
 .ag-rows > .ag-row--tap:active { background: var(--ag-surface-strong); }
 .ag-row--stacked { flex-direction: column; align-items: stretch; gap: var(--ag-space-3); padding-block: var(--ag-space-4); }
 
@@ -1168,6 +1233,15 @@ button.ag-row { width: 100%; text-align: start; }
   background: var(--ag-surface-strong);
   margin: 0 auto var(--ag-space-2);
   flex: none;
+}
+
+/* Il contenuto del foglio, con lo stesso passo del foglio stesso. Senza, il
+   titolo e un campo si toccavano, e il contorno del fuoco del campo (6px
+   fuori da lui) finiva sopra il titolo. */
+.ag-sheet__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ag-space-3);
 }
 
 .ag-sheet__title {
@@ -1542,6 +1616,8 @@ button.ag-row { width: 100%; text-align: start; }
   font-weight: var(--ag-weight-bold);
   letter-spacing: var(--ag-tracking-wide);
   display: flex;
+  /* in colonna: la sigla, e sotto «LAB» per un'ora di laboratorio (A44) */
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
@@ -1550,6 +1626,10 @@ button.ag-row { width: 100%; text-align: start; }
 }
 
 .ag-tt__cell--empty { background: var(--ag-surface); color: var(--ag-text-faint); }
+/* «LAB» sotto la sigla di un'ora di laboratorio (A44). Stessi colori della
+   sigla, quindi lo stesso contrasto misurato nei token di materia; più
+   leggero, perché è la seconda cosa da leggere. */
+.ag-tt__lab { font-weight: var(--ag-weight-semibold); text-transform: uppercase; }
 /* solo le caselle che si toccano: da definitivo l'orario si guarda (§6.6) */
 .ag-tt__cell[data-cell]:active { box-shadow: inset 0 0 0 2px var(--ag-primary); }
 

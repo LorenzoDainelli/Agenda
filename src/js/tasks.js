@@ -6,7 +6,7 @@
  * che sono la cosa che decide se l'app è utile o solo piena.
  */
 
-import { today as todayISO, addDays, mondayOf, monthKey } from "./days.js";
+import { today as todayISO, addDays, diffDays, mondayOf, monthKey } from "./days.js";
 import {
   isOpen, isDone, isDropped, isLate, workDate, isPartDone, partDay, hasPlan,
   AREA_PRIVATE, SLOTS,
@@ -36,16 +36,31 @@ export function sectionOf(task, today = todayISO()) {
   return "later";
 }
 
+/* Fin dove una verifica è "vicina" e va in cima: gli stessi sette giorni in
+   cui la riga conta «tra 3 giorni» (A53). */
+const TEST_NEAR_DAYS = 7;
+
+/** Il posto di una cosa nella sua sezione, prima di ogni altro criterio:
+ *  0 = una verifica vicina, 1 = tutto il resto, 2 = una verifica lontana. */
+function rank(task, today) {
+  if (task.kind !== "test") return 1;
+  if (!task.due) return 2;
+  return diffDays(today, task.due) <= TEST_NEAR_DAYS ? 0 : 2;
+}
+
 /**
  * L'ordine dentro una sezione.
  *
- * Prima le verifiche, perché sono l'unica cosa che non si può rimandare. Poi
- * il peso, dal più pesante: se una giornata va male, quello che salta è
- * meglio che sia leggero. Poi la scadenza più vicina, poi il titolo — gli
- * ultimi due servono solo a non far ballare l'elenco fra un disegno e l'altro.
+ * Prima le verifiche vicine, perché sono l'unica cosa che non si può
+ * rimandare. Quelle a più di una settimana stanno invece in coda (quinto
+ * giro): in cima, per giorni, coprivano le cose da fare prima. Poi il peso,
+ * dal più pesante: se una giornata va male, quello che salta è meglio che sia
+ * leggero. Poi la scadenza più vicina, poi il titolo — gli ultimi due servono
+ * solo a non far ballare l'elenco fra un disegno e l'altro.
  */
-function compare(a, b) {
-  if ((a.kind === "test") !== (b.kind === "test")) return a.kind === "test" ? -1 : 1;
+function compare(a, b, today = todayISO()) {
+  const byRank = rank(a, today) - rank(b, today);
+  if (byRank) return byRank;
   if (a.weight !== b.weight) return b.weight - a.weight;
   const dueA = a.due || "9999-99-99";
   const dueB = b.due || "9999-99-99";
@@ -104,7 +119,7 @@ export function sections(tasks, { today = todayISO(), area = "all" } = {}) {
   }
   return SECTIONS
     .map((key) => {
-      const list = buckets.get(key).sort(compare);
+      const list = buckets.get(key).sort((a, b) => compare(a, b, today));
       return { key, tasks: list, open: list.filter(isOpen).length };
     })
     .filter((section) => section.tasks.length > 0);
@@ -208,6 +223,71 @@ export function unplannedOn(tasks, day) {
       && !hasPlan(task)
       && task.kind !== "test")
     .sort(compare);
+}
+
+/** Il numero che si può scrivere davanti a una parte («5 frasi»): quando si
+ *  cercano i consigliati, conta solo quello che viene dopo. */
+const LEADING_COUNT = /^\d{1,3}\s+/;
+
+function partKey(text) {
+  return String(text ?? "").trim().toLocaleLowerCase();
+}
+
+/**
+ * Le parti consigliate sotto il campo della parte nuova (A48).
+ *
+ * Nella scuola le parti si somigliano tutte — esercizi, studiare, le stesse
+ * poche cose — e riscriverle ogni volta è testo libero dove basta un tocco
+ * (regola 5). Si propone quello che si è già scritto nello stesso ambito, più
+ * le parole di partenza che passa chi chiama (`starters`, già tradotte).
+ *
+ * L'ordine, a tre gruppi: le parti già usate con questa materia (le più
+ * usate, poi le più recenti); le parole di partenza, nel loro ordine, che ci
+ * sono sempre anche quando lo storico è lungo; poi tutte le altre, allo
+ * stesso modo del primo gruppo. Scrivendo restano quelle che cominciano così,
+ * o che hanno una parola che comincia così; quella scritta tale e quale no,
+ * ci sarebbe già.
+ */
+export function partSuggestions(tasks, {
+  area, subjectId = null, typed = "", starters = [], exclude = [], limit = 8,
+} = {}) {
+  const found = new Map();
+  starters.forEach((title, index) => {
+    found.set(partKey(title), { title, same: 0, uses: 0, last: "", starter: index });
+  });
+  for (const task of tasks) {
+    if (task.area !== area) continue;
+    for (const part of task.parts || []) {
+      const key = partKey(part.title);
+      if (!key) continue;
+      const entry = found.get(key)
+        || { title: part.title.trim(), same: 0, uses: 0, last: "", starter: Infinity };
+      entry.uses += 1;
+      if (subjectId && task.subjectId === subjectId) entry.same += 1;
+      const when = task.createdAt || "";
+      if (when >= entry.last) {
+        entry.last = when;
+        // di una parola di partenza resta la sua forma; delle altre, com'è
+        // stata scritta l'ultima volta
+        if (entry.starter === Infinity) entry.title = part.title.trim();
+      }
+      found.set(key, entry);
+    }
+  }
+
+  const group = (entry) => (entry.same > 0 ? 0 : entry.starter !== Infinity ? 1 : 2);
+  const wanted = partKey(String(typed ?? "").replace(LEADING_COUNT, ""));
+  const skip = new Set(exclude.map(partKey));
+  return [...found.entries()]
+    .filter(([key]) => !skip.has(key))
+    .filter(([key]) => !wanted
+      || (key !== wanted && key.split(/\s+/).some((word, i, words) =>
+        words.slice(i).join(" ").startsWith(wanted))))
+    .map(([, entry]) => entry)
+    .sort((a, b) => group(a) - group(b) || b.same - a.same || a.starter - b.starter
+      || b.uses - a.uses || b.last.localeCompare(a.last))
+    .slice(0, limit)
+    .map((entry) => entry.title);
 }
 
 /** Tutti gli arretrati, i più vecchi per primi: la rassegna li affronta in quest'ordine. */

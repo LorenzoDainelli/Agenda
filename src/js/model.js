@@ -34,6 +34,8 @@ export function newTask(fields = {}) {
     // `typeName` di Shift Hours)
     subjectName: fields.subjectName ?? null,
     kind: KINDS.includes(fields.kind) ? fields.kind : "homework",
+    // di laboratorio: conta solo per una materia che ce l'ha (A45)
+    lab: fields.lab === true,
     title: (fields.title || "").trim(),
     due: fields.due ?? null,
     weight: WEIGHTS.includes(fields.weight) ? fields.weight : DEFAULT_WEIGHT,

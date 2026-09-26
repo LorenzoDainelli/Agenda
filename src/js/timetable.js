@@ -16,10 +16,38 @@
  *
  * Nella griglia le chiavi sono i giorni ISO ("1" = lunedì) e i valori sono
  * array lunghi `lessonsPerDay`, dove ogni posizione è l'id di una materia
- * oppure `null` per un'ora libera.
+ * oppure `null` per un'ora libera. Un'ora di laboratorio è l'id seguito da
+ * `@lab` (A44): una stringa e non un oggetto, così gli orari già salvati
+ * restano validi così come sono, e due ore di fila una di teoria e una di
+ * laboratorio non si fondono in un blocco solo (sono valori diversi).
  */
 
 import { mondayOf, addDays, dow, today as todayISO } from "./days.js";
+
+const LAB = "@lab";
+
+/** Il valore di una casella per una materia, di teoria o di laboratorio. */
+export function cellValue(subjectId, lab = false) {
+  if (!subjectId) return null;
+  return lab ? `${subjectId}${LAB}` : subjectId;
+}
+
+/** Da valore di una casella a `{ subjectId, lab }`. Un'ora libera dà un id null. */
+export function readCell(value) {
+  if (typeof value !== "string" || !value) return { subjectId: null, lab: false };
+  return value.endsWith(LAB)
+    ? { subjectId: value.slice(0, -LAB.length), lab: true }
+    : { subjectId: value, lab: false };
+}
+
+/**
+ * Se un'ora è di quella materia. `lab` null = teoria o laboratorio, non
+ * importa; true o false = solo quella.
+ */
+function isLesson(value, subjectId, lab = null) {
+  const cell = readCell(value);
+  return cell.subjectId === subjectId && (lab === null || cell.lab === lab);
+}
 
 export function emptyGrid(schoolDays, lessonsPerDay) {
   const grid = {};
@@ -76,7 +104,7 @@ export function createNext(list, settings, today = todayISO()) {
 export function daysWithSubject(timetable, subjectId) {
   if (!timetable || !subjectId) return [];
   return Object.entries(timetable.grid)
-    .filter(([, hours]) => Array.isArray(hours) && hours.includes(subjectId))
+    .filter(([, hours]) => Array.isArray(hours) && hours.some((value) => isLesson(value, subjectId)))
     .map(([day]) => Number(day))
     .sort((a, b) => a - b);
 }
@@ -89,8 +117,11 @@ export function daysWithSubject(timetable, subjectId) {
  * Cerca fino a quattro settimane avanti e usa, per ogni giorno, l'orario
  * valido per quel giorno: se fra due settimane l'orario cambia, la seconda
  * proposta tiene conto della griglia nuova.
+ *
+ * `lab` sceglie fra le ore di teoria (false) e quelle di laboratorio (true);
+ * null le prende tutte (A45).
  */
-export function nextLessons(list, subjectId, from = todayISO(), howMany = 2) {
+export function nextLessons(list, subjectId, from = todayISO(), howMany = 2, lab = null) {
   if (!subjectId || !list.length) return [];
   const out = [];
   for (let i = 1; i <= 28 && out.length < howMany; i += 1) {
@@ -98,7 +129,7 @@ export function nextLessons(list, subjectId, from = todayISO(), howMany = 2) {
     const timetable = timetableFor(list, day);
     if (!timetable) continue;
     const hours = timetable.grid[String(dow(day))];
-    if (Array.isArray(hours) && hours.includes(subjectId)) out.push(day);
+    if (Array.isArray(hours) && hours.some((value) => isLesson(value, subjectId, lab))) out.push(day);
   }
   return out;
 }
@@ -110,7 +141,8 @@ export function subjectsOn(list, date) {
   const hours = timetable.grid[String(dow(date))] || [];
   const seen = new Set();
   const out = [];
-  for (const id of hours) {
+  for (const value of hours) {
+    const id = readCell(value).subjectId;
     if (id && !seen.has(id)) { seen.add(id); out.push(id); }
   }
   return out;
@@ -135,17 +167,18 @@ export function blocksOf(hours, lessonsPerDay) {
     if (list[i] !== null) {
       while (i + span < list.length && list[i + span] === list[i]) span += 1;
     }
-    out.push({ subjectId: list[i], from: i, span });
+    out.push({ ...readCell(list[i]), from: i, span });
     i += span;
   }
   return out;
 }
 
-/** Scrive una materia in un blocco di ore (tutte quelle del blocco). */
-export function setBlock(grid, day, from, span, subjectId) {
+/** Scrive un valore (una materia, teoria o laboratorio: vedi cellValue) in
+ *  un blocco di ore, tutte quelle del blocco. */
+export function setBlock(grid, day, from, span, value) {
   const key = String(day);
   const hours = [...(grid[key] || [])];
-  for (let i = from; i < from + span; i += 1) hours[i] = subjectId;
+  for (let i = from; i < from + span; i += 1) hours[i] = value;
   return { ...grid, [key]: hours };
 }
 

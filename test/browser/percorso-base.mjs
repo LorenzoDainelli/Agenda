@@ -19,6 +19,17 @@ const txt = async (s) => ((await page.locator(s).first().textContent()) || "").t
 const all = async (s) => (await page.locator(s).allTextContents()).map(v => v.trim().replace(/\s+/g," ")).filter(Boolean);
 let ko = 0;
 const check = (label, ok, extra="") => { if (!ok) ko++; console.log(`  ${ok ? "ok  " : "KO  "} ${label}${extra ? " — " + extra : ""}`); };
+// Trascina una riga di lato: dx positivo verso destra, negativo verso sinistra.
+const trascina = async (loc, dx) => {
+  const box = await loc.boundingBox();
+  const y = box.y + 18;
+  const x0 = dx > 0 ? box.x + 30 : box.x + box.width - 30;
+  await page.mouse.move(x0, y);
+  await page.mouse.down();
+  for (let i = 1; i <= 12; i++) await page.mouse.move(x0 + (dx * i) / 12, y);
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+};
 
 await page.goto("http://localhost:8099/index.html", { waitUntil: "networkidle" });
 
@@ -27,14 +38,14 @@ await page.goto("http://localhost:8099/index.html", { waitUntil: "networkidle" }
 await page.evaluate(() => {
   const S = (n, short, color) => ({ id: "s-" + short.toLowerCase(), name: n, short, color });
   const subjects = [S("Inglese","INGL","petrolio"), S("Matematica","MATE","mattone"),
-                    S("Storia","STOR","prugna"), S("Informatica","INFO","muschio")];
+                    S("Storia","STOR","prugna"), S("Scienze","SCIE","muschio")];
   localStorage.setItem("agenda:settings", JSON.stringify({
     version:1, lang:null, theme:null, subjects, areas:[], lessonsPerDay:6, schoolDays:[1,2,3,4,5,6],
   }));
   localStorage.setItem("agenda:timetables", JSON.stringify([{
     weekStart: "2026-09-21",
     grid: { "1":["s-ingl","s-ingl","s-mate",null,null,null], "2":["s-stor",null,null,null,null,null],
-            "3":["s-info",null,null,null,null,null], "4":["s-mate","s-ingl",null,null,null,null],
+            "3":["s-scie",null,null,null,null,null], "4":["s-mate","s-ingl",null,null,null,null],
             "5":["s-stor",null,null,null,null,null], "6":[null,null,null,null,null,null] },
   }]));
   localStorage.removeItem("agenda:tasks");
@@ -51,6 +62,11 @@ await page.waitForTimeout(200);
 await page.locator('[data-weight="2"]').click();
 await page.fill("#part-new", "5 frasi da tradurre"); await page.click("#part-add"); await page.waitForTimeout(150);
 await page.fill("#part-new", "2 esercizi sul libro"); await page.click("#part-add"); await page.waitForTimeout(150);
+check("«Quando lo fai» parte chiuso: la fila dei giorni non c'è", await page.locator("#window-days").count() === 0
+      && (await page.getAttribute("#plan-toggle", "aria-expanded")) === "false");
+check("e la parola «pianificare» non compare", !((await page.locator("#task-body").textContent()) || "").toLowerCase().includes("pianific"));
+await page.click("#plan-toggle"); await page.waitForTimeout(200);
+check("un tocco lo apre", await page.locator("#window-days").count() === 1);
 // scelgo martedì 22 con pressione lunga
 const mar = page.locator('#window-days [data-day="2026-09-22"]');
 await mar.hover();
@@ -73,7 +89,16 @@ check("il compito è nell'elenco", await page.locator("#list .ag-task").count() 
 check("sezione = Domani (lo fa martedì)", (await all(".ag-section__title")).includes("Domani"), (await all(".ag-section__title")).join("/"));
 const meta = await txt("#list .ag-task__meta");
 check("la riga porta materia e scadenza", meta.includes("Inglese") && meta.includes("gio 24"), meta);
-check("le parti stanno sotto la riga", await page.locator("#list .ag-subpart").count() === 2);
+check("con due parti la riga è chiusa: niente parti sotto, niente cerchio", await page.locator("#list .ag-subpart").count() === 0
+      && await page.locator("#list .ag-task [data-check]").count() === 0);
+check("a destra c'è la freccia", await page.locator("#list [data-expand]").count() === 1);
+check("e la riga dice quante ne sono fatte", meta.startsWith("0 di 2"), meta);
+const altezzaChiusa = (await page.locator("#list .ag-task").first().boundingBox()).height;
+await page.locator("#list [data-expand]").click(); await page.waitForTimeout(200);
+check("la freccia apre le parti", await page.locator("#list .ag-subpart").count() === 2
+      && (await page.getAttribute("#list [data-expand]", "aria-expanded")) === "true");
+check("da chiusa la riga è più bassa", altezzaChiusa < (await page.locator("#list .ag-task").first().boundingBox()).height,
+      `${altezzaChiusa}px`);
 check("la parte con un numero porta il conto nel cerchio", (await txt("#list .ag-check__count")) === "0/5", await txt("#list .ag-check__count"));
 check("e la riga non le ripete accanto al titolo", !meta.includes("restano"), meta);
 
@@ -100,9 +125,10 @@ check("togliendo una parte il compito torna da fare", !(await riga.getAttribute(
 check("la parte con un numero torna a zero", (await parte(1).locator(".ag-check__count").textContent()) === "0/2");
 
 console.log("\n== togliere la spunta ridà le parti com'erano ==");
-await riga.locator("[data-check]").click(); await page.waitForTimeout(200);
+// una riga con la freccia non ha il cerchio: si spunta facendola scorrere (A51)
+await trascina(riga, 260);
 check("spuntando il compito tutte le parti si spuntano", await page.locator("#list .ag-subpart--done").count() === 2);
-await riga.locator("[data-check]").click(); await page.waitForTimeout(200);
+await trascina(riga, 260);
 check("togliendo la spunta tornano com'erano: una fatta e una no",
       await page.locator("#list .ag-subpart--done").count() === 1 && (await txt("#list .ag-check__count")) === "0/2");
 await page.waitForTimeout(5400);
@@ -117,7 +143,7 @@ await cerchio(1).click(); await page.waitForTimeout(250);
 check("un tocco riempie la parte da 2", (await cerchio(1).getAttribute("aria-pressed")) === "true");
 check("e il compito è fatto", (await riga.getAttribute("class")).includes("ag-task--done"));
 await page.waitForTimeout(5400);
-await riga.locator("[data-check]").click(); await page.waitForTimeout(200);
+await trascina(riga, 260);
 await page.waitForTimeout(5400);
 await page.click("#open-settings"); await page.waitForTimeout(250);
 await page.click('[data-page="tasks"]'); await page.waitForTimeout(200);
@@ -132,7 +158,7 @@ await page.evaluate(() => {
     doneAt:null, droppedAt:null, plan:{skip:[],pick:{}}, parts:[], ...over });
   tasks.push(base({ title:"Verifica di storia", kind:"test", subjectId:"s-stor", subjectName:"Storia", due:"2026-09-25", weight:3 }));
   tasks.push(base({ title:"Esercizi di matematica", subjectId:"s-mate", subjectName:"Matematica", due:"2026-09-24", weight:3 }));
-  tasks.push(base({ title:"Relazione di informatica", subjectId:"s-info", subjectName:"Informatica", due:"2026-10-05", weight:3 }));
+  tasks.push(base({ title:"Relazione di scienze", subjectId:"s-scie", subjectName:"Scienze", due:"2026-10-05", weight:3 }));
   tasks.push(base({ title:"Comprare le cuffie", area:"private", kind:"todo", due:null }));
   tasks.push(base({ title:"Schede di inglese", subjectId:"s-ingl", subjectName:"Inglese", due:"2026-09-18", weight:2 }));
   localStorage.setItem("agenda:tasks", JSON.stringify(tasks));
@@ -187,12 +213,15 @@ await page.waitForTimeout(5400);
 
 console.log("\n== spuntare, con annulla ==");
 const prima = await page.locator("#list .ag-task").count();
-await page.locator("#list [data-check]").first().click(); await page.waitForTimeout(250);
+const conCerchio = page.locator("#list .ag-task", { has: page.locator("[data-check]") }).first();
+const titoloCerchio = await conCerchio.locator(".ag-task__title").textContent();
+const rigaCerchio = page.locator("#list .ag-task", { hasText: titoloCerchio });
+await rigaCerchio.locator("[data-check]").click(); await page.waitForTimeout(250);
 check("compare il toast con l'annulla", await page.locator(".ag-toast__undo").count() === 1);
 check("la riga resta al suo posto, barrata", await page.locator("#list .ag-task").count() === prima
-      && (await page.locator("#list .ag-task").first().getAttribute("class")).includes("ag-task--done"));
+      && (await rigaCerchio.getAttribute("class")).includes("ag-task--done"));
 await page.locator(".ag-toast__undo").click(); await page.waitForTimeout(300);
-check("annullando torna da fare", !(await page.locator("#list .ag-task").first().getAttribute("class")).includes("ag-task--done"));
+check("annullando torna da fare", !(await rigaCerchio.getAttribute("class")).includes("ag-task--done"));
 
 console.log("\n== calendario ==");
 await page.click("#open-calendar"); await page.waitForTimeout(350);
@@ -264,9 +293,12 @@ await page.evaluate(() => {
 });
 await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(300);
 const rigaParti = page.locator("#list .ag-task", { hasText: "Riassunto di storia" });
-check("senza giorni è da pianificare", await rigaParti.locator(".ag-task__flag--plan").count() === 1);
+check("senza giorni la riga non dice «da pianificare»", !((await rigaParti.textContent()) || "").toLowerCase().includes("pianific"));
+await rigaParti.locator("[data-expand]").click(); await page.waitForTimeout(200);
 await rigaParti.locator(".ag-task__main").click(); await page.waitForTimeout(300);
-check("nel compito aperto ogni parte ha il suo chip «quando»", (await all("#task-body .ag-part__pill")).join("/") === "quando?/quando?",
+check("con «Quando lo fai» chiuso le parti non hanno il chip «quando»", await page.locator("#task-body .ag-part__pill").count() === 0);
+await page.click("#plan-toggle"); await page.waitForTimeout(200);
+check("aperto, ogni parte ha il suo chip «quando»", (await all("#task-body .ag-part__pill")).join("/") === "quando?/quando?",
       (await all("#task-body .ag-part__pill")).join("/"));
 await page.locator("#task-body [data-part-when]").first().click(); await page.waitForTimeout(250);
 check("il foglio offre i giorni della finestra", (await all("#when-days [data-when-day]")).join("/") === "oggi/domani/mer 23",
@@ -279,7 +311,6 @@ await page.locator('[data-when-slot="afternoon"]').click(); await page.waitForTi
 check("i chip dicono il giorno e il momento", (await all("#task-body .ag-part__pill")).join("/") === "oggi · sera/mer 23 · pomerig.",
       (await all("#task-body .ag-part__pill")).join("/"));
 await page.click("#task-save"); await page.waitForTimeout(300);
-check("non è più da pianificare", await rigaParti.locator(".ag-task__flag--plan").count() === 0);
 check("nell'elenco ogni parte porta il suo giorno", (await rigaParti.locator(".ag-subpart__when").allTextContents()).join("/") === "oggi · sera/mer 23 · pomerig.",
       (await rigaParti.locator(".ag-subpart__when").allTextContents()).join("/"));
 const sezioneDi = async (loc) => loc.evaluate((n) => n.closest(".ag-section").querySelector(".ag-section__title").textContent.trim());
@@ -295,6 +326,8 @@ check("e sotto la griglia c'è il nome della parte", (await all(".ag-pellet__tit
       (await all(".ag-pellet__title")).join(" | "));
 await page.click('[data-close="calendar-layer"]'); await page.waitForTimeout(200);
 await rigaParti.locator(".ag-task__main").click(); await page.waitForTimeout(300);
+check("un compito con le parti già su un giorno si apre con «Quando lo fai» aperto",
+      (await page.getAttribute("#plan-toggle", "aria-expanded")) === "true");
 await page.locator("#task-body [data-part-when]").nth(1).click(); await page.waitForTimeout(250);
 await page.locator("[data-when-none]").click(); await page.waitForTimeout(250);
 check("«Nessun giorno» rimette la parte a seguire il compito", (await all("#task-body .ag-part__pill")).at(1) === "quando?",
@@ -314,6 +347,8 @@ await page.evaluate(() => {
 await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(300);
 const rigaIndietro = page.locator("#list .ag-task", { hasText: "Problemi di geometria" });
 check("sta in Oggi, anche se l'altra parte è mercoledì", (await sezioneDi(rigaIndietro)) === "Oggi", await sezioneDi(rigaIndietro));
+check("dopo aver riaperto l'app le parti ripartono chiuse", await rigaIndietro.locator(".ag-subpart").count() === 0);
+await rigaIndietro.locator("[data-expand]").click(); await page.waitForTimeout(200);
 const quandoIndietro = rigaIndietro.locator(".ag-subpart__when").first();
 check("il giorno passato si legge «ieri · sera»", (await quandoIndietro.textContent()).trim() === "ieri · sera", await quandoIndietro.textContent());
 check("ed è rosso", (await quandoIndietro.getAttribute("class")).includes("ag-subpart__when--late"));
@@ -322,8 +357,8 @@ check("l'altra no", !(await rigaIndietro.locator(".ag-subpart__when").nth(1).get
 console.log("\n== la rassegna di un compito con parti ==");
 await page.evaluate(() => {
   const tasks = JSON.parse(localStorage.getItem("agenda:tasks"));
-  tasks.push({ id:"t-rass", area:"school", subjectId:"s-info", subjectName:"Informatica", kind:"homework",
-    title:"Esercizi di informatica", due:"2026-09-19", weight:2, createdAt:"2026-09-15", doneAt:null, droppedAt:null,
+  tasks.push({ id:"t-rass", area:"school", subjectId:"s-scie", subjectName:"Scienze", kind:"homework",
+    title:"Esercizi di scienze", due:"2026-09-19", weight:2, createdAt:"2026-09-15", doneAt:null, droppedAt:null,
     plan:{skip:[],pick:{}},
     parts:[{id:"r-1",title:"primo esercizio",total:1,done:0,pick:{}},{id:"r-2",title:"secondo esercizio",total:1,done:0,pick:{}}] });
   localStorage.setItem("agenda:tasks", JSON.stringify(tasks));
@@ -333,14 +368,14 @@ await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(400);
 check("la rassegna si apre", !(await page.locator("#review-layer").isHidden()));
 // il compito con parti potrebbe non essere il primo della coda: si risponde
 // «Non serve più»… no — si rimanda chi c'è prima, finché non arriva lui
-for (let i = 0; i < 5 && !(await txt("#review-body .ag-task__title")).includes("informatica"); i++) {
+for (let i = 0; i < 5 && !(await txt("#review-body .ag-task__title")).includes("scienze"); i++) {
   await page.locator('#review-body [data-act="postpone"]').click(); await page.waitForTimeout(200);
   await page.locator('#review-body [data-to]').first().click(); await page.waitForTimeout(300);
 }
 check("il compito con parti porta le sue parti", await page.locator("#review-body .ag-subpart").count() === 2);
 check("e il loro nome non apre niente", await page.locator("#review-body .ag-subpart__title[data-open]").count() === 0);
 await page.locator("#review-body [data-part-id]").first().click(); await page.waitForTimeout(300);
-check("spuntata una parte, il compito resta lì", (await txt("#review-body .ag-task__title")).includes("informatica")
+check("spuntata una parte, il compito resta lì", (await txt("#review-body .ag-task__title")).includes("scienze")
       && await page.locator("#review-body .ag-subpart--done").count() === 1);
 await page.locator("#review-body [data-part-id]").nth(1).click(); await page.waitForTimeout(400);
 check("spuntata l'ultima, il compito è fatto e la rassegna va avanti",
@@ -371,8 +406,16 @@ await page.click("#task-save"); await page.waitForTimeout(300);
 const senzaNome = page.locator("#list .ag-task", { has: page.locator(".ag-task__title--subject") });
 check("si chiama come la materia, col pallino davanti", (await senzaNome.locator(".ag-task__title").allTextContents()).map((x) => x.trim()).join("/") === "Matematica",
       (await senzaNome.locator(".ag-task__title").allTextContents()).join("/"));
-check("la parte scritta e non aggiunta è diventata una parte", (await senzaNome.locator(".ag-subpart__name").allTextContents()).join("/") === "problemi pag 12",
-      (await senzaNome.locator(".ag-subpart__name").allTextContents()).join("/"));
+check("la parte scritta e non aggiunta è diventata una parte, per prima sotto il titolo", (await senzaNome.locator(".ag-task__part").allTextContents()).map((x) => x.trim()).join("/") === "problemi pag 12",
+      (await senzaNome.locator(".ag-task__part").allTextContents()).join("/"));
+check("con una parte sola: un cerchio solo, ed è quello della parte, senza righe sotto",
+      await senzaNome.locator(".ag-check").count() === 1 && await senzaNome.locator("[data-part-id]").count() === 1
+      && await senzaNome.locator(".ag-subparts").count() === 0);
+await senzaNome.locator("[data-part-id]").click(); await page.waitForTimeout(250);
+check("spuntandola si spunta il compito, e il toast dice «Fatto»", (await senzaNome.getAttribute("class")).includes("ag-task--done")
+      && (await all(".ag-toast__text")).includes("Fatto"), (await all(".ag-toast__text")).join(" | "));
+await page.locator(".ag-toast__undo").last().click(); await page.waitForTimeout(250);
+check("e l'annulla lo rimette da fare", !(await senzaNome.getAttribute("class")).includes("ag-task--done"));
 check("la riga sotto non ripete la materia", !((await senzaNome.locator(".ag-task__meta").textContent()) || "").includes("Matematica"));
 check("il nome salvato resta vuoto", await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:tasks")).some((x) => x.subjectId === "s-mate" && x.title === "")));
 
@@ -392,9 +435,9 @@ check("la data sta sotto i pulsanti, su una riga intera", testata.titleTop >= te
 await page.click("#open-timetable"); await page.waitForTimeout(300);
 check("provvisorio: le caselle si toccano", await page.locator("#timetable-body button.ag-tt__cell").count() > 0);
 await page.locator('#timetable-body [data-cell^="2:1:"]').click(); await page.waitForTimeout(250);
-await page.locator("#sheet-body .ag-sheet__option", { hasText: "Informatica" }).click(); await page.waitForTimeout(250);
+await page.locator("#sheet-body .ag-sheet__option", { hasText: "Scienze" }).click(); await page.waitForTimeout(250);
 check("toccando una casella si cambia la materia",
-      await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:timetables"))[0].grid["2"][1]) === "s-info");
+      await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:timetables"))[0].grid["2"][1]) === "s-scie");
 await page.click("#tt-final"); await page.waitForTimeout(250);
 check("renderlo definitivo chiede conferma, e dice come si torna indietro", (await txt("#sheet-body .ag-sheet__title")).includes("Impostazioni › Orario"),
       await txt("#sheet-body .ag-sheet__title"));
@@ -427,6 +470,64 @@ await page.click("#open-timetable"); await page.waitForTimeout(250);
 check("e l'orario si tocca di nuovo", await page.locator("#timetable-body button.ag-tt__cell").count() > 0);
 await page.click('[data-close="timetable-layer"]'); await page.waitForTimeout(200);
 
+console.log("\n== teoria e laboratorio (A44–A47) ==");
+await page.click("#open-settings"); await page.waitForTimeout(250);
+await page.click('[data-page="subjects"]'); await page.waitForTimeout(200);
+await page.locator('#settings-body [data-subject="s-mate"]').click(); await page.waitForTimeout(250);
+check("la materia nasce «Solo teoria»", (await page.getAttribute('#s-lab [data-lab="0"]', "aria-pressed")) === "true");
+await page.locator('#s-lab [data-lab="1"]').click();
+await page.locator('#sheet [data-act="save"]').click(); await page.waitForTimeout(250);
+check("segnata col laboratorio, l'elenco lo dice", (await txt('#settings-body [data-subject="s-mate"] .ag-row__value')) === "MATE · Lab",
+      await txt('#settings-body [data-subject="s-mate"] .ag-row__value'));
+await page.click('[data-close="settings-layer"]'); await page.waitForTimeout(200);
+await page.click("#open-timetable"); await page.waitForTimeout(250);
+await page.locator('#timetable-body [data-cell^="3:1:"]').click(); await page.waitForTimeout(250);
+check("nell'orario la materia si sceglie come teoria o come laboratorio",
+      (await all("#sheet-body .ag-sheet__option")).some((x) => x.startsWith("Matematica · Teoria"))
+      && (await all("#sheet-body .ag-sheet__option")).some((x) => x.startsWith("Matematica · Laboratorio")),
+      (await all("#sheet-body .ag-sheet__option")).join(" | "));
+await page.locator("#sheet-body .ag-sheet__option", { hasText: "Matematica · Laboratorio" }).click(); await page.waitForTimeout(250);
+check("l'ora di laboratorio si salva come id@lab",
+      await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:timetables"))[0].grid["3"][1]) === "s-mate@lab");
+check("e la casella porta «LAB» sotto la sigla", (await txt('#timetable-body [data-cell^="3:1:"]')) === "MATE Lab"
+      && await page.locator('#timetable-body [data-cell^="3:1:"] .ag-tt__lab').count() === 1, await txt('#timetable-body [data-cell^="3:1:"]'));
+await page.click('[data-close="timetable-layer"]'); await page.waitForTimeout(200);
+await page.click("#add"); await page.waitForTimeout(250);
+check("senza materia non c'è Teoria/Laboratorio", await page.locator("#lab-seg").count() === 0);
+await page.locator('#subject-chips [data-subject="s-mate"]').click(); await page.waitForTimeout(200);
+check("con una materia col laboratorio compare, e parte da Teoria", (await page.getAttribute('#lab-seg [data-lab="0"]', "aria-pressed")) === "true");
+check("la scadenza proposta è la prossima ora di teoria (giovedì)", (await page.getAttribute('#due-chips [data-due="2026-09-24"]', "aria-pressed")) === "true");
+await page.locator('#lab-seg [data-lab="1"]').click(); await page.waitForTimeout(200);
+check("con Laboratorio si sposta alla prossima ora di laboratorio (mercoledì)", (await page.getAttribute('#due-chips [data-due="2026-09-23"]', "aria-pressed")) === "true",
+      (await all('#due-chips [aria-pressed="true"]')).join("/"));
+
+console.log("\n== le parti consigliate (A48) ==");
+check("sotto le parti ci sono i consigliati, con Esercizi e Studiare",
+      (await all("#part-suggest [data-suggest]")).includes("Esercizi") && (await all("#part-suggest [data-suggest]")).includes("Studiare"),
+      (await all("#part-suggest [data-suggest]")).join("/"));
+check("e quelli già scritti", (await all("#part-suggest [data-suggest]")).includes("problemi pag 12"), (await all("#part-suggest [data-suggest]")).join("/"));
+await page.locator('#part-suggest [data-suggest="Esercizi"]').click(); await page.waitForTimeout(200);
+check("un tocco aggiunge la parte, senza tastiera", (await all("#task-body .ag-part__title")).join("/") === "Esercizi"
+      && await page.evaluate(() => document.activeElement?.tagName !== "INPUT"), (await all("#task-body .ag-part__title")).join("/"));
+check("e non la ripropone", !(await all("#part-suggest [data-suggest]")).includes("Esercizi"));
+await page.locator("#part-new").pressSequentially("3 stu"); await page.waitForTimeout(200);
+check("scrivendo restano quelli che cominciano così", (await all("#part-suggest [data-suggest]")).join("/") === "Studiare",
+      (await all("#part-suggest [data-suggest]")).join("/"));
+check("e il campo tiene il cursore", await page.evaluate(() => document.activeElement?.id === "part-new"));
+await page.locator('#part-suggest [data-suggest="Studiare"]').click(); await page.waitForTimeout(200);
+check("il numero scritto davanti resta: tre, da contare", (await all("#task-body .ag-part__title")).join("/") === "Esercizi/Studiare"
+      && (await txt("#task-body .ag-counter__value")) === "0/3", `${(await all("#task-body .ag-part__title")).join("/")} ${await txt("#task-body .ag-counter__value")}`);
+check("e il campo si svuota", (await page.inputValue("#part-new")) === "");
+await page.click("#task-save"); await page.waitForTimeout(300);
+const rigaLab = page.locator("#list .ag-task", { has: page.locator(".ag-task__flag--mode", { hasText: /^Lab$/ }) });
+check("nell'elenco il compito porta «Lab»", await rigaLab.count() === 1
+      && (await rigaLab.locator(".ag-task__title").textContent()).trim() === "Matematica",
+      (await all("#list .ag-task__flag--mode")).join("/"));
+check("e si salva come laboratorio", await page.evaluate(() =>
+  JSON.parse(localStorage.getItem("agenda:tasks")).some((x) => x.subjectId === "s-mate" && x.lab === true)));
+const rigaTeoria = page.locator("#list .ag-task", { hasText: "problemi pag 12" });
+check("il compito di prima, della stessa materia, si legge «Teoria»", (await rigaTeoria.locator(".ag-task__flag--mode").textContent()) === "Teoria");
+
 console.log("\n== la spesa ==");
 check("il carrello è il primo pulsante in testata", (await page.locator(".ag-header__actions .ag-iconbtn").first().getAttribute("id")) === "open-shopping");
 await page.click("#open-shopping"); await page.waitForTimeout(250);
@@ -456,6 +557,31 @@ await rigaLatte.click(); await page.waitForTimeout(200);
 check("un tocco sulla riga la spunta, e resta in lista", (await rigaLatte.getAttribute("aria-pressed")) === "true"
       && await page.locator("#shopping-body .ag-shop").count() === 3);
 check("e il numerino scende", (await txt("#shopping-count")) === "1");
+check("una nota dice i due gesti di lato", (await all("#shopping-body .ag-group__note")).some((x) => x.includes("verso sinistra")));
+const rigaPane = page.locator("#shopping-body .ag-shop", { hasText: "pane" });
+await trascina(rigaPane, -200);
+check("verso sinistra si apre la correzione, col testo com'era", (await page.inputValue("#shop-edit")) === "pane"
+      && await page.evaluate(() => document.activeElement?.id === "shop-edit"));
+await page.fill("#shop-edit", "Latte"); await page.click('#sheet [data-act="save"]'); await page.waitForTimeout(250);
+check("col nome di un'altra non cambia niente, e lo dice", (await all("#shopping-body .ag-shop .ag-row__label")).join("/") === "latte/pane/uova"
+      && (await all(".ag-toast__text")).some((x) => x.includes("C'è già")), (await all(".ag-toast__text")).join(" | "));
+await trascina(rigaPane, -200);
+await page.fill("#shop-edit", "2 pane integrale"); await page.press("#shop-edit", "Enter"); await page.waitForTimeout(250);
+const rigaIntegrale = page.locator("#shopping-body .ag-shop", { hasText: "integrale" });
+check("corretta: nome e quantità nuovi, al suo posto", (await all("#shopping-body .ag-shop .ag-row__label")).join("/") === "latte/pane integrale/uova"
+      && (await rigaIntegrale.locator(".ag-row__value").textContent()) === "×2", (await all("#shopping-body .ag-shop")).join("/"));
+check("e lo scorrimento non l'ha spuntata", (await rigaIntegrale.getAttribute("aria-pressed")) === "false");
+await trascina(rigaIntegrale, 200);
+check("verso destra chiede prima conferma, col nome e la quantità", (await txt("#sheet-body .ag-sheet__title")) === "Tolgo «2 pane integrale» dalla lista?",
+      await txt("#sheet-body .ag-sheet__title"));
+await page.click('#sheet [data-act="no"]'); await page.waitForTimeout(200);
+check("«Lascia stare» non toglie niente", await page.locator("#shopping-body .ag-shop").count() === 3);
+await trascina(rigaIntegrale, 200);
+await page.click('#sheet [data-act="yes"]'); await page.waitForTimeout(250);
+check("confermando se ne va", (await all("#shopping-body .ag-shop .ag-row__label")).join("/") === "latte/uova");
+await page.locator(".ag-toast__undo").last().click(); await page.waitForTimeout(250);
+check("e l'annulla la rimette dov'era", (await all("#shopping-body .ag-shop .ag-row__label")).join("/") === "latte/pane integrale/uova",
+      (await all("#shopping-body .ag-shop .ag-row__label")).join("/"));
 await page.click('[data-close="shopping-layer"]'); await page.waitForTimeout(200);
 
 console.log("\n== a mezzanotte le cose fatte vanno nell'archivio ==");
@@ -472,7 +598,7 @@ await page.click("#open-archive"); await page.waitForTimeout(250);
 check("ed è nell'archivio", (await all("#archive-body .ag-task__title")).includes(fattoTitolo));
 await page.click('[data-close="archive-layer"]'); await page.waitForTimeout(200);
 await page.click("#open-shopping"); await page.waitForTimeout(250);
-check("la spesa comprata ieri non è più in lista", (await all("#shopping-body .ag-shop .ag-row__label")).join("/") === "pane",
+check("la spesa comprata ieri non è più in lista", (await all("#shopping-body .ag-shop .ag-row__label")).join("/") === "pane integrale",
       (await all("#shopping-body .ag-shop .ag-row__label")).join("/"));
 check("è fra le «Già comprate», non cancellata", (await all("#shopping-body [data-back]")).join("/") === "latte/uova ×12",
       (await all("#shopping-body [data-back]")).join("/"));
@@ -480,7 +606,7 @@ await page.click("#shop-clear"); await page.waitForTimeout(200);
 check("«Svuota» chiede conferma coi numeri", (await txt("#sheet-body .ag-sheet__title")).includes("le 2 cose"), await txt("#sheet-body .ag-sheet__title"));
 await page.click('#sheet [data-act="no"]'); await page.waitForTimeout(200);
 await page.locator("#shopping-body [data-back]", { hasText: "uova" }).click(); await page.waitForTimeout(200);
-check("un tocco la rimette in lista, in fondo, con la sua quantità", (await all("#shopping-body .ag-shop")).join("/") === "pane/uova ×12",
+check("un tocco la rimette in lista, in fondo, con la sua quantità", (await all("#shopping-body .ag-shop")).join("/") === "pane integrale ×2/uova ×12",
       (await all("#shopping-body .ag-shop")).join("/"));
 await page.click('[data-close="shopping-layer"]'); await page.waitForTimeout(200);
 

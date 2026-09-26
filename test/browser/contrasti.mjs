@@ -1,6 +1,6 @@
 /* Verifica dei contrasti sulla pagina renderizzata, non sui numeri dei token.
  *
- * Guida l'app nei due temi e su dodici schermate, e su ognuna passa il
+ * Guida l'app nei due temi e su quattordici schermate, e su ognuna passa il
  * controllo di audit.mjs. Quello che trova qui e non nei token è la differenza
  * fra un numero scritto in un commento e un pixel disegnato davvero.
  */
@@ -17,8 +17,22 @@ const ctx = await browser.newContext({ ...devices["iPhone 15"], hasTouch: true, 
 await ctx.clock.setFixedTime(new Date("2026-09-21T10:00:00+02:00"));
 const page = await ctx.newPage();
 
+// Trascina una riga verso sinistra: nella spesa apre la correzione (A54).
+const versoSinistra = async (loc) => {
+  const box = await loc.boundingBox();
+  const y = box.y + 18, x0 = box.x + box.width - 30;
+  await page.mouse.move(x0, y); await page.mouse.down();
+  for (let i = 1; i <= 12; i++) await page.mouse.move(x0 - 18 * i, y);
+  await page.mouse.up(); await page.waitForTimeout(400);
+};
+
 const scenari = [
   ["elenco", async () => {}],
+  // le righe con due o più parti partono chiuse (A50): si aprono tutte, così
+  // si misurano anche le parti e i loro giorni
+  ["elenco, parti aperte", async () => {
+    for (const freccia of await page.locator("#list [data-expand]").all()) await freccia.click();
+    await page.waitForTimeout(300); }],
   ["calendario settimana", async () => { await page.click("#open-calendar"); await page.waitForTimeout(400); }],
   ["calendario mese", async () => { await page.locator('#cal-mode [data-mode="month"]').click(); await page.waitForTimeout(400); }],
   ["impostazioni", async () => { await page.click('[data-close="calendar-layer"]'); await page.click("#open-settings"); await page.waitForTimeout(400); }],
@@ -29,9 +43,12 @@ const scenari = [
   ["orario", async () => { await page.click('[data-close="settings-layer"]'); await page.click("#open-timetable"); await page.waitForTimeout(400); }],
   // una cosa da comprare, una comprata oggi (barrata) e le «Già comprate»
   ["spesa", async () => { await page.click('[data-close="timetable-layer"]'); await page.click("#open-shopping"); await page.waitForTimeout(400); }],
-  // il compito nuovo, con la materia scelta: il nome vuoto mostra quella
-  ["compito nuovo", async () => { await page.click('[data-close="shopping-layer"]'); await page.click("#add"); await page.waitForTimeout(300);
-    await page.locator("#subject-chips [data-subject]").first().click(); await page.waitForTimeout(300); }],
+  ["spesa, correggere", async () => { await versoSinistra(page.locator("#shopping-body .ag-shop").first()); }],
+  // il compito nuovo, con una materia col laboratorio: il nome vuoto la
+  // mostra, e ci sono Teoria/Laboratorio e le parti consigliate
+  ["compito nuovo", async () => { await page.click('#sheet [data-act="cancel"]'); await page.click('[data-close="shopping-layer"]');
+    await page.click("#add"); await page.waitForTimeout(300);
+    await page.locator('#subject-chips [data-subject="s-mattone"]').click(); await page.waitForTimeout(300); }],
   // il compito con le parti, così si misurano anche i chip «quando»
   ["pannello compito", async () => { await page.click('[data-close="task-layer"]'); await page.locator("#list .ag-task__main", { hasText: "Compito con parti" }).click(); await page.waitForTimeout(400); }],
   ["archivio", async () => { await page.click('[data-close="task-layer"]'); await page.click("#open-archive"); await page.waitForTimeout(400); }],
@@ -42,7 +59,7 @@ for (const tema of ["light", "dark"]) {
   await page.goto("http://localhost:8099/index.html", { waitUntil: "networkidle" });
   await page.evaluate((tema) => {
     const subjects = ["petrolio","oltremare","muschio","oliva-2","mattone","mattone-2","oliva","prugna-2","prugna","oltremare-2","petrolio-2"]
-      .map((c,i) => ({ id:"s-"+c, name:"Materia "+c, short:c.slice(0,4).toUpperCase(), color:c }));
+      .map((c,i) => ({ id:"s-"+c, name:"Materia "+c, short:c.slice(0,4).toUpperCase(), color:c, lab: c === "mattone" }));
     localStorage.setItem("agenda:settings", JSON.stringify({version:1,lang:"it",theme:tema,subjects,areas:[{id:"a-1",name:"Palestra",color:"oliva-2"}],lessonsPerDay:6,schoolDays:[1,2,3,4,5,6]}));
     const base = o => ({ id:"t-"+Math.random().toString(36).slice(2,8), area:"school", subjectId:null, subjectName:null,
       kind:"homework", title:"x", due:null, weight:1, createdAt:"2026-09-21", doneAt:null, droppedAt:null,
@@ -56,6 +73,12 @@ for (const tema of ["light", "dark"]) {
             plan:{skip:[],pick:{"2026-09-22":"morning","2026-09-23":"evening"}}}),
       // senza nome: si chiama come la materia, col pallino davanti (A27)
       base({title:"", subjectId:"s-oliva", subjectName:"Materia oliva", due:"2026-09-24", weight:2}),
+      // una parte sola, rimasta indietro: il nome e il giorno rosso stanno
+      // nella riga sotto il titolo (A49); di laboratorio, con la pillola (A46)
+      base({title:"", subjectId:"s-mattone", subjectName:"Materia mattone", lab:true, due:"2026-09-24", weight:2,
+            parts:[{id:"p6",title:"relazione",total:1,done:0,pick:{"2026-09-20":"afternoon"}}]}),
+      base({title:"", subjectId:"s-mattone", subjectName:"Materia mattone", kind:"test", due:"2026-10-09", weight:3,
+            parts:[{id:"p7",title:"primo capitolo",total:3,done:1,pick:{}}]}),
       base({title:"Giornata pesante", subjectId:"s-rose", subjectName:"Materia rose", due:"2026-09-26", weight:3, plan:{skip:[],pick:{"2026-09-22":"afternoon"}}}),
       // creata a luglio e nessuna copia mai scaricata: compare il promemoria
       base({title:"Cosa privata", area:"private", kind:"todo", createdAt:"2026-07-01"}),
@@ -71,7 +94,7 @@ for (const tema of ["light", "dark"]) {
       base({title:"Lasciato cadere", due:"2026-09-17", droppedAt:"2026-09-17"}),
     ]));
     localStorage.setItem("agenda:timetables", JSON.stringify([{weekStart:"2026-09-21",
-      grid:{"1":["s-sky","s-sky","s-amber",null,null,null],"2":["s-violet",null,null,null,null,null],
+      grid:{"1":["s-sky","s-sky","s-amber","s-mattone@lab","s-mattone@lab",null],"2":["s-violet",null,null,null,null,null],
             "3":["s-green",null,null,null,null,null],"4":["s-amber","s-sky",null,null,null,null],
             "5":["s-rose",null,null,null,null,null],"6":[null,null,null,null,null,null]}}]));
     localStorage.setItem("agenda:review", JSON.stringify({lastReviewedOn:"2026-09-21"}));

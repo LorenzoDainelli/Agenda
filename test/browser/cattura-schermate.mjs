@@ -39,14 +39,14 @@ await page.evaluate(() => {
   localStorage.setItem("agenda:settings", JSON.stringify({
     version: 1, lang: null, theme: null, areas: [], lessonsPerDay: 6, schoolDays: [1, 2, 3, 4, 5, 6],
     subjects: [S("Inglese", "INGL", "petrolio"), S("Matematica", "MATE", "mattone"),
-               S("Storia", "STOR", "prugna"), S("Informatica", "INFO", "muschio"),
-               S("Italiano", "ITAL", "oliva"), S("Sistemi", "SIST", "oltremare")],
+               S("Storia", "STOR", "prugna"), S("Scienze", "SCIE", "muschio"),
+               S("Italiano", "ITAL", "oliva"), S("Geografia", "GEOG", "oltremare")],
   }));
   localStorage.setItem("agenda:timetables", JSON.stringify([{
     weekStart: "2026-09-21",
-    grid: { "1": ["s-ingl", "s-ingl", "s-mate", "s-ital", null, null], "2": ["s-stor", "s-sist", null, null, null, null],
-            "3": ["s-info", "s-info", "s-mate", null, null, null], "4": ["s-mate", "s-ingl", "s-ital", null, null, null],
-            "5": ["s-stor", "s-sist", null, null, null, null], "6": [null, null, null, null, null, null] },
+    grid: { "1": ["s-ingl", "s-ingl", "s-mate", "s-ital", null, null], "2": ["s-stor", "s-geog", null, null, null, null],
+            "3": ["s-scie", "s-scie", "s-mate", null, null, null], "4": ["s-mate", "s-ingl", "s-ital", null, null, null],
+            "5": ["s-stor", "s-geog", null, null, null, null], "6": [null, null, null, null, null, null] },
   }]));
   const base = (over) => ({
     id: "t-" + Math.random().toString(36).slice(2, 8), area: "school", subjectId: null, subjectName: null,
@@ -63,7 +63,7 @@ await page.evaluate(() => {
            due: "2026-09-25", weight: 3, plan: { skip: [], pick: { "2026-09-23": "afternoon", "2026-09-24": "evening" } } }),
     base({ title: "Esercizi di matematica", subjectId: "s-mate", subjectName: "Matematica", due: "2026-09-24", weight: 3,
            plan: { skip: [], pick: { "2026-09-22": "afternoon" } } }),
-    base({ title: "Relazione di informatica", subjectId: "s-info", subjectName: "Informatica", due: "2026-10-05", weight: 3 }),
+    base({ title: "Relazione di scienze", subjectId: "s-scie", subjectName: "Scienze", due: "2026-10-05", weight: 3 }),
     base({ title: "Riassunto di italiano", subjectId: "s-ital", subjectName: "Italiano", due: "2026-09-22", weight: 1 }),
     base({ title: "Comprare le cuffie", area: "private", kind: "todo", due: null }),
   ]));

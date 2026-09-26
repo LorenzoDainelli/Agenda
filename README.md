@@ -30,7 +30,12 @@ sono i giorni in cui si studia. Cambia come si vede, non come si pianifica.
 Un compito si può spezzare in **parti**, e una parte può portare un numero:
 *«5 frasi da tradurre»* si spunta cinque volte, *«2 esercizi sul libro»* due.
 Scrivendo `5 frasi da tradurre` nel campo delle parti, il numero davanti
-diventa da sé la quantità.
+diventa da sé la quantità. Sotto il campo ci sono le parti **consigliate** —
+Esercizi, Studiare e quelle che si scrivono più spesso — e un tocco le
+aggiunge senza tastiera.
+
+Nell'elenco un compito sta su una riga: con una parte sola il cerchio è
+quello della parte, con due o più c'è una freccia che le apre.
 
 ## Com'è fatta
 
@@ -63,7 +68,7 @@ src/                l'app — l'unica cartella che viene pubblicata
 | `settings.js` | le impostazioni, divise in pagine: aspetto, materie, ambiti, compiti, orario, dati |
 | `timetable-view.js` | il pannello dell'orario, provvisorio o definitivo |
 | `shopping.js` | la lista della spesa: cosa è in lista, cosa è già comprato |
-| `shopping-view.js` | il pannello della spesa |
+| `shopping-view.js` | il pannello della spesa: si spunta toccando, si corregge e si toglie facendo scorrere la riga |
 | `backup.js` | il file che esce e quello che rientra |
 | `ui.js` | fogli, conferme, notifiche: mai una finestra del browser |
 | `app.js` | orchestrazione e schermata «Da fare» |
@@ -100,6 +105,10 @@ a scuola cambia di nuovo, si torna a modificarlo da *Impostazioni → Orario*.
 L'orario serve a una cosa: **proporre la scadenza**. Scrivi un compito di
 inglese e l'app propone il giorno della prossima lezione di inglese — non
 quella di oggi, che è quella in cui il compito è stato dato.
+
+Una materia può dividersi in **teoria e laboratorio** (si segna nelle
+impostazioni). Allora nell'orario un'ora è dell'una o dell'altro, e un
+compito di laboratorio propone la prossima ora di laboratorio.
 
 ## Provarla in locale
 

@@ -26,9 +26,10 @@ import {
 } from "./model.js";
 import { findSubject, colorStyle } from "./subjects.js";
 import { nextLessons, subjectsOn } from "./timetable.js";
+import { partSuggestions } from "./tasks.js";
 import {
   el, esc, openLayer, closeLayer, toast, confirmSheet, datePickerSheet, onEach,
-  dot, checkIcon, openSheet, closeSheet, whenLabel, relativeDay, taskTitle,
+  dot, checkIcon, openSheet, closeSheet, whenLabel, relativeDay, taskTitle, expandIcon,
 } from "./ui.js";
 import * as planner from "./planner.js";
 
@@ -42,6 +43,21 @@ let handlers = null; // { onSave, onDelete, onDone }
    Ogni tocco ridisegna il pannello, e senza tenerlo da parte un tocco sulla
    scadenza cancellerebbe una parte scritta a metà (assunzione A28). */
 let pendingPart = "";
+/* «Quando lo fai» aperto (A52). Parte chiuso: nella maggior parte dei compiti
+   non si sceglie nessun giorno, e la fila dei giorni aperta sempre faceva
+   pensare che ci fosse qualcosa da «pianificare» per forza. */
+let showPlan = false;
+/* La scadenza l'ha proposta l'app (la prossima lezione) e non è stata
+   toccata: cambiando materia o Teoria/Laboratorio si può spostare (A45).
+   Una scadenza scelta a mano invece non si sposta mai da sola. */
+let autoDue = false;
+
+/** Se c'è già qualcosa di scelto — giorni del compito, esclusi, o il giorno
+ *  di una parte: allora «Quando lo fai» si apre già aperto (A52). */
+function hasPlanning(task) {
+  return Object.keys(task.plan?.pick || {}).length > 0 || (task.plan?.skip || []).length > 0
+    || (task.parts || []).some((part) => partDay(part));
+}
 
 /* ── Apertura ─────────────────────────────────────────────────────── */
 
@@ -54,6 +70,8 @@ export function openNew(context, callbacks, preset = {}) {
   // nell'ambito "all", che non esiste — e il pannello restava senza materie.
   draft = newTask({ ...preset, area: (!preset.area || preset.area === "all") ? AREA_SCHOOL : preset.area });
   pendingPart = "";
+  showPlan = false;
+  autoDue = false;
   el("task-layer-title").textContent = t("task.new");
   el("task-save").textContent = t("common.add");
   openLayer("task-layer");
@@ -70,6 +88,8 @@ export function openExisting(task, context, callbacks) {
   isNew = false;
   draft = JSON.parse(JSON.stringify(task));
   pendingPart = "";
+  showPlan = hasPlanning(draft);
+  autoDue = false;
   el("task-layer-title").textContent = t("common.edit");
   el("task-save").textContent = t("common.save");
   openLayer("task-layer");
@@ -124,7 +144,48 @@ function subjectChips() {
     <div class="ag-group">
       <span class="ag-group__label">${esc(label)}</span>
       <div class="ag-chips" id="subject-chips">${chips.join("")}</div>
+      ${modeSeg()}
     </div>`;
+}
+
+/** Teoria o laboratorio: solo per una materia che ha il laboratorio (A45). */
+function modeSeg() {
+  const subject = draft.subjectId ? findSubject(ctx.settings.subjects, draft.subjectId) : null;
+  if (!subject?.lab) return "";
+  return `
+    <div class="ag-seg" id="lab-seg">
+      ${[false, true].map((lab) => `
+        <button class="ag-seg__opt" type="button" data-lab="${lab ? "1" : "0"}"
+                aria-pressed="${Boolean(draft.lab) === lab ? "true" : "false"}">
+          ${esc(t(lab ? "mode.lab" : "mode.theory"))}
+        </button>`).join("")}
+    </div>`;
+}
+
+/**
+ * Le prossime lezioni della materia del compito. Per una materia col
+ * laboratorio, quelle del tipo scelto (A45); se l'orario non le distingue
+ * ancora, tutte: meglio una proposta un po' larga che nessuna.
+ */
+function lessonsFor(howMany) {
+  if (!draft.subjectId) return [];
+  const subject = findSubject(ctx.settings.subjects, draft.subjectId);
+  const today = todayISO();
+  if (!subject?.lab) return nextLessons(ctx.timetables, draft.subjectId, today, howMany);
+  const found = nextLessons(ctx.timetables, draft.subjectId, today, howMany, Boolean(draft.lab));
+  return found.length ? found : nextLessons(ctx.timetables, draft.subjectId, today, howMany);
+}
+
+/** Propone come scadenza la prossima lezione, se non ce n'è una scelta a
+ *  mano: al primo tocco sulla materia, e poi ogni volta che la materia o
+ *  Teoria/Laboratorio cambiano (A45). */
+function proposeDue() {
+  if (draft.due && !autoDue) return;
+  const [next] = lessonsFor(1);
+  if (next) {
+    draft = reschedule(draft, next);
+    autoDue = true;
+  }
 }
 
 /** Le date proposte: le prossime lezioni di quella materia, poi domani, poi
@@ -135,7 +196,7 @@ function dueChips() {
   const proposals = [];
 
   if (isSchool() && draft.subjectId) {
-    for (const day of nextLessons(ctx.timetables, draft.subjectId, today, 2)) {
+    for (const day of lessonsFor(2)) {
       proposals.push({ value: day, label: `${dowShort(day, lang)} ${dayNumber(day)}`, note: t("task.due.next") });
     }
   }
@@ -244,7 +305,9 @@ function weightSeg() {
  */
 function whenChip(part, conFinestra) {
   const giorno = partDay(part);
-  if (!conFinestra && !giorno) return "";
+  // con «Quando lo fai» chiuso il chip c'è solo se la parte un giorno ce l'ha
+  // già: è un'informazione vera, e va vista (A52)
+  if (!giorno && !(conFinestra && showPlan)) return "";
   const testo = giorno ? whenLabel(giorno, part.pick[giorno]) : t("part.when");
   // passato e non fatto: rosso, come nell'elenco (assunzione A21)
   const stato = !giorno ? "" : giorno < todayISO() && !isPartDone(part) ? "ag-part__pill--late" : "ag-part__pill--set";
@@ -364,8 +427,33 @@ function partsBlock() {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
         </button>
       </div>
+      <div class="ag-chips" id="part-suggest" aria-label="${esc(t("task.parts.suggested"))}">${suggestionChips()}</div>
       <p class="ag-group__note">${esc(t("task.parts.hint"))}</p>
     </div>`;
+}
+
+/**
+ * Le parti consigliate (A48): Esercizi e Studiare più quelle già scritte,
+ * ristrette a quelle che cominciano come il testo nel campo. Nella scuola le
+ * parole di partenza ci sono sempre; altrove solo quello che si è scritto lì.
+ */
+function suggestionChips() {
+  const titles = partSuggestions(ctx.tasks, {
+    area: draft.area,
+    subjectId: draft.subjectId,
+    typed: pendingPart,
+    starters: isSchool() ? [t("part.suggest.exercises"), t("part.suggest.study")] : [],
+    exclude: (draft.parts || []).map((part) => part.title),
+  });
+  return titles.map((title) => `
+    <button class="ag-chip" type="button" data-suggest="${esc(title)}">${esc(title)}</button>`).join("");
+}
+
+/** Il numero scritto davanti nel campo («5 »), da tenere quando si tocca un
+ *  consigliato: «5 » e poi Esercizi fa cinque esercizi (A48). */
+function typedCount() {
+  const match = pendingPart.match(/^(\d{1,3})\s+/);
+  return match ? match[1] : "";
 }
 
 function render({ keepFocus = false } = {}) {
@@ -373,10 +461,18 @@ function render({ keepFocus = false } = {}) {
   const hadFocus = keepFocus && document.activeElement?.id;
   const caret = document.activeElement?.selectionStart ?? null;
 
+  // «Quando lo fai» (A52): una riga che si apre, col riassunto dei giorni
+  // scelti a destra. Chiusa, la fila dei giorni non c'è proprio.
+  const summary = planner.planSummary(draft, todayISO()) || t("task.window.optional");
   const plan = `
     <div class="ag-group">
-      <span class="ag-group__label">${esc(t("task.window"))}</span>
-      ${planner.render(draft, todayISO())}
+      <button class="ag-row ag-row--tap" type="button" id="plan-toggle"
+              aria-expanded="${showPlan ? "true" : "false"}">
+        <span class="ag-row__label">${esc(t("task.window"))}</span>
+        <span class="ag-row__value">${esc(summary)}</span>
+        ${expandIcon()}
+      </button>
+      ${showPlan ? planner.render(draft, todayISO()) : ""}
     </div>`;
 
   // Due ordini, uno per ambito (§6.5): nella scuola prima la materia e le
@@ -429,6 +525,7 @@ function bind(body) {
       draft.kind = "todo";
       draft.subjectId = null;
       draft.subjectName = null;
+      draft.lab = false;
     } else if (draft.kind === "todo") {
       draft.kind = "homework";
     }
@@ -445,6 +542,8 @@ function bind(body) {
   onEach(body, "[data-subject]", "click", (event) => {
     readInputs();
     const id = event.currentTarget.dataset.subject;
+    // un compito nuovo nasce di teoria (A45), anche cambiando materia
+    draft.lab = false;
     if (draft.subjectId === id) {
       draft.subjectId = null;
       draft.subjectName = null;
@@ -454,11 +553,21 @@ function bind(body) {
       draft.subjectName = subject?.name ?? null;
       // scegliendo la materia, se non c'è ancora una scadenza la prima
       // proposta dell'orario diventa quella: è il tocco che si risparmia
-      if (!draft.due) {
-        const [next] = nextLessons(ctx.timetables, id, todayISO(), 1);
-        if (next) draft = reschedule(draft, next);
-      }
+      proposeDue();
     }
+    render();
+  });
+
+  onEach(body, "[data-lab]", "click", (event) => {
+    readInputs();
+    draft.lab = event.currentTarget.dataset.lab === "1";
+    proposeDue();
+    render();
+  });
+
+  body.querySelector("#plan-toggle")?.addEventListener("click", () => {
+    readInputs();
+    showPlan = !showPlan;
     render();
   });
 
@@ -470,10 +579,12 @@ function bind(body) {
         title: t("task.due.pick"),
         min: todayISO(),
         allowNone: isSchool() ? null : t("task.due.none"),
-        onPick: (iso) => { draft = reschedule(draft, iso); render(); },
+        onPick: (iso) => { draft = reschedule(draft, iso); autoDue = false; render(); },
       });
       return;
     }
+    // una scadenza toccata a mano non si sposta più da sola (A45)
+    autoDue = false;
     if (value === "none") draft = reschedule(draft, null);
     else draft = reschedule(draft, draft.due === value ? null : value);
     render();
@@ -509,6 +620,16 @@ function bind(body) {
   body.querySelector("#part-new")?.addEventListener("keydown", (event) => {
     if (event.key === "Enter") { event.preventDefault(); addPart(); }
   });
+  // scrivendo, i consigliati si restringono; si ridisegnano solo loro, non il
+  // pannello, se no la tastiera si chiuderebbe a ogni lettera
+  body.querySelector("#part-new")?.addEventListener("input", (event) => {
+    pendingPart = event.currentTarget.value;
+    const box = el("task-body").querySelector("#part-suggest");
+    if (!box) return;
+    box.innerHTML = suggestionChips();
+    bindSuggestions(box);
+  });
+  bindSuggestions(body.querySelector("#part-suggest"));
 
   onEach(body, "[data-part-when]", "click", (event) => {
     readInputs();
@@ -558,6 +679,32 @@ function bind(body) {
     confirmSheet(t("task.delete.confirm", { title: taskTitle(ctx.settings.subjects, draft) }), {
       onConfirm: () => { handlers.onDelete(draft); close(); },
     });
+  });
+}
+
+/**
+ * Un tocco su un consigliato aggiunge la parte, subito (A48).
+ *
+ * Il `pointerdown` senza il suo comportamento normale tiene il cursore nel
+ * campo: con la tastiera aperta, toccare un consigliato non deve chiuderla e
+ * riaprirla. Con la tastiera chiusa resta chiusa: la parte si aggiunge senza
+ * scrivere niente, che è il motivo dei consigliati.
+ */
+function bindSuggestions(box) {
+  if (!box) return;
+  let typing = false;
+  onEach(box, "[data-suggest]", "pointerdown", (event) => {
+    typing = document.activeElement?.id === "part-new";
+    event.preventDefault();
+  });
+  onEach(box, "[data-suggest]", "click", (event) => {
+    readInputs();
+    const count = typedCount();
+    const title = event.currentTarget.dataset.suggest;
+    draft.parts = [...(draft.parts || []), parsePart(count ? `${count} ${title}` : title)];
+    pendingPart = "";
+    render();
+    if (typing) el("task-body").querySelector("#part-new")?.focus();
   });
 }
 
