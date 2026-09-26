@@ -31,12 +31,13 @@ import {
 import { subjectLabel, subjectColor, colorStyle } from "./subjects.js";
 import {
   el, esc, toast, openLayer, closeLayer, topLayer, closeSheet, isSheetOpen,
-  onEach, dot, weightTicks, checkIcon, emptyState, partItem,
+  onEach, dot, weightTicks, checkIcon, emptyState, partItem, taskTitle,
 } from "./ui.js";
 import * as compose from "./compose.js";
 import * as calendar from "./calendar.js";
 import * as review from "./review.js";
 import * as settings from "./settings.js";
+import * as timetableView from "./timetable-view.js";
 import * as backup from "./backup.js";
 
 /* ── Stato ────────────────────────────────────────────────────────── */
@@ -223,8 +224,15 @@ function taskRow(task) {
     isDone(task) ? "ag-task--done" : "",
   ].filter(Boolean).join(" ");
 
+  // Un compito che si chiama come la sua materia porta il pallino davanti al
+  // nome, e la riga sotto non ripete la materia (assunzione A27).
+  const namedBySubject = Boolean(subject) && !task.title?.trim();
+  const title = namedBySubject
+    ? `<span class="ag-task__title ag-task__title--subject">${dot(colorStyle(color))}${esc(taskTitle(state.settings.subjects, task))}</span>`
+    : `<span class="ag-task__title">${esc(task.title)}</span>`;
+
   const meta = [];
-  if (subject) meta.push(`<span class="ag-task__subject">${dot(colorStyle(color))}${esc(subject)}</span>`);
+  if (subject && !namedBySubject) meta.push(`<span class="ag-task__subject">${dot(colorStyle(color))}${esc(subject)}</span>`);
   if (task.kind === "test") meta.push(`<span class="ag-task__flag ag-task__flag--test">${esc(t("kind.test"))}</span>`);
   if (due) meta.push(`<span class="${due.className}">${esc(due.text)}</span>`);
   // Le parti non sono più scritte qui ("restano: …"): stanno sotto la riga,
@@ -237,7 +245,7 @@ function taskRow(task) {
   return `
     <div class="${classes}" data-swipe="${esc(task.id)}">
       <button class="ag-task__main" type="button" data-open="${esc(task.id)}">
-        <span class="ag-task__title">${esc(task.title)}</span>
+        ${title}
         <span class="ag-task__meta">${meta.join("")}</span>
       </button>
       <button class="ag-check" type="button" data-check="${esc(task.id)}"
@@ -314,6 +322,7 @@ function renderAll() {
   // dal pannello del compito, il calendario dietro non deve restare vecchio.
   if (!el("calendar-layer").hidden) calendar.render();
   if (!el("settings-layer").hidden) settings.refresh(ctx());
+  if (!el("timetable-layer").hidden) timetableView.refresh(ctx());
   if (!el("archive-layer").hidden) renderArchive();
 }
 
@@ -441,7 +450,7 @@ function renderArchive() {
         return `
           <div class="ag-task ${isDropped(task) ? "" : "ag-task--done"}">
             <button class="ag-task__main" type="button" data-open="${esc(task.id)}">
-              <span class="ag-task__title">${esc(task.title)}</span>
+              <span class="ag-task__title">${esc(taskTitle(state.settings.subjects, task))}</span>
               <span class="ag-task__meta">
                 ${subject ? `<span class="ag-task__subject">${dot(colorStyle(color))}${esc(subject)}</span>` : ""}
                 <span>${esc(dayMonth(when, getLang()))}</span>
@@ -484,6 +493,14 @@ function openSettings() {
     onTasks: (tasks) => saveTasksAndRender(tasks),
     // una copia scaricata dalle impostazioni fa sparire il promemoria
     onBackup: () => renderAll(),
+  });
+}
+
+function openTimetable() {
+  openLayer("timetable-layer");
+  timetableView.open(ctx(), {
+    onTimetables: (list) => saveTimetablesAndRender(list),
+    onSettings: (next) => saveSettingsAndRender(next),
   });
 }
 
@@ -582,8 +599,10 @@ function bindChrome() {
   // La funzione avvolta, non passata: `addEventListener` passerebbe l'oggetto
   // evento come primo argomento, e openCalendar lo prenderebbe per un giorno.
   el("open-calendar").addEventListener("click", () => openCalendar());
+  el("open-timetable").addEventListener("click", openTimetable);
   el("open-archive").addEventListener("click", openArchive);
   el("open-settings").addEventListener("click", openSettings);
+  el("settings-back").addEventListener("click", () => settings.back());
   el("review-open").addEventListener("click", openReview);
   el("backup-save").addEventListener("click", async () => {
     if (await backup.download()) toast(t("settings.data.saved"));
@@ -621,6 +640,8 @@ function bindChrome() {
     const top = topLayer();
     if (top === "task-layer") compose.close();
     else if (top === "review-layer") review.close();
+    // dentro una pagina delle impostazioni, Esc torna all'elenco
+    else if (top === "settings-layer" && settings.back()) return;
     else if (top) closeLayer(top);
   });
 

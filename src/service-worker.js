@@ -39,6 +39,7 @@ const CORE_ASSETS = [
   "./js/subjects.js",
   "./js/tasks.js",
   "./js/timetable.js",
+  "./js/timetable-view.js",
   "./js/ui.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png",

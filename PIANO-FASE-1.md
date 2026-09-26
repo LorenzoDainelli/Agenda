@@ -150,6 +150,37 @@ riscrivere l'app.
 | A24 | Gli altri tre posti sotto i 44px — i filtri (36), le opzioni dei selettori a segmenti (38) e le righe sotto la griglia del calendario (34) — **crescono a 44**. È un cambio visibile di pochi pixel, e l'alternativa (un'area di tocco invisibile più grande del disegno) avrebbe chiesto un altro numero scritto a mano per ciascuno. | `components.css` |
 | A25 | Nella griglia della settimana i momenti non sono più scritti (MATT, POM, SERA, SCADE) ma disegnati: **sole, mezzo sole, luna, bandierina**. Con le scritte la colonna di sinistra era larga 3.1rem e sull'iPhone 15 le colonne dei giorni scendevano a 40px, sotto i 44 del tocco minimo; con le icone (1rem) arrivano a 45. Scelta di chi usa l'app dopo aver visto le tre versioni. Il nome intero resta nel `title` e nell'`aria-label`. Si ribalta rimettendo le forme brevi in `i18n.js` e la colonna a 3.1rem. | `calendar.js`, `components.css`, `i18n.js` |
 
+### Decise dall'utente il 26 settembre 2026, nel quarto giro di domande
+
+Dopo averla installata sul telefono.
+
+| cosa | decisione |
+|---|---|
+| il campo «Che cosa devi fare?» | nella scuola **non serve**: si sceglie la materia e si scrive nelle parti. Diventa un **nome facoltativo, in fondo** al pannello. In cima, subito dopo scuola/privato e compito/verifica, ci sono la materia e poi le parti. Nel privato il nome resta il primo campo, perché lì non c'è una materia |
+| un compito di scuola senza nome | nell'elenco **si chiama come la materia** («Inglese»), o «Verifica di Storia» se è una verifica |
+| il campo del nome tagliato in alto | era un difetto: il contorno del campo col fuoco usciva dal pannello e veniva tagliato. Il pannello ha ora un margine in cima |
+| i prossimi giorni | **restano così**, con il sesto a metà che fa capire che si scorre |
+| l'orario | esce dalle impostazioni e diventa un **pulsante nella testata, a sinistra del calendario** |
+| orario provvisorio e definitivo | a inizio anno l'orario cambia di settimana in settimana ed è **modificabile**; quando è quello **definitivo** lo si dice con un pulsante in fondo all'orario, e da lì **si guarda soltanto** |
+| tornare a modificare un orario definitivo | **solo dalle impostazioni**, così non lo si cambia per sbaglio |
+| impostazioni | **tutto quello proposto**: divise in pagine (Aspetto, Materie, Ambiti, Compiti, Orario, I tuoi dati) con un elenco corto all'inizio; «Automatica» al posto di «Come il telefono»; righe più compatte; lingua e tema in cima, la copia in fondo |
+
+#### Assunzioni prese nel farlo (si ribaltano senza discutere)
+
+| # | Assunzione | Come si ribalta |
+|---|---|---|
+| A26 | Un compito senza nome si salva con `title: ""` e il nome **si calcola quando si disegna**: se la materia cambia nome, cambia anche il compito. Nell'ordinamento un titolo vuoto vale il nome della materia. | `taskTitle()` in `ui.js`, `compare()` in `tasks.js` |
+| A27 | Un compito che si chiama come la materia porta il **pallino davanti al nome**, e la riga sotto non ripete la materia: sarebbe la stessa parola due volte. | `taskRow()` in `app.js` |
+| A28 | Una parte scritta e non ancora aggiunta col `+` **non si perde**: resta scritta se nel frattempo si tocca un'altra cosa, e toccando Aggiungi/Salva diventa una parte. Dopo averne aggiunta una, il cursore resta nel campo, pronto per la prossima. | `readInputs()` e `save()` in `compose.js` |
+| A29 | Nel compito nuovo di scuola **la tastiera non si apre da sola**: il primo gesto è toccare la materia. Nel privato sì, sul nome, che lì è il primo campo. | `openNew()` in `compose.js` |
+| A30 | Un compito di scuola **senza materia e senza nome** non si salva: l'avviso dice «Scegli una materia o scrivi un nome». Senza nessuno dei due non ci sarebbe niente da scrivere nell'elenco. | `save()` in `compose.js` |
+| A31 | «Definitivo» vale per l'orario **intero**, non per una settimana, e sta in `settings.timetableFinal` (entra nella copia: è una scelta, non un fatto del telefono). Da definitivo il pannello mostra la griglia di questa settimana, senza «Nuova settimana» e senza l'elenco delle settimane. | `timetable-view.js`, `storage.js` |
+| A32 | Rendere l'orario definitivo **chiede conferma**, e la conferma dice dove si torna indietro. Tornare a modificarlo dalle impostazioni non la chiede: non si perde niente. | `timetable-view.js`, `settings.js` |
+| A33 | L'icona dell'orario è una **tabella** (righe e colonne), per non confonderla col calendario che le sta accanto. | `index.html` |
+| A34 | Le impostazioni partono sempre dall'**elenco**; ogni pagina ha la freccia ‹ per tornarci, la ✕ chiude tutto. Ogni riga dell'elenco dice a destra come stanno le cose («Automatico», «6», «definitivo», «copia di 3 giorni fa»). | `settings.js` |
+| A35 | «Automatica» per la lingua, «Automatico» per il tema; in inglese «Automatic». | `i18n.js` |
+| A36 | Le righe delle impostazioni stanno **in un unico riquadro**, separate da una riga sottile, alte 48px invece di 60: è la forma delle Impostazioni dell'iPhone, ed è quella che rende l'elenco delle materie compatto. | `.ag-rows` in `components.css` |
+
 Rimasta aperta e **non** decisa: la forma definitiva dell'ambito privato
 (vedi §6.4). Il nome dell'app non è più in questa lista.
 
@@ -194,7 +225,8 @@ Il progetto sta **alla radice della repo** (decisione dell'utente): la repo
       planner.js                selettore dei giorni e dei momenti
       calendar.js               viste settimana e mese
       review.js                 rassegna degli arretrati
-      settings.js               materie, orario, ambiti, dati
+      settings.js               impostazioni, divise in pagine
+      timetable-view.js         il pannello dell'orario: provvisorio o definitivo
       ui.js                     fogli, conferme, notifiche, scelta di un giorno
       backup.js                 esportazione e ripristino
     icons/
@@ -210,7 +242,7 @@ Il progetto sta **alla radice della repo** (decisione dell'utente): la repo
     browser/                    prove che guidano l'app in un browser vero
                                 (servono Playwright: vedi test/browser/LEGGIMI.md)
       audit.mjs                 il controllo dei contrasti sulla pagina renderizzata
-      contrasti.mjs             lo passa su sei schermate dell'app, nei due temi
+      contrasti.mjs             lo passa su undici schermate dell'app, nei due temi
       cattura-schermate.mjs     salva il markup vero dell'app, per il confronto palette
       confronto-palette.mjs     guarda le palette candidate e le verifica
       percorso-base.mjs         il giro completo: creare, pianificare, spuntare
@@ -259,8 +291,9 @@ I giorni della settimana sono numeri **1 = lunedì … 7 = domenica** (ISO).
   ],
   lessonsPerDay: 6,    // righe della griglia dell'orario
   schoolDays: [1,2,3,4,5,6],
-  partTap: "step"      // una parte con un numero, toccata dall'elenco:
+  partTap: "step",     // una parte con un numero, toccata dall'elenco:
                        // "step" = +1 a ogni tocco | "all" = un tocco la fa tutta
+  timetableFinal: false // l'orario è definitivo: si guarda e basta (A31)
 }
 ```
 
@@ -293,7 +326,7 @@ c'è), **copiando la griglia dell'ultimo orario esistente**. Si corregge da lì.
     area: "school" | "private" | "a-1",
     subjectId: "s-1" | null,       // sempre null fuori da "school"
     kind: "homework" | "test" | "todo",
-    title: "Compiti di inglese",
+    title: "Compiti di inglese",  // "" = si chiama come la materia (A26)
     due: "2026-09-25" | null,      // per una verifica è il GIORNO della verifica
     weight: 1 | 2 | 3,             // leggero | medio | pesante
     createdAt: "2026-09-21",
@@ -408,12 +441,12 @@ fatto. La regola vale sia dall'elenco sia dal pannello del compito.
 
 ## 6. Schermate
 
-Cinque in tutto, e solo la prima è una vera schermata: le altre sono pannelli
+Sei in tutto, e solo la prima è una vera schermata: le altre sono pannelli
 che si aprono sopra e si chiudono con una ✕, come in Shift Hours.
 
 ### 6.1 Da fare (si apre sempre qui)
 
-Testata: titolo + tre icone (calendario, archivio, impostazioni).
+Testata: titolo + quattro icone (orario, calendario, archivio, impostazioni).
 
 Sotto, due cose e in quest'ordine:
 
@@ -504,17 +537,22 @@ non sono fatte, e barrarle nell'elenco direbbe il falso.
 
 ### 6.4 Impostazioni
 
-Quattro gruppi:
-1. **Materie** — elenco con nome, sigla e colore. Aggiungi, rinomina, cambia
+Divise in pagine (decisione del quarto giro). La prima è un elenco corto, in
+un unico riquadro, e ogni riga dice a destra come stanno le cose:
+
+1. **Aspetto** — tema e lingua, in quest'ordine: `Automatico · Chiaro ·
+   Scuro` e `Automatica · IT · EN`. «Automatico» segue il telefono.
+2. **Materie** — elenco con nome, sigla e colore. Aggiungi, rinomina, cambia
    colore, elimina. Eliminare una materia **non cancella i compiti**: restano
    col nome che avevano (come il `typeName` congelato di Shift Hours).
-2. **Orario** — la griglia della settimana valida oggi, il `+` che crea quella
-   nuova copiando l'ultima, e l'elenco degli orari con la data da cui valgono.
-   Ore consecutive della stessa materia si fondono in una casella più alta.
 3. **Ambiti** — Scuola e Privato ci sono sempre; qui si aggiungono gli altri.
-4. **I tuoi dati** — `Scarica una copia`, `Ripristina da una copia`, lingua,
-   tema, e **cosa fa un tocco su una parte con un numero** dall'elenco:
+4. **Compiti** — **cosa fa un tocco su una parte con un numero** dall'elenco:
    `+1 a ogni tocco` oppure `un tocco la fa tutta`.
+5. **Orario** — dice se è provvisorio o definitivo. Da definitivo c'è
+   «Rendilo di nuovo modificabile»: è l'unico posto da cui si torna indietro.
+6. **I tuoi dati** — `Scarica una copia`, `Ripristina da una copia`.
+
+L'orario vero non sta più qui: ha il suo pulsante nella testata (§6.6).
 
 > **Ambito privato, fase 1**: una cosa privata è lo stesso oggetto di un
 > compito (`kind: "todo"`), senza materia e con la scadenza che può mancare.
@@ -523,15 +561,37 @@ Quattro gruppi:
 
 ### 6.5 Il compito aperto
 
-Un pannello, non una schermata: titolo, materia, tipo, scadenza, peso, la fila
-dei giorni della finestra (§5), le parti con le loro spunte e quantità, e in
-fondo `Elimina`. Tutto modificabile sul posto.
+Un pannello, non una schermata, uguale per il compito nuovo e per quello
+aperto. Tutto modificabile sul posto. L'ordine è quello dei gesti:
+
+- **scuola**: scuola/privato, compito/verifica, **materia**, **le parti**
+  (quello che c'è da fare, una riga per parte), scadenza, peso, la fila dei
+  giorni della finestra (§5), e in fondo il **nome, facoltativo**: se resta
+  vuoto il compito si chiama come la materia (A26);
+- **privato** e gli altri ambiti: il **nome**, che qui è obbligatorio e viene
+  per primo, poi scadenza, peso, la fila dei giorni e le parti.
+
+Su un compito che esiste già, in fondo, `Fatto` ed `Elimina`.
 
 Sotto il nome di ogni parte c'è il suo **chip «quando»**: dice «quando?» se la
 parte segue il compito, o il suo giorno e il suo momento («mar 22 · sera»).
 Toccandolo sale un foglio coi giorni della finestra — quelli esclusi no — e i
 tre momenti: un tocco sul giorno, uno sul momento, fatto. Se la parte ha già
 un giorno, il foglio offre anche «Nessun giorno».
+
+### 6.6 Orario
+
+Un pannello che si apre dal pulsante con la tabella, nella testata. La griglia
+è quella di sempre: giorni in colonna, ore in riga, le ore consecutive della
+stessa materia fuse in una casella sola.
+
+- **Provvisorio** (a inizio anno): toccando una casella si cambia la materia;
+  c'è «Nuova settimana», che crea l'orario della prossima copiando l'ultimo,
+  e l'elenco delle settimane da cui vale ognuno. In fondo, «È l'orario
+  definitivo», con una conferma che dice come si torna indietro.
+- **Definitivo**: la griglia di questa settimana e basta, **da guardare**. Le
+  caselle non si toccano. Si torna a modificarlo solo dalle impostazioni
+  (§6.4, A31–A32).
 
 ---
 
@@ -608,19 +668,22 @@ successivo.
   oggi per oggi, già scaduto, senza scadenza).
 
 ### Task 3 — Materie e orario
-`src/js/subjects.js`, `src/js/timetable.js`, pannello impostazioni.
+`src/js/subjects.js`, `src/js/timetable.js`, `src/js/timetable-view.js`,
+pannello impostazioni.
 
 - **Accettazione**: il `+` crea la settimana nuova copiando l'ultima; l'orario
   di una settimana passata non cambia quando si crea quello nuovo; scegliendo
   una materia il pannello di inserimento propone la data della sua prossima
-  lezione.
+  lezione. Da definitivo le caselle dell'orario non si toccano e non c'è
+  «Nuova settimana»; dalle impostazioni torna modificabile.
 
 ### Task 4 — Inserimento e compito aperto
 `src/js/compose.js`, `src/js/planner.js`.
 
-- **Accettazione**: un compito con titolo, materia, scadenza e peso si crea in
-  **quattro tocchi più il titolo**; nessuna tastiera per le date; le parti si
-  aggiungono senza uscire dal pannello.
+- **Accettazione**: un compito di scuola con materia, scadenza e peso si crea
+  in **quattro tocchi più le parti**, senza scrivere un nome; nessuna tastiera
+  per le date; le parti si aggiungono senza uscire dal pannello, e una parte
+  scritta ma non ancora aggiunta non si perde (A28).
 
 ### Task 5 — Elenco Da fare
 `src/js/tasks.js`, `src/js/app.js`.

@@ -29,6 +29,7 @@
   /* Target di tocco — minimo iOS, mai scendere sotto */
   --ag-touch-min: 44px;
   --ag-row-min: 60px;        /* altezza minima di una riga-compito */
+  --ag-row-compact: 48px;    /* una riga di un elenco in un riquadro (impostazioni) */
   --ag-check-size: 28px;     /* parte visibile del cerchio della spunta */
 
   /* Layout */

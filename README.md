@@ -60,7 +60,8 @@ src/                l'app — l'unica cartella che viene pubblicata
 | `compose.js` | il pannello di un compito, nuovo o aperto |
 | `calendar.js` | settimana e mese |
 | `review.js` | la rassegna degli arretrati |
-| `settings.js` | materie, orario, ambiti, dati |
+| `settings.js` | le impostazioni, divise in pagine: aspetto, materie, ambiti, compiti, orario, dati |
+| `timetable-view.js` | il pannello dell'orario, provvisorio o definitivo |
 | `backup.js` | il file che esce e quello che rientra |
 | `ui.js` | fogli, conferme, notifiche: mai una finestra del browser |
 | `app.js` | orchestrazione e schermata «Da fare» |
@@ -88,6 +89,11 @@ Il pulsante *Nuova settimana* crea la griglia della settimana successiva
 **copiando l'ultima che esiste**, così si corregge solo quello che è cambiato. E
 soprattutto: la settimana scorsa non diventa retroattivamente quella nuova.
 Due ore di fila della stessa materia si vedono come una casella sola, più alta.
+
+Si apre dal pulsante con la tabella, in alto a sinistra del calendario. Quando
+l'orario è quello giusto, «È l'orario definitivo» lo rende **da guardare e
+basta**: le caselle non si toccano più, e un tocco sbagliato non lo cambia. Se
+a scuola cambia di nuovo, si torna a modificarlo da *Impostazioni → Orario*.
 
 L'orario serve a una cosa: **proporre la scadenza**. Scrivi un compito di
 inglese e l'app propone il giorno della prossima lezione di inglese — non

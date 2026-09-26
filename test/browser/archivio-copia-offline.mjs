@@ -85,6 +85,7 @@ check("si ricomincia a contare da oggi", (await page.evaluate(() => JSON.parse(l
 
 console.log("\n== copia di sicurezza: giro completo ==");
 await page.click("#open-settings"); await page.waitForTimeout(300);
+await page.click('[data-page="data"]'); await page.waitForTimeout(200);
 const dl = page.waitForEvent("download", { timeout: 15000 }).catch(() => null);
 await page.click("#data-download");
 const file = await dl;
