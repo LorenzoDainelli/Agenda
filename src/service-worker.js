@@ -35,6 +35,8 @@ const CORE_ASSETS = [
   "./js/planner.js",
   "./js/review.js",
   "./js/settings.js",
+  "./js/shopping.js",
+  "./js/shopping-view.js",
   "./js/storage.js",
   "./js/subjects.js",
   "./js/tasks.js",

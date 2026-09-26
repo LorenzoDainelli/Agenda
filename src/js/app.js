@@ -18,7 +18,7 @@ import {
 import { t, setLang, deviceLang, getLang, apply as applyI18n } from "./i18n.js";
 import {
   loadSettings, saveSettings, loadTasks, saveTasks, loadTimetables, saveTimetables,
-  loadReview, saveReview, loadBackupInfo,
+  loadReview, saveReview, loadBackupInfo, loadShopping, saveShopping,
 } from "./storage.js";
 import {
   markDone, markOpen, isLate, isDone, isDropped, isOpen,
@@ -38,6 +38,8 @@ import * as calendar from "./calendar.js";
 import * as review from "./review.js";
 import * as settings from "./settings.js";
 import * as timetableView from "./timetable-view.js";
+import * as shoppingView from "./shopping-view.js";
+import { normalize as normalizeShopping } from "./shopping.js";
 import * as backup from "./backup.js";
 
 /* ── Stato ────────────────────────────────────────────────────────── */
@@ -47,6 +49,7 @@ let state = {
   tasks: [],
   timetables: [],
   review: { lastReviewedOn: null },
+  shopping: [],
 };
 
 /** L'ambito su cui è puntato il filtro. Non si salva: è una vista, non un dato. */
@@ -72,6 +75,12 @@ function saveSettingsAndRender(next) {
   saveSettings(next);
   applyLang();
   applyTheme();
+  renderAll();
+}
+
+function saveShoppingAndRender(items) {
+  state.shopping = items;
+  saveShopping(items);
   renderAll();
 }
 
@@ -327,6 +336,7 @@ function renderAll() {
   if (!el("calendar-layer").hidden) calendar.render();
   if (!el("settings-layer").hidden) settings.refresh(ctx());
   if (!el("timetable-layer").hidden) timetableView.refresh(ctx());
+  if (!el("shopping-layer").hidden) shoppingView.refresh(state.shopping);
   if (!el("archive-layer").hidden) renderArchive();
 }
 
@@ -500,6 +510,11 @@ function openSettings() {
   });
 }
 
+function openShopping() {
+  openLayer("shopping-layer");
+  shoppingView.open(state.shopping, { onChange: (items) => saveShoppingAndRender(items) });
+}
+
 function openTimetable() {
   openLayer("timetable-layer");
   timetableView.open(ctx(), {
@@ -603,6 +618,7 @@ function bindChrome() {
   // La funzione avvolta, non passata: `addEventListener` passerebbe l'oggetto
   // evento come primo argomento, e openCalendar lo prenderebbe per un giorno.
   el("open-calendar").addEventListener("click", () => openCalendar());
+  el("open-shopping").addEventListener("click", openShopping);
   el("open-timetable").addEventListener("click", openTimetable);
   el("open-archive").addEventListener("click", openArchive);
   el("open-settings").addEventListener("click", openSettings);
@@ -658,6 +674,7 @@ function bindChrome() {
       state.settings = loadSettings();
       state.tasks = loadTasks();
       state.timetables = loadTimetables();
+      state.shopping = normalizeShopping(loadShopping());
       applyLang();
       applyTheme();
       renderAll();
@@ -716,6 +733,7 @@ function start() {
   state.settings = loadSettings();
   state.tasks = loadTasks();
   state.timetables = loadTimetables();
+  state.shopping = normalizeShopping(loadShopping());
   state.review = loadReview();
   day = todayISO();
 

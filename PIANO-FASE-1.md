@@ -167,7 +167,9 @@ Dopo averla installata sul telefono.
 | la data in cima | **più piccola e su una riga**: sta sotto i pulsanti, larga quanto lo schermo |
 | il peso di un compito nuovo | parte da **Medio**, che è quello che capita più spesso |
 | una verifica nell'elenco | conta i giorni: **«tra 3 giorni»** fino a una settimana prima, poi la data |
-| il privato | ci vanno **cose da fare e la lista della spesa** |
+| il privato | ci vanno **cose da fare e la lista della spesa**. Le cose da fare a volte hanno un giorno e a volte no: restano come sono |
+| la lista della spesa | **una lista fissa**: c'è sempre, non scade, non va nell'archivio. Si aggiunge quando viene in mente, si spunta al supermercato, e le cose spuntate se ne vanno a mezzanotte |
+| dove sta la spesa | **un pulsante suo in testata**, che la apre a tutta pagina (§6.7) |
 | le notifiche (fase successiva) | **una sola, alle 15:00** (§8) |
 | spuntare dal calendario | **no**: il calendario si guarda e basta |
 | impostazioni | **tutto quello proposto**: divise in pagine (Aspetto, Materie, Ambiti, Compiti, Orario, I tuoi dati) con un elenco corto all'inizio; «Automatica» al posto di «Come il telefono»; righe più compatte; lingua e tema in cima, la copia in fondo |
@@ -187,6 +189,11 @@ Dopo averla installata sul telefono.
 | A34 | Le impostazioni partono sempre dall'**elenco**; ogni pagina ha la freccia ‹ per tornarci, la ✕ chiude tutto. Ogni riga dell'elenco dice a destra come stanno le cose («Automatico», «6», «definitivo», «copia di 3 giorni fa»). | `settings.js` |
 | A35 | «Automatica» per la lingua, «Automatico» per il tema; in inglese «Automatic». | `i18n.js` |
 | A36 | Le righe delle impostazioni stanno **in un unico riquadro**, separate da una riga sottile, alte 48px invece di 60: è la forma delle Impostazioni dell'iPhone, ed è quella che rende l'elenco delle materie compatto. | `.ag-rows` in `components.css` |
+| A37 | «Se ne vanno a mezzanotte» **non vuol dire cancellate** (regola 4): le cose comprate passano in **«Già comprate»**, sotto la lista, e un tocco le rimette in lista. È anche la cosa più utile: latte e pane tornano ogni settimana, e riscriverli ogni volta è testo libero dove basta un tocco (regola 5). | `shopping.js` |
+| A38 | Scrivere una cosa che è già fra le «Già comprate» (stesso nome, maiuscole a parte) **la rimette in lista** invece di farne una seconda; se è già in lista, non si aggiunge due volte. | `addItem()` in `shopping.js` |
+| A39 | Una cosa della lista **non si cancella da sola, e nemmeno con un tocco**: una cosa scritta per sbaglio si spunta, e finisce fra le «Già comprate». Quelle si svuotano tutte insieme con «Svuota», che chiede conferma coi numeri. Una × su ogni riga sarebbe stata una cancellazione per riga, e ognuna avrebbe voluto la sua conferma. | `shopping-view.js` |
+| A40 | Il carrello sta **per primo** in testata, a sinistra dell'orario: è l'unico pulsante che non riguarda la scuola, e così non si mette in mezzo a quelli che la riguardano. Con cinque pulsanti la testata regge perché la data sta già su una riga sua. | `index.html` |
+| A41 | La lista della spesa **entra nella copia di sicurezza** e si ripristina come i compiti: si unisce per `id`, non si cancella niente che nel file non c'è. Il formato del file resta alla versione 1: un campo in più lo ignora solo chi non lo conosce. | `storage.js` |
 
 Rimasta aperta e **non** decisa: la forma definitiva dell'ambito privato
 (vedi §6.4). Il nome dell'app non è più in questa lista.
@@ -234,6 +241,8 @@ Il progetto sta **alla radice della repo** (decisione dell'utente): la repo
       review.js                 rassegna degli arretrati
       settings.js               impostazioni, divise in pagine
       timetable-view.js         il pannello dell'orario: provvisorio o definitivo
+      shopping.js               la lista della spesa: regole pure
+      shopping-view.js          il pannello della spesa
       ui.js                     fogli, conferme, notifiche, scelta di un giorno
       backup.js                 esportazione e ripristino
     icons/
@@ -246,10 +255,11 @@ Il progetto sta **alla radice della repo** (decisione dell'utente): la repo
     timetable.mjs               orari nel tempo, blocchi, proposta scadenza
     tasks.mjs                   sezioni, ordinamenti, archivio
     backup.mjs                  quando compare il promemoria della copia
+    shopping.mjs                la lista della spesa: aggiungere, spuntare, mezzanotte
     browser/                    prove che guidano l'app in un browser vero
                                 (servono Playwright: vedi test/browser/LEGGIMI.md)
       audit.mjs                 il controllo dei contrasti sulla pagina renderizzata
-      contrasti.mjs             lo passa su undici schermate dell'app, nei due temi
+      contrasti.mjs             lo passa su dodici schermate dell'app, nei due temi
       cattura-schermate.mjs     salva il markup vero dell'app, per il confronto palette
       confronto-palette.mjs     guarda le palette candidate e le verifica
       percorso-base.mjs         il giro completo: creare, pianificare, spuntare
@@ -377,6 +387,21 @@ c'è), **copiando la griglia dell'ultimo orario esistente**. Si corregge da lì.
 
 Non entra nel file della copia (assunzione A20).
 
+### 4.6 `agenda:shopping`
+
+```js
+{
+  items: [
+    { id: "c-k3f9", name: "latte", addedAt: "2026-09-26",
+      boughtAt: null | "2026-09-26" }   // null = da comprare
+  ]
+}
+```
+
+Un solo elenco. Quello che si vede dipende da `boughtAt` e da oggi (§6.7):
+`null` è da comprare; oggi è comprata ma ancora in lista, barrata; un giorno
+prima di oggi è fra le «Già comprate». Entra nella copia (A41).
+
 ---
 
 ## 5. La regola della finestra (il cuore dell'app)
@@ -448,13 +473,13 @@ fatto. La regola vale sia dall'elenco sia dal pannello del compito.
 
 ## 6. Schermate
 
-Sei in tutto, e solo la prima è una vera schermata: le altre sono pannelli
+Sette in tutto, e solo la prima è una vera schermata: le altre sono pannelli
 che si aprono sopra e si chiudono con una ✕, come in Shift Hours.
 
 ### 6.1 Da fare (si apre sempre qui)
 
-Testata: l'occhiello «Da fare» con le quattro icone (orario, calendario,
-archivio, impostazioni), e sotto la data, su una riga sola.
+Testata: l'occhiello «Da fare» con le cinque icone (spesa, orario,
+calendario, archivio, impostazioni), e sotto la data, su una riga sola.
 
 Sotto, due cose e in quest'ordine:
 
@@ -601,6 +626,22 @@ stessa materia fuse in una casella sola.
   caselle non si toccano. Si torna a modificarlo solo dalle impostazioni
   (§6.4, A31–A32).
 
+### 6.7 Spesa
+
+Un pannello che si apre dal carrello, il primo pulsante della testata.
+
+- **La lista**: una riga per cosa, col cerchio a destra come i compiti. Un
+  tocco la spunta; la riga resta barrata al suo posto **fino a mezzanotte**,
+  come un compito fatto, e ritoccandola torna da comprare.
+- Sotto, il campo **«Aggiungi…»** col `+`. Dopo aver aggiunto una cosa il
+  cursore resta lì, pronto per la prossima.
+- **Già comprate**: quello che è stato comprato nei giorni prima, il più
+  recente per primo, a chip. Un tocco lo rimette in lista (A37). In fondo
+  «Svuota», con la conferma coi numeri.
+
+Non ha scadenze, non ha peso, non va nell'archivio e non compare nel
+calendario: non è un compito.
+
 ---
 
 ## 7. La rassegna degli arretrati
@@ -732,6 +773,15 @@ pannello impostazioni.
   installata sul telefono riceve la versione nuova alla riapertura successiva.
 
 ---
+
+### Task 10 — Lista della spesa
+`src/js/shopping.js`, `src/js/shopping-view.js`, `test/shopping.mjs`.
+
+- **Accettazione**: una cosa si aggiunge con la tastiera e il `+` e il cursore
+  resta nel campo; spuntata resta barrata fino a mezzanotte e poi è fra le
+  «Già comprate»; un tocco la rimette in lista; scriverla di nuovo non fa un
+  doppione; «Svuota» chiede conferma coi numeri; la lista esce nella copia e
+  torna col ripristino.
 
 ## 9-bis. Cosa si controlla da sé
 
