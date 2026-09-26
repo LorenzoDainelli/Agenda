@@ -173,6 +173,7 @@ const DICT = {
     /* impostazioni */
     "settings.title": "Impostazioni",
     "shop.title": "Spesa",
+    "shop.title.count": "Spesa, {n} da comprare",
     "shop.add": "Aggiungi…",
     "shop.empty": "La lista è vuota: scrivi qui sotto cosa ti serve.",
     "shop.bought": "Già comprate",
@@ -182,6 +183,8 @@ const DICT = {
     "shop.clear.confirm.one": "Tolgo l'unica cosa già comprata? La lista da comprare resta com'è.",
     "shop.already": "«{name}» è già in lista",
     "shop.back": "«{name}» è di nuovo in lista",
+    "shop.updated": "«{name}»: ora {qty}",
+    "shop.qty.hint": "Per la quantità, scrivila davanti: «2 latte», «500 g farina».",
     "settings.look": "Aspetto",
     "settings.look.note": "«Automatico» segue il tema del telefono, «Automatica» la sua lingua.",
     "settings.tasks": "Compiti",
@@ -395,6 +398,7 @@ const DICT = {
 
     "settings.title": "Settings",
     "shop.title": "Shopping",
+    "shop.title.count": "Shopping, {n} to buy",
     "shop.add": "Add…",
     "shop.empty": "The list is empty: write below what you need.",
     "shop.bought": "Already bought",
@@ -404,6 +408,8 @@ const DICT = {
     "shop.clear.confirm.one": "Remove the one thing already bought? The list to buy stays as it is.",
     "shop.already": "“{name}” is already on the list",
     "shop.back": "“{name}” is back on the list",
+    "shop.updated": "“{name}”: now {qty}",
+    "shop.qty.hint": "For the amount, write it first: “2 milk”, “500 g flour”.",
     "settings.look": "Appearance",
     "settings.look.note": "“Automatic” follows the phone's theme and language.",
     "settings.tasks": "Tasks",

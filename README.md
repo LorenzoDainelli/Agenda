@@ -176,6 +176,7 @@ inattività, quelli delle app aggiunte alla home no.
 
 ## Icone
 
-Le icone sono **segnaposto dichiarate**: quadrato blu con una spunta bianca,
-generate da `design_handoff/makeicon.py` (nessuna libreria: un PNG è quattro
-chunk e un flusso zlib). Si sostituiscono quando ci sarà un'icona vera.
+L'icona è un quadrato blu con una spunta bianca, generata da
+`design_handoff/makeicon.py` (nessuna libreria: un PNG è quattro chunk e un
+flusso zlib). Era nata come segnaposto; dopo averla vista sul telefono è
+diventata quella **definitiva**.

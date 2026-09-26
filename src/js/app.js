@@ -39,7 +39,7 @@ import * as review from "./review.js";
 import * as settings from "./settings.js";
 import * as timetableView from "./timetable-view.js";
 import * as shoppingView from "./shopping-view.js";
-import { normalize as normalizeShopping } from "./shopping.js";
+import { normalize as normalizeShopping, countToBuy } from "./shopping.js";
 import * as backup from "./backup.js";
 
 /* ── Stato ────────────────────────────────────────────────────────── */
@@ -323,8 +323,19 @@ function renderBackupAlert() {
   el("backup-later").textContent = t("backup.later");
 }
 
+/** Il numerino sul carrello: quante cose restano da comprare. Con zero non
+ *  c'è, e il nome del pulsante lo dice anche a chi non vede il numero. */
+function renderShoppingCount() {
+  const n = countToBuy(state.shopping);
+  const badge = el("shopping-count");
+  badge.hidden = n === 0;
+  badge.textContent = n ? String(n) : "";
+  el("open-shopping").setAttribute("aria-label", n ? t("shop.title.count", { n }) : t("shop.title"));
+}
+
 function renderAll() {
   renderHeader();
+  renderShoppingCount();
   renderUrgent();
   renderNext();
   renderFilters();

@@ -170,6 +170,10 @@ Dopo averla installata sul telefono.
 | il privato | ci vanno **cose da fare e la lista della spesa**. Le cose da fare a volte hanno un giorno e a volte no: restano come sono |
 | la lista della spesa | **una lista fissa**: c'è sempre, non scade, non va nell'archivio. Si aggiunge quando viene in mente, si spunta al supermercato, e le cose spuntate se ne vanno a mezzanotte |
 | dove sta la spesa | **un pulsante suo in testata**, che la apre a tutta pagina (§6.7) |
+| un numerino sul carrello | **sì**, quante cose restano da comprare; con la lista vuota non c'è |
+| la sezione «Senza data» | **resta in fondo** all'elenco |
+| l'icona dell'app | **quella che c'è** (il quadrato blu con la spunta) diventa definitiva |
+| le quantità nella spesa | **sì**: «2 latte», «500 g farina» |
 | le notifiche (fase successiva) | **una sola, alle 15:00** (§8) |
 | spuntare dal calendario | **no**: il calendario si guarda e basta |
 | impostazioni | **tutto quello proposto**: divise in pagine (Aspetto, Materie, Ambiti, Compiti, Orario, I tuoi dati) con un elenco corto all'inizio; «Automatica» al posto di «Come il telefono»; righe più compatte; lingua e tema in cima, la copia in fondo |
@@ -194,6 +198,8 @@ Dopo averla installata sul telefono.
 | A39 | Una cosa della lista **non si cancella da sola, e nemmeno con un tocco**: una cosa scritta per sbaglio si spunta, e finisce fra le «Già comprate». Quelle si svuotano tutte insieme con «Svuota», che chiede conferma coi numeri. Una × su ogni riga sarebbe stata una cancellazione per riga, e ognuna avrebbe voluto la sua conferma. | `shopping-view.js` |
 | A40 | Il carrello sta **per primo** in testata, a sinistra dell'orario: è l'unico pulsante che non riguarda la scuola, e così non si mette in mezzo a quelli che la riguardano. Con cinque pulsanti la testata regge perché la data sta già su una riga sua. | `index.html` |
 | A41 | La lista della spesa **entra nella copia di sicurezza** e si ripristina come i compiti: si unisce per `id`, non si cancella niente che nel file non c'è. Il formato del file resta alla versione 1: un campo in più lo ignora solo chi non lo conosce. | `storage.js` |
+| A42 | La quantità si scrive **davanti al nome**, come le parti di un compito («5 frasi»): «2 latte», «500 g farina», «1,5 kg mele», «2 litri latte». Le unità riconosciute sono quelle della spesa (g, hg, kg, ml, cl, dl, l, pz, e le forme per esteso); un numero da solo si legge «×2». Un numero attaccato al nome («3uova») resta nel nome: meglio un nome strano che una quantità inventata. | `parseItem()` in `shopping.js` |
+| A43 | Riscrivere una cosa già in lista **con un'altra quantità la cambia** (e lo dice), invece di fare un doppione; senza numero non cambia niente. Una cosa che torna dalle «Già comprate» tiene la quantità dell'ultima volta, a meno di scriverne una nuova. | `addItem()` in `shopping.js` |
 
 Rimasta aperta e **non** decisa: la forma definitiva dell'ambito privato
 (vedi §6.4). Il nome dell'app non è più in questa lista.
@@ -392,7 +398,8 @@ Non entra nel file della copia (assunzione A20).
 ```js
 {
   items: [
-    { id: "c-k3f9", name: "latte", addedAt: "2026-09-26",
+    { id: "c-k3f9", name: "latte", qty: "2" | "500 g" | null,
+      addedAt: "2026-09-26",
       boughtAt: null | "2026-09-26" }   // null = da comprare
   ]
 }
@@ -634,7 +641,10 @@ Un pannello che si apre dal carrello, il primo pulsante della testata.
   tocco la spunta; la riga resta barrata al suo posto **fino a mezzanotte**,
   come un compito fatto, e ritoccandola torna da comprare.
 - Sotto, il campo **«Aggiungi…»** col `+`. Dopo aver aggiunto una cosa il
-  cursore resta lì, pronto per la prossima.
+  cursore resta lì, pronto per la prossima. La **quantità** si scrive davanti
+  («2 latte», «500 g farina») e si legge a destra della riga (A42–A43).
+- Sul carrello in testata, un **numerino** con le cose che restano da
+  comprare; con la lista vuota non c'è.
 - **Già comprate**: quello che è stato comprato nei giorni prima, il più
   recente per primo, a chip. Un tocco lo rimette in lista (A37). In fondo
   «Svuota», con la conferma coi numeri.

@@ -76,9 +76,9 @@ for (const tema of ["light", "dark"]) {
             "5":["s-rose",null,null,null,null,null],"6":[null,null,null,null,null,null]}}]));
     localStorage.setItem("agenda:review", JSON.stringify({lastReviewedOn:"2026-09-21"}));
     localStorage.setItem("agenda:shopping", JSON.stringify({ items: [
-      { id:"c-1", name:"latte", addedAt:"2026-09-20", boughtAt:null },
+      { id:"c-1", name:"latte", qty:"2", addedAt:"2026-09-20", boughtAt:null },
       { id:"c-2", name:"pane", addedAt:"2026-09-20", boughtAt:"2026-09-21" },
-      { id:"c-3", name:"uova", addedAt:"2026-09-10", boughtAt:"2026-09-15" } ] }));
+      { id:"c-3", name:"uova", qty:"6", addedAt:"2026-09-10", boughtAt:"2026-09-15" } ] }));
   }, tema);
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(500);

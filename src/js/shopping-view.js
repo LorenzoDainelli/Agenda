@@ -8,7 +8,7 @@
 
 import { today as todayISO } from "./days.js";
 import { t } from "./i18n.js";
-import { addItem, toggleItem, inList, boughtBefore, clearBought } from "./shopping.js";
+import { addItem, toggleItem, inList, boughtBefore, clearBought, parseItem, qtyLabel } from "./shopping.js";
 import { el, esc, onEach, toast, confirmSheet } from "./ui.js";
 
 let items = [];
@@ -42,6 +42,7 @@ function row(item) {
     <button class="ag-row ag-row--tap ag-shop" type="button" data-item="${esc(item.id)}"
             aria-pressed="${bought ? "true" : "false"}">
       <span class="ag-row__label">${esc(item.name)}</span>
+      ${item.qty ? `<span class="ag-row__value">${esc(qtyLabel(item.qty))}</span>` : ""}
       <span class="ag-check" aria-hidden="true" aria-pressed="${bought ? "true" : "false"}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
       </span>
@@ -66,13 +67,16 @@ export function render() {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
         </button>
       </div>
+      <p class="ag-group__note">${esc(t("shop.qty.hint"))}</p>
     </div>
     ${before.length ? `
       <div class="ag-group">
         <span class="ag-group__label">${esc(t("shop.bought"))}</span>
         <div class="ag-chips ag-chips--wrap">
           ${before.map((item) => `
-            <button class="ag-chip" type="button" data-back="${esc(item.id)}">${esc(item.name)}</button>`).join("")}
+            <button class="ag-chip" type="button" data-back="${esc(item.id)}">
+              ${esc(item.name)}${item.qty ? ` <span class="ag-chip__sub">${esc(qtyLabel(item.qty))}</span>` : ""}
+            </button>`).join("")}
         </div>
         <p class="ag-group__note">${esc(t("shop.bought.note"))}</p>
         <button class="ag-btn ag-btn--ghost" type="button" id="shop-clear">${esc(t("shop.clear"))}</button>
@@ -89,10 +93,11 @@ function bind(body, nBought) {
   const add = () => {
     const result = addItem(items, input.value, todayISO());
     if (result.status === "empty") return;
-    const name = input.value.trim();
+    const { name, qty } = parseItem(input.value);
     pending = "";
     if (result.status === "already") toast(t("shop.already", { name }));
     else if (result.status === "back") toast(t("shop.back", { name }));
+    else if (result.status === "updated") toast(t("shop.updated", { name, qty: qtyLabel(qty) }));
     change(result.items);
     // il cursore resta nel campo: la spesa si detta una cosa dopo l'altra
     el("shopping-body").querySelector("#shop-new")?.focus();

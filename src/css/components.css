@@ -151,6 +151,31 @@ button { cursor: pointer; touch-action: manipulation; }
 }
 
 .ag-iconbtn:active { background: var(--ag-surface-strong); }
+
+/* Il numerino su un'icona: sul carrello, quante cose restano da comprare
+   (§6.7). Con zero non c'è. --ag-on-primary su --ag-primary: 10.93:1 nel
+   chiaro e 8.35:1 nello scuro (misurati nei token). Sta sull'angolo del
+   pulsante, dentro i suoi 44px: non allarga niente. */
+.ag-iconbtn { position: relative; }
+
+.ag-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: var(--ag-badge-size);
+  height: var(--ag-badge-size);
+  padding: 0 var(--ag-space-1);
+  border-radius: var(--ag-radius-pill);
+  background: var(--ag-primary);
+  color: var(--ag-on-primary);
+  font-size: var(--ag-size-2xs);
+  font-weight: var(--ag-weight-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 .ag-iconbtn--plain { background: none; }
 .ag-iconbtn--on { background: var(--ag-primary-soft); color: var(--ag-primary-ink); }
 

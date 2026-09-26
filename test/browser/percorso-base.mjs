@@ -439,12 +439,23 @@ check("due cose in lista, nell'ordine scritto", (await all("#shopping-body .ag-s
 await page.fill("#shop-new", "Pane"); await page.press("#shop-new", "Enter"); await page.waitForTimeout(200);
 check("scritta di nuovo non fa un doppione, e lo dice", await page.locator("#shopping-body .ag-shop").count() === 2
       && (await all(".ag-toast__text")).some((x) => x.includes("già in lista")));
+await page.fill("#shop-new", "6 uova"); await page.press("#shop-new", "Enter"); await page.waitForTimeout(200);
+const rigaUova = page.locator("#shopping-body .ag-shop", { hasText: "uova" });
+check("la quantità davanti diventa la quantità, a destra della riga", (await rigaUova.locator(".ag-row__label").textContent()) === "uova"
+      && (await rigaUova.locator(".ag-row__value").textContent()) === "×6");
+await page.fill("#shop-new", "12 uova"); await page.press("#shop-new", "Enter"); await page.waitForTimeout(200);
+check("riscritta con un'altra quantità la cambia, senza doppioni", await page.locator("#shopping-body .ag-shop", { hasText: "uova" }).count() === 1
+      && (await rigaUova.locator(".ag-row__value").textContent()) === "×12");
+check("il numerino sul carrello conta le cose da comprare", (await txt("#shopping-count")) === "3"
+      && (await page.getAttribute("#open-shopping", "aria-label")) === "Spesa, 3 da comprare");
+await rigaUova.click(); await page.waitForTimeout(150);
 const rigaLatte = page.locator("#shopping-body .ag-shop", { hasText: "latte" });
 const boxLatte = await rigaLatte.boundingBox();
 check("ogni riga è un bersaglio di almeno 44px", boxLatte.height >= 44, `${boxLatte.height}px`);
 await rigaLatte.click(); await page.waitForTimeout(200);
 check("un tocco sulla riga la spunta, e resta in lista", (await rigaLatte.getAttribute("aria-pressed")) === "true"
-      && await page.locator("#shopping-body .ag-shop").count() === 2);
+      && await page.locator("#shopping-body .ag-shop").count() === 3);
+check("e il numerino scende", (await txt("#shopping-count")) === "1");
 await page.click('[data-close="shopping-layer"]'); await page.waitForTimeout(200);
 
 console.log("\n== a mezzanotte le cose fatte vanno nell'archivio ==");
@@ -463,13 +474,14 @@ await page.click('[data-close="archive-layer"]'); await page.waitForTimeout(200)
 await page.click("#open-shopping"); await page.waitForTimeout(250);
 check("la spesa comprata ieri non è più in lista", (await all("#shopping-body .ag-shop .ag-row__label")).join("/") === "pane",
       (await all("#shopping-body .ag-shop .ag-row__label")).join("/"));
-check("è fra le «Già comprate», non cancellata", (await all("#shopping-body [data-back]")).join("/") === "latte");
+check("è fra le «Già comprate», non cancellata", (await all("#shopping-body [data-back]")).join("/") === "latte/uova ×12",
+      (await all("#shopping-body [data-back]")).join("/"));
 await page.click("#shop-clear"); await page.waitForTimeout(200);
-check("«Svuota» chiede conferma", (await txt("#sheet-body .ag-sheet__title")).includes("già comprata"), await txt("#sheet-body .ag-sheet__title"));
+check("«Svuota» chiede conferma coi numeri", (await txt("#sheet-body .ag-sheet__title")).includes("le 2 cose"), await txt("#sheet-body .ag-sheet__title"));
 await page.click('#sheet [data-act="no"]'); await page.waitForTimeout(200);
-await page.locator("#shopping-body [data-back]").first().click(); await page.waitForTimeout(200);
-check("un tocco la rimette in lista, in fondo", (await all("#shopping-body .ag-shop .ag-row__label")).join("/") === "pane/latte"
-      && await page.locator("#shopping-body [data-back]").count() === 0);
+await page.locator("#shopping-body [data-back]", { hasText: "uova" }).click(); await page.waitForTimeout(200);
+check("un tocco la rimette in lista, in fondo, con la sua quantità", (await all("#shopping-body .ag-shop")).join("/") === "pane/uova ×12",
+      (await all("#shopping-body .ag-shop")).join("/"));
 await page.click('[data-close="shopping-layer"]'); await page.waitForTimeout(200);
 
 console.log("\n== anche con l'app aperta davanti, senza toccarla ==");

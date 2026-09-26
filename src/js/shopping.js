@@ -16,6 +16,28 @@
 
 import { newId } from "./model.js";
 
+/* La quantità si scrive davanti, come le parti di un compito («5 frasi»):
+   «2 latte», «500 g farina», «1,5 kg mele», «2 litri latte». Le unità sono
+   quelle della spesa, corte e lunghe; una parola che non è fra queste resta
+   nel nome, e il numero da solo diventa «×2» (A42). */
+const QUANTITY = /^(\d+(?:[.,]\d+)?)\s*(kg|hg|g|l|dl|cl|ml|pz|litri|litro|grammi|etti|etto|chili|pezzi|conf)?\s+(.+)$/i;
+
+/** Separa quantità e nome: «500g farina» → { qty: "500 g", name: "farina" }.
+ *  Senza un numero davanti la quantità è null. */
+export function parseItem(text) {
+  const clean = String(text ?? "").trim();
+  const match = clean.match(QUANTITY);
+  if (!match) return { name: clean, qty: null };
+  const [, number, unit, name] = match;
+  return { name: name.trim(), qty: unit ? `${number} ${unit.toLowerCase()}` : number };
+}
+
+/** Come si legge una quantità: «×2» per un numero solo, «500 g» con l'unità. */
+export function qtyLabel(qty) {
+  if (!qty) return "";
+  return /^\d+(?:[.,]\d+)?$/.test(qty) ? `×${qty}` : qty;
+}
+
 /** Lo stesso nome, scritto un po' diverso: «Latte » e «latte» sono una cosa. */
 function key(name) {
   return String(name ?? "").trim().toLocaleLowerCase();
@@ -29,6 +51,7 @@ export function normalize(items) {
     .map((item) => ({
       id: item.id,
       name: item.name.trim(),
+      qty: typeof item.qty === "string" && item.qty.trim() ? item.qty.trim() : null,
       addedAt: typeof item.addedAt === "string" ? item.addedAt : null,
       boughtAt: typeof item.boughtAt === "string" ? item.boughtAt : null,
     }));
@@ -39,22 +62,27 @@ export function normalize(items) {
  * dire a sua volta:
  *   "added"   — nuova
  *   "back"    — c'era fra le comprate, torna in lista (A38)
- *   "already" — è già in lista, non si fa un doppione
+ *   "updated" — è già in lista, e cambia la quantità (A43)
+ *   "already" — è già in lista così com'è, non si fa un doppione
  *   "empty"   — niente da aggiungere
  */
-export function addItem(items, name, today) {
-  const clean = String(name ?? "").trim();
-  if (!clean) return { items, status: "empty" };
-  const found = items.find((item) => key(item.name) === key(clean));
-  if (found && !found.boughtAt) return { items, status: "already" };
+export function addItem(items, text, today) {
+  const { name, qty } = parseItem(text);
+  if (!name) return { items, status: "empty" };
+  const found = items.find((item) => key(item.name) === key(name));
+  if (found && !found.boughtAt) {
+    if (!qty || qty === found.qty) return { items, status: "already" };
+    return { items: items.map((item) => (item.id === found.id ? { ...item, qty } : item)), status: "updated" };
+  }
   if (found) {
     // torna in fondo alla lista, come una cosa appena scritta: è lì che la si
-    // cerca con gli occhi dopo averla aggiunta
+    // cerca con gli occhi dopo averla aggiunta. Senza un numero nuovo tiene
+    // la quantità dell'ultima volta: sei uova restano sei uova.
     const rest = items.filter((item) => item.id !== found.id);
-    return { items: [...rest, { ...found, boughtAt: null, addedAt: today }], status: "back" };
+    return { items: [...rest, { ...found, qty: qty ?? found.qty ?? null, boughtAt: null, addedAt: today }], status: "back" };
   }
   return {
-    items: [...items, { id: newId("c"), name: clean, addedAt: today, boughtAt: null }],
+    items: [...items, { id: newId("c"), name, qty, addedAt: today, boughtAt: null }],
     status: "added",
   };
 }

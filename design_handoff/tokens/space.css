@@ -31,6 +31,7 @@
   --ag-row-min: 60px;        /* altezza minima di una riga-compito */
   --ag-row-compact: 48px;    /* una riga di un elenco in un riquadro (impostazioni) */
   --ag-check-size: 28px;     /* parte visibile del cerchio della spunta */
+  --ag-badge-size: 18px;     /* il numerino su un'icona (le cose da comprare) */
 
   /* Layout */
   --ag-app-max-width: 460px;

@@ -4,7 +4,7 @@
  * pannello si prova aprendo l'app (test/browser/percorso-base.mjs).
  */
 import {
-  normalize, addItem, toggleItem, inList, boughtBefore, countToBuy, clearBought,
+  normalize, addItem, toggleItem, inList, boughtBefore, countToBuy, clearBought, parseItem, qtyLabel,
 } from "../src/js/shopping.js";
 
 let pass = 0, fail = 0;
@@ -56,11 +56,28 @@ const storico = [
 eq("la più recente prima, poi per nome", nomi(boughtBefore(storico, OGGI)), ["arance", "burro", "uova"]);
 eq("«Svuota» toglie solo quelle", nomi(clearBought(storico, OGGI)), ["pasta", "sale"]);
 
+console.log("le quantità (A42–A43)");
+eq("un numero davanti è la quantità", parseItem("2 latte"), { name: "latte", qty: "2" });
+eq("con l'unità, anche attaccata e in maiuscolo", [parseItem("500g farina"), parseItem("1,5 KG mele")],
+   [{ name: "farina", qty: "500 g" }, { name: "mele", qty: "1,5 kg" }]);
+eq("le unità scritte per esteso", parseItem("2 litri latte"), { name: "latte", qty: "2 litri" });
+eq("senza numero davanti la quantità non c'è", parseItem("latte"), { name: "latte", qty: null });
+eq("un numero attaccato al nome resta nel nome", parseItem("3uova"), { name: "3uova", qty: null });
+eq("un numero solo si legge «×2», con l'unità com'è", [qtyLabel("2"), qtyLabel("500 g"), qtyLabel(null)], ["×2", "500 g", ""]);
+let q = addItem([], "6 uova", OGGI);
+eq("aggiunta con la quantità", [q.items[0].name, q.items[0].qty], ["uova", "6"]);
+q = addItem(q.items, "12 uova", OGGI);
+eq("riscritta con un'altra quantità, la cambia invece di fare un doppione", [q.status, q.items.length, q.items[0].qty], ["updated", 1, "12"]);
+eq("riscritta senza numero, resta com'era", addItem(q.items, "uova", OGGI).status, "already");
+q = { items: toggleItem(q.items, q.items[0].id, IERI) };
+eq("tornando dalle «Già comprate» senza numero tiene la quantità di prima", addItem(q.items, "uova", OGGI).items[0].qty, "12");
+eq("con un numero nuovo prende quello", addItem(q.items, "6 uova", OGGI).items[0].qty, "6");
+
 console.log("un elenco che arriva da fuori");
 eq("scarta quello che non è una cosa da comprare", nomi(normalize([
   { id: "c-a", name: "mele" }, { id: "c-b", name: "   " }, { name: "senza id" }, null, "testo", { id: 3, name: "id numerico" },
 ])), ["mele"]);
-eq("e completa i campi che mancano", normalize([{ id: "c-a", name: " mele " }])[0], { id: "c-a", name: "mele", addedAt: null, boughtAt: null });
+eq("e completa i campi che mancano", normalize([{ id: "c-a", name: " mele " }])[0], { id: "c-a", name: "mele", qty: null, addedAt: null, boughtAt: null });
 eq("un elenco che non è un elenco diventa vuoto", normalize({ items: 3 }), []);
 
 console.log(`\n${pass} passati, ${fail} falliti`);
