@@ -1,10 +1,11 @@
-/* La lista della spesa (§6.7, assunzioni A37–A39 del piano).
+/* La lista della spesa (§6.7, assunzioni A37–A43 e A54–A55 del piano).
  *
  * Le regole stanno in shopping.js e non toccano la pagina: si provano qui. Il
  * pannello si prova aprendo l'app (test/browser/percorso-base.mjs).
  */
 import {
   normalize, addItem, toggleItem, inList, boughtBefore, countToBuy, clearBought, parseItem, qtyLabel,
+  itemText, editItem, removeItem,
 } from "../src/js/shopping.js";
 
 let pass = 0, fail = 0;
@@ -72,6 +73,27 @@ eq("riscritta senza numero, resta com'era", addItem(q.items, "uova", OGGI).statu
 q = { items: toggleItem(q.items, q.items[0].id, IERI) };
 eq("tornando dalle «Già comprate» senza numero tiene la quantità di prima", addItem(q.items, "uova", OGGI).items[0].qty, "12");
 eq("con un numero nuovo prende quello", addItem(q.items, "6 uova", OGGI).items[0].qty, "6");
+
+console.log("correggere e togliere (A54–A55)");
+let e = addItem([], "2 latte", OGGI).items;
+e = addItem(e, "pane", OGGI).items;
+e = addItem(e, "sale", OGGI).items;
+e = toggleItem(e, e[2].id, IERI);
+eq("il testo da correggere è com'era scritto", [itemText(e[0]), itemText(e[1])], ["2 latte", "pane"]);
+eq("e rileggendolo torna la stessa cosa", parseItem(itemText(e[0])), { name: "latte", qty: "2" });
+let corr = editItem(e, e[0].id, "1 litro latte");
+eq("si corregge la quantità", [corr.status, corr.items[0].name, corr.items[0].qty], ["edited", "latte", "1 litro"]);
+corr = editItem(e, e[1].id, "pane integrale");
+eq("si corregge il nome, e resta al suo posto", [corr.status, nomi(corr.items)], ["edited", ["latte", "pane integrale", "sale"]]);
+eq("togliendo il numero la quantità se ne va", editItem(e, e[0].id, "latte").items[0].qty, null);
+eq("lo stesso testo non cambia niente", editItem(e, e[0].id, "2 latte").status, "same");
+eq("senza nome non cambia niente", [editItem(e, e[0].id, "   ").status, editItem(e, e[0].id, "   ").items], ["empty", e]);
+eq("col nome di un'altra in lista non cambia niente", [editItem(e, e[1].id, "Latte").status, nomi(editItem(e, e[1].id, "Latte").items)],
+   ["taken", ["latte", "pane", "sale"]]);
+eq("nemmeno col nome di una già comprata", editItem(e, e[1].id, "sale").status, "taken");
+eq("una comprata resta comprata anche corretta", editItem(e, e[2].id, "sale grosso").items[2].boughtAt, IERI);
+eq("una cosa che non c'è più", editItem(e, "c-nessuna", "x").status, "missing");
+eq("togliere toglie quella e basta", nomi(removeItem(e, e[1].id)), ["latte", "sale"]);
 
 console.log("un elenco che arriva da fuori");
 eq("scarta quello che non è una cosa da comprare", nomi(normalize([

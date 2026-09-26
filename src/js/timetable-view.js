@@ -19,7 +19,7 @@
 import { today as todayISO, dayMonth, dowShort, addDays, mondayOf } from "./days.js";
 import { t, getLang } from "./i18n.js";
 import { findSubject, colorStyle } from "./subjects.js";
-import { createNext, timetableFor, blocksOf, setBlock, countHours } from "./timetable.js";
+import { createNext, timetableFor, blocksOf, setBlock, countHours, cellValue, readCell } from "./timetable.js";
 import { el, esc, onEach, toast, confirmSheet, chooseSheet } from "./ui.js";
 
 let ctx = null;
@@ -68,11 +68,16 @@ function grid(timetable, shown) {
     for (const block of blocksOf(timetable.grid[String(day)], hours)) {
       const subject = block.subjectId ? findSubject(settings.subjects, block.subjectId) : null;
       const tag = editable ? "button" : "span";
+      // un'ora di laboratorio porta «LAB» sotto la sigla (A44), e lo dice
+      // anche a chi non vede la casella
+      const lab = subject && block.lab;
+      const name = subject ? ` ${subject.name}${lab ? ` · ${t("mode.lab")}` : ""}` : "";
       cells.push(`
         <${tag} class="ag-tt__cell ${subject ? "" : "ag-tt__cell--empty"}" ${editable ? `type="button" data-cell="${day}:${block.from}:${block.span}"` : ""}
                 style="grid-column:${index + 2};grid-row:${block.from + 2}/span ${block.span};${subject ? colorStyle(subject.color) : ""}"
-                aria-label="${esc(dowShort(addDays(mondayOf(shown), day - 1), lang))} ${block.from + 1}${subject ? ` ${esc(subject.name)}` : ""}">
-          ${esc(subject ? subject.short : "")}
+                aria-label="${esc(dowShort(addDays(mondayOf(shown), day - 1), lang))} ${block.from + 1}${esc(name)}">
+          <span>${esc(subject ? subject.short : "")}</span>
+          ${lab ? `<span class="ag-tt__lab">${esc(t("mode.lab.short"))}</span>` : ""}
         </${tag}>`);
     }
   }
@@ -149,19 +154,32 @@ export function render() {
   bind(body);
 }
 
-/** Tocco su una casella: scegli la materia, o liberala. */
+/** Tocco su una casella: scegli la materia, o liberala. Una materia col
+ *  laboratorio compare due volte, teoria e laboratorio (A44): un tocco solo,
+ *  invece di scegliere la materia e poi il tipo. */
 function editCell(day, from, span) {
   const timetable = timetableFor(ctx.timetables, weekShown());
   if (!timetable) return;
-  const currentId = timetable.grid[String(day)]?.[from] ?? null;
+  const current = timetable.grid[String(day)]?.[from] ?? null;
 
-  const options = ctx.settings.subjects.map((subject) => ({
-    value: subject.id,
-    label: subject.name,
-    note: subject.short,
-    selected: subject.id === currentId,
-  }));
-  options.push({ value: "", label: t("settings.timetable.free"), selected: !currentId });
+  const options = ctx.settings.subjects.flatMap((subject) => {
+    const modes = subject.lab ? [false, true] : [false];
+    return modes.map((lab) => ({
+      value: cellValue(subject.id, lab),
+      label: subject.lab ? `${subject.name} · ${t(lab ? "mode.lab" : "mode.theory")}` : subject.name,
+      note: subject.short,
+      selected: cellValue(subject.id, lab) === current,
+    }));
+  });
+  // un'ora di laboratorio di una materia che il laboratorio non l'ha più
+  // resta scelta com'è (A47): se no nessuna riga risulterebbe selezionata
+  const { subjectId, lab } = readCell(current);
+  const orphan = lab && !ctx.settings.subjects.find((subject) => subject.id === subjectId)?.lab;
+  if (orphan) {
+    const subject = ctx.settings.subjects.find((entry) => entry.id === subjectId);
+    if (subject) options.push({ value: current, label: `${subject.name} · ${t("mode.lab")}`, note: subject.short, selected: true });
+  }
+  options.push({ value: "", label: t("settings.timetable.free"), selected: !current });
 
   chooseSheet(t("settings.timetable.hour", { n: from + 1 }), options, (value) => {
     const next = setBlock(timetable.grid, day, from, span, value || null);

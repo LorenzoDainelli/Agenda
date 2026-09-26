@@ -230,17 +230,10 @@ export function whenLabel(day, slot, today = todayISO()) {
  * non apre niente (`openable` falso): lì si risponde, non si modifica.
  *
  * Il nome apre il compito, come il titolo sopra: una riga dove solo il
- * cerchio risponde sembrerebbe rotta a chi tocca il nome. Una parte con un
- * numero porta il conto dentro il cerchio (3/5) finché non è piena, poi la
- * spunta come le altre: il numero è l'unica cosa che dice quanto manca, e
- * fuori dal cerchio sarebbe una terza colonna su una riga già stretta.
+ * cerchio risponde sembrerebbe rotta a chi tocca il nome.
  */
 export function partItem(task, part, today = todayISO(), { openable = true } = {}) {
   const done = isPartDone(part);
-  const counted = Number(part.total) > 1;
-  const label = counted
-    ? t("part.count", { title: part.title, done: part.done, total: part.total })
-    : t("part.check", { title: part.title });
   // il suo giorno, se ne ha uno (§6.1): è quello che dice perché il compito
   // sta in questa sezione e non in un'altra
   const giorno = partDay(part);
@@ -254,13 +247,41 @@ export function partItem(task, part, today = todayISO(), { openable = true } = {
         <span class="ag-subpart__name">${esc(part.title)}</span>
         ${quando ? `<span class="ag-subpart__when ${inRitardo ? "ag-subpart__when--late" : ""}">${esc(quando)}</span>` : ""}
       </${openable ? "button" : "span"}>
+      ${partCheck(task, part)}
+    </li>`;
+}
+
+/**
+ * Il cerchio di una parte. Sta sotto la riga del compito (partItem) o, se la
+ * parte è una sola, al posto del cerchio del compito (A49): lo stesso
+ * pulsante, così si tocca e risponde nello stesso modo dovunque sia.
+ *
+ * Una parte con un numero porta il conto dentro il cerchio (3/5) finché non
+ * è piena, poi la spunta come le altre: il numero è l'unica cosa che dice
+ * quanto manca, e fuori dal cerchio sarebbe una terza colonna su una riga già
+ * stretta.
+ */
+export function partCheck(task, part) {
+  const done = isPartDone(part);
+  const counted = Number(part.total) > 1;
+  const label = counted
+    ? t("part.count", { title: part.title, done: part.done, total: part.total })
+    : t("part.check", { title: part.title });
+  return `
       <button class="ag-check ${counted && !done ? "ag-check--count" : ""}" type="button"
               data-part="${esc(task.id)}" data-part-id="${esc(part.id)}"
               aria-pressed="${done ? "true" : "false"}"
               aria-label="${esc(label)}">${counted && !done
                 ? `<span class="ag-check__count">${esc(`${part.done}/${part.total}`)}</span>`
-                : checkIcon()}</button>
-    </li>`;
+                : checkIcon()}</button>`;
+}
+
+/** La freccia che apre e chiude qualcosa sotto di sé: punta in giù da chiusa,
+ *  e si gira quando il pulsante ha `aria-expanded="true"` (lo fa il CSS). */
+export function expandIcon() {
+  return `<svg class="ag-expand__icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`;
 }
 
 export function checkIcon() {
@@ -285,6 +306,103 @@ export function emptyState(title, note) {
       <span class="ag-empty__title">${esc(title)}</span>
       <span class="ag-empty__note">${esc(note)}</span>
     </div>`;
+}
+
+/* ── Far scorrere una riga (A22, A54) ─────────────────────────────────
+ *
+ * Trascinando una riga di lato succede qualcosa: nell'elenco verso destra si
+ * spunta, nella spesa verso destra si toglie e verso sinistra si corregge.
+ * Chi chiama dice in quali direzioni la riga si muove e cosa fare; qui c'è
+ * solo il gesto, uguale dovunque.
+ *
+ * Mentre si trascina la riga porta `data-armed` con la direzione quando,
+ * rilasciando, il gesto scatterebbe: è il modo di sapere in anticipo cosa
+ * succede, e di tornare indietro col dito se non era quello che si voleva. Il
+ * CSS lo fa vedere (il cerchio che si riempie, il contorno colorato).
+ */
+
+/** Prima di così è un tocco un po' mosso, non uno scorrimento. */
+const SWIPE_START_PX = 12;
+/** Oltre questa parte della riga, rilasciando il gesto scatta. */
+const SWIPE_FRACTION = 1 / 3;
+/** Per quanto dopo uno scorrimento si ignora il click che il browser manda
+ *  comunque all'elemento sotto il dito, e che aprirebbe il compito. */
+const SWIPE_CLICK_MS = 400;
+
+/**
+ * `selector` trova la riga dentro `box`; `directions` è un elenco fra
+ * "right" e "left"; `onSwipe(riga, direzione)` arriva al rilascio, solo se il
+ * gesto è scattato. Si chiama una volta per contenitore: gli ascoltatori
+ * stanno sul contenitore, che resta, e non sulle righe, che si ridisegnano.
+ */
+export function bindSwipe(box, { selector, directions = ["right"], onSwipe }) {
+  let row = null;
+  let startX = 0;
+  let startY = 0;
+  let swiping = false;
+  let armed = null;
+  let quietUntil = 0;
+  const canRight = directions.includes("right");
+  const canLeft = directions.includes("left");
+
+  const reset = () => {
+    if (row) {
+      row.style.transform = "";
+      row.classList.remove("ag-swipe--moving");
+      delete row.dataset.armed;
+    }
+    row = null;
+    swiping = false;
+    armed = null;
+  };
+
+  box.addEventListener("pointerdown", (event) => {
+    const target = event.target.closest?.(selector);
+    if (!target || event.button > 0) return;
+    row = target;
+    startX = event.clientX;
+    startY = event.clientY;
+  });
+
+  box.addEventListener("pointermove", (event) => {
+    if (!row) return;
+    const dx = event.clientX - startX;
+    const dy = event.clientY - startY;
+    if (!swiping) {
+      // in verticale è l'elenco che scorre: la riga non c'entra
+      if (Math.abs(dy) > SWIPE_START_PX && Math.abs(dy) >= Math.abs(dx)) { reset(); return; }
+      if (Math.abs(dx) <= SWIPE_START_PX || Math.abs(dx) < Math.abs(dy)) return;
+      if (dx > 0 ? !canRight : !canLeft) return;
+      swiping = true;
+      row.classList.add("ag-swipe--moving");
+      row.setPointerCapture?.(event.pointerId);
+    }
+    // la riga va solo dalle parti in cui il gesto significa qualcosa
+    let clamped = dx;
+    if (!canRight) clamped = Math.min(clamped, 0);
+    if (!canLeft) clamped = Math.max(clamped, 0);
+    row.style.transform = `translateX(${clamped}px)`;
+    armed = Math.abs(clamped) > row.offsetWidth * SWIPE_FRACTION ? (clamped > 0 ? "right" : "left") : null;
+    if (armed) row.dataset.armed = armed;
+    else delete row.dataset.armed;
+  });
+
+  box.addEventListener("pointerup", () => {
+    if (!row) return;
+    const target = row;
+    const direction = swiping ? armed : null;
+    if (swiping) quietUntil = performance.now() + SWIPE_CLICK_MS;
+    reset();
+    if (direction) onSwipe(target, direction);
+  });
+  box.addEventListener("pointercancel", reset);
+
+  box.addEventListener("click", (event) => {
+    if (performance.now() < quietUntil) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+  }, true);
 }
 
 /* ── Scelta di un giorno ──────────────────────────────────────────────

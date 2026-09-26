@@ -54,7 +54,7 @@ function subjectsGroup() {
     <button class="ag-row ag-row--tap" type="button" data-subject="${esc(subject.id)}">
       ${dot(colorStyle(subject.color))}
       <span class="ag-row__label">${esc(subject.name)}</span>
-      <span class="ag-row__value">${esc(subject.short)}</span>
+      <span class="ag-row__value">${esc(subject.lab ? `${subject.short} · ${t("mode.lab.short")}` : subject.short)}</span>
       ${chevron()}
     </button>`);
 
@@ -91,6 +91,13 @@ function editSubject(id) {
         <input class="ag-input ag-input--inline" id="s-short" type="text" value="${esc(subject.short)}"
                maxlength="4" style="width:32%;text-align:center;text-transform:uppercase">
       </div>
+      <div class="ag-seg" id="s-lab">
+        ${[false, true].map((lab) => `
+          <button class="ag-seg__opt" type="button" data-lab="${lab ? "1" : "0"}"
+                  aria-pressed="${Boolean(subject.lab) === lab ? "true" : "false"}">
+            ${esc(t(lab ? "settings.subjects.lab.yes" : "settings.subjects.lab.no"))}
+          </button>`).join("")}
+      </div>
       <span class="ag-group__label">${esc(t("settings.subjects.color"))}</span>
       <div class="ag-chips ag-chips--wrap">
         ${COLORS.map((color) => `
@@ -106,6 +113,15 @@ function editSubject(id) {
   `);
 
   let color = subject.color;
+  // si divide in teoria e laboratorio (A44): cambia solo quello che si
+  // sceglierà da qui in poi, niente di quello che c'è già (A47)
+  let lab = Boolean(subject.lab);
+  onEach(body, "[data-lab]", "click", (event) => {
+    lab = event.currentTarget.dataset.lab === "1";
+    for (const opt of body.querySelectorAll("[data-lab]")) {
+      opt.setAttribute("aria-pressed", (opt.dataset.lab === "1") === lab ? "true" : "false");
+    }
+  });
   onEach(body, "[data-color]", "click", (event) => {
     color = event.currentTarget.dataset.color;
     for (const chip of body.querySelectorAll("[data-color]")) {
@@ -119,7 +135,7 @@ function editSubject(id) {
     handlers.onSettings({
       ...ctx.settings,
       subjects: ctx.settings.subjects.map((entry) =>
-        entry.id === id ? { ...entry, name, short, color } : entry),
+        entry.id === id ? { ...entry, name, short, color, lab } : entry),
     });
     closeSheet();
   });

@@ -15,7 +15,7 @@ node test/browser/percorso-base.mjs
 
 | file | cosa verifica |
 |---|---|
-| `percorso-base.mjs` | materie, orario, creazione di un compito, i tre gesti sulla fila dei giorni, le parti spuntate dall'elenco nei due modi dell'impostazione, i giorni delle singole parti (chip «quando», elenco, calendario), spunta con annulla, un compito di scuola senza nome, l'orario provvisorio e definitivo, la lista della spesa (anche dopo mezzanotte), le impostazioni a pagine, le cose fatte che restano fino a mezzanotte (anche con l'app aperta davanti), calendario, temi, lingue |
+| `percorso-base.mjs` | materie, orario, creazione di un compito, i tre gesti sulla fila dei giorni, le parti spuntate dall'elenco nei due modi dell'impostazione, i giorni delle singole parti (chip «quando», elenco, calendario), spunta con annulla, un compito di scuola senza nome, le righe compatte (una parte = un cerchio, due o più = la freccia), teoria e laboratorio (materia, orario, scadenza proposta), le parti consigliate, l'orario provvisorio e definitivo, la lista della spesa (anche dopo mezzanotte, e correggere e togliere scorrendo), le impostazioni a pagine, le cose fatte che restano fino a mezzanotte (anche con l'app aperta davanti), calendario, temi, lingue |
 | `archivio-copia-offline.mjs` | archivio, giro completo della copia di sicurezza (lista della spesa compresa) (compreso «il ripristino non cancella quello che è più recente del file»), file non valido, avvio in aereo |
 | `contrasti.mjs` | risale il fondo effettivo di ogni testo renderizzato nei due temi e lo confronta con la soglia WCAG che gli spetta — gradienti e opacità compresi |
 | `riferimento.mjs` | `design_handoff/reference.html` si apre senza errori nei due temi |

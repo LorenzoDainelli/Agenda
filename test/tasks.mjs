@@ -66,6 +66,47 @@ console.log("verifica prima di tutto, anche se leggera");
 const mix = [mk("pesante", { due: OGGI, weight: 3 }), mk("verifica", { kind: "test", due: OGGI, weight: 1 })];
 eq("la verifica è prima", Q.sections(mix, { today: OGGI })[0].tasks.map(t => t.title), ["verifica","pesante"]);
 
+console.log("verifiche: in cima solo a 7 giorni o meno (A53)");
+const lontane = [
+  mk("leggero", { due: "2026-10-12", weight: 1 }),
+  mk("verifica lontana", { kind: "test", due: "2026-10-12", weight: 3 }),
+  mk("verifica vicina", { kind: "test", due: "2026-09-30", weight: 1 }),
+  mk("pesante", { due: "2026-10-12", weight: 3 }),
+];
+eq("vicina in cima, lontana in coda, in mezzo per peso",
+   Q.sections(lontane, { today: OGGI })[0].tasks.map(t => t.title),
+   ["verifica vicina", "pesante", "leggero", "verifica lontana"]);
+eq("a 7 giorni esatti è ancora vicina",
+   Q.sections([mk("x", { due: "2026-09-30", weight: 3 }), mk("v", { kind: "test", due: "2026-09-30", weight: 1 })],
+     { today: OGGI })[0].tasks.map(t => t.title), ["v", "x"]);
+eq("a 8 giorni è già lontana",
+   Q.sections([mk("x", { due: "2026-10-01", weight: 1 }), mk("v", { kind: "test", due: "2026-10-01", weight: 3 })],
+     { today: OGGI })[0].tasks.map(t => t.title), ["x", "v"]);
+
+console.log("parti consigliate (A48)");
+// newTask nasce senza parti: le parti si mettono dopo, come fa il pannello
+const conParti = (task, titles) => ({ ...task, parts: titles.map((title) => M.newPart(title)) });
+const scritte = [
+  conParti(mk("", { subjectId: "s-a", createdAt: "2026-09-20" }), ["esercizi", "Pag. 45 es. 3"]),
+  conParti(mk("", { subjectId: "s-b", createdAt: "2026-09-21" }), ["Riassunto", "esercizi"]),
+  conParti(mk("spesa", { area: "private" }), ["Riassunto privato"]),
+];
+const avvio = ["Esercizi", "Studiare"];
+eq("prima quelle della stessa materia, poi quelle di partenza, poi le altre",
+   Q.partSuggestions(scritte, { area: "school", subjectId: "s-b", starters: avvio }),
+   ["Esercizi", "Riassunto", "Studiare", "Pag. 45 es. 3"]);
+const tante = [conParti(mk("", { subjectId: "s-c" }), ["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9"])];
+eq("quelle di partenza ci sono anche con uno storico lungo",
+   Q.partSuggestions(tante, { area: "school", subjectId: "s-z", starters: avvio }).slice(0, 2), ["Esercizi", "Studiare"]);
+eq("una parola di partenza tiene la sua forma", Q.partSuggestions(scritte, { area: "school", starters: avvio })[0], "Esercizi");
+eq("scrivendo restano quelle che cominciano così", Q.partSuggestions(scritte, { area: "school", typed: "stu", starters: avvio }), ["Studiare"]);
+eq("il numero davanti non conta", Q.partSuggestions(scritte, { area: "school", typed: "5 ria", starters: avvio }), ["Riassunto"]);
+eq("vale anche una parola in mezzo", Q.partSuggestions(scritte, { area: "school", typed: "es. 3", starters: avvio }), ["Pag. 45 es. 3"]);
+eq("quella scritta tale e quale no", Q.partSuggestions(scritte, { area: "school", typed: "studiare", starters: avvio }), []);
+eq("quelle già nel compito no", Q.partSuggestions(scritte, { area: "school", starters: avvio, exclude: ["ESERCIZI"] }).includes("Esercizi"), false);
+eq("il privato non prende quelle della scuola", Q.partSuggestions(scritte, { area: "private" }), ["Riassunto privato"]);
+eq("al massimo quante ne chiedo", Q.partSuggestions(scritte, { area: "school", starters: avvio, limit: 2 }).length, 2);
+
 console.log("filtro per ambito");
 eq("solo scuola", Q.byArea(tasks, "school").length, 5);
 eq("solo privato", Q.byArea(tasks, "private").map(t => t.title), ["spesa"]);

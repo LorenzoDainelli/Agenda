@@ -51,23 +51,44 @@ eq("domenica, niente", T.subjectsOn(list, "2026-09-27"), []);
 
 console.log("blocchi di ore consecutive");
 eq("due ore di fila = un blocco alto 2", T.blocksOf(["s-a","s-a",null,null,null,null], 6),
-   [{subjectId:"s-a",from:0,span:2},{subjectId:null,from:2,span:1},{subjectId:null,from:3,span:1},{subjectId:null,from:4,span:1},{subjectId:null,from:5,span:1}]);
+   [{subjectId:"s-a",lab:false,from:0,span:2},{subjectId:null,lab:false,from:2,span:1},{subjectId:null,lab:false,from:3,span:1},{subjectId:null,lab:false,from:4,span:1},{subjectId:null,lab:false,from:5,span:1}]);
 eq("le ore libere NON si fondono (si deve poter riempire una singola ora)",
    T.blocksOf([null,null,null], 3).length, 3);
 eq("griglia vuota: una casella per ora", T.blocksOf([], 6).length, 6);
 eq("tre uguali di fila = un blocco alto 3",
-   T.blocksOf(["s-a","s-a","s-a"], 3), [{subjectId:"s-a",from:0,span:3}]);
+   T.blocksOf(["s-a","s-a","s-a"], 3), [{subjectId:"s-a",lab:false,from:0,span:3}]);
 eq("tre materie diverse", T.blocksOf(["s-a","s-b","s-a"], 3),
-   [{subjectId:"s-a",from:0,span:1},{subjectId:"s-b",from:1,span:1},{subjectId:"s-a",from:2,span:1}]);
+   [{subjectId:"s-a",lab:false,from:0,span:1},{subjectId:"s-b",lab:false,from:1,span:1},{subjectId:"s-a",lab:false,from:2,span:1}]);
 eq("scrivere un blocco riempie tutte le sue ore",
    T.setBlock({"1":[null,null,null,null,null,null]}, 1, 1, 2, "s-x")["1"],
    [null,"s-x","s-x",null,null,null]);
 eq("conteggio delle ore", T.countHours(primo), 4);
 
+console.log("teoria e laboratorio (A44–A45)");
+eq("un'ora di laboratorio si scrive id@lab", T.cellValue("s-x", true), "s-x@lab");
+eq("un'ora di teoria è l'id e basta", T.cellValue("s-x", false), "s-x");
+eq("ora libera", T.cellValue(null, true), null);
+eq("si rilegge il laboratorio", T.readCell("s-x@lab"), { subjectId: "s-x", lab: true });
+eq("si rilegge la teoria", T.readCell("s-x"), { subjectId: "s-x", lab: false });
+eq("un valore strano è un'ora libera", T.readCell(42), { subjectId: null, lab: false });
+eq("teoria e laboratorio di fila NON si fondono", T.blocksOf(["s-x","s-x@lab","s-x@lab"], 3),
+   [{subjectId:"s-x",lab:false,from:0,span:1},{subjectId:"s-x",lab:true,from:1,span:2}]);
+const conLab = T.newTimetable("2026-09-21", {
+  "1": ["s-x", "s-x", null, null, null, null],
+  "3": ["s-x@lab", "s-x@lab", null, null, null, null],
+  "4": ["s-x", null, null, null, null, null],
+});
+eq("prossima lezione, qualunque", T.nextLessons([conLab], "s-x", OGGI, 2), ["2026-09-23", "2026-09-24"]);
+eq("prossima lezione di laboratorio", T.nextLessons([conLab], "s-x", OGGI, 2, true), ["2026-09-23", "2026-09-30"]);
+eq("prossima lezione di teoria", T.nextLessons([conLab], "s-x", OGGI, 2, false), ["2026-09-24", "2026-09-28"]);
+eq("il laboratorio conta fra le materie del giorno", T.subjectsOn([conLab], "2026-09-23"), ["s-x"]);
+eq("e fra i giorni della materia", T.daysWithSubject(conLab, "s-x"), [1, 3, 4]);
+eq("e fra le ore", T.countHours(conLab), 5);
+
 console.log("materie: sigle e colori");
 eq("nome di una parola", S.suggestShort("Matematica"), "MATE");
 eq("nome di due parole", S.suggestShort("Scienze motorie"), "SM");
-eq("nome di tre parole", S.suggestShort("Tecnologie e progettazione sistemi"), "TEP");
+eq("nome di tre parole", S.suggestShort("Lingua e letteratura italiana"), "LEL");
 eq("nome vuoto", S.suggestShort("   "), "");
 eq("colori diversi per materie nuove", S.nextColor([{color:"petrolio"},{color:"mattone"}]), "oltremare");
 eq("il colore è un token, non un esadecimale", S.colorStyle("petrolio"),
