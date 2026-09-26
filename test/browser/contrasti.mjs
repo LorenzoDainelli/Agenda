@@ -1,6 +1,6 @@
 /* Verifica dei contrasti sulla pagina renderizzata, non sui numeri dei token.
  *
- * Guida l'app nei due temi e su undici schermate, e su ognuna passa il
+ * Guida l'app nei due temi e su dodici schermate, e su ognuna passa il
  * controllo di audit.mjs. Quello che trova qui e non nei token è la differenza
  * fra un numero scritto in un commento e un pixel disegnato davvero.
  */
@@ -27,8 +27,10 @@ const scenari = [
   ["impostazioni aspetto", async () => { await page.click("#settings-back"); await page.click('[data-page="look"]'); await page.waitForTimeout(300); }],
   ["impostazioni dati", async () => { await page.click("#settings-back"); await page.click('[data-page="data"]'); await page.waitForTimeout(300); }],
   ["orario", async () => { await page.click('[data-close="settings-layer"]'); await page.click("#open-timetable"); await page.waitForTimeout(400); }],
+  // una cosa da comprare, una comprata oggi (barrata) e le «Già comprate»
+  ["spesa", async () => { await page.click('[data-close="timetable-layer"]'); await page.click("#open-shopping"); await page.waitForTimeout(400); }],
   // il compito nuovo, con la materia scelta: il nome vuoto mostra quella
-  ["compito nuovo", async () => { await page.click('[data-close="timetable-layer"]'); await page.click("#add"); await page.waitForTimeout(300);
+  ["compito nuovo", async () => { await page.click('[data-close="shopping-layer"]'); await page.click("#add"); await page.waitForTimeout(300);
     await page.locator("#subject-chips [data-subject]").first().click(); await page.waitForTimeout(300); }],
   // il compito con le parti, così si misurano anche i chip «quando»
   ["pannello compito", async () => { await page.click('[data-close="task-layer"]'); await page.locator("#list .ag-task__main", { hasText: "Compito con parti" }).click(); await page.waitForTimeout(400); }],
@@ -73,6 +75,10 @@ for (const tema of ["light", "dark"]) {
             "3":["s-green",null,null,null,null,null],"4":["s-amber","s-sky",null,null,null,null],
             "5":["s-rose",null,null,null,null,null],"6":[null,null,null,null,null,null]}}]));
     localStorage.setItem("agenda:review", JSON.stringify({lastReviewedOn:"2026-09-21"}));
+    localStorage.setItem("agenda:shopping", JSON.stringify({ items: [
+      { id:"c-1", name:"latte", qty:"2", addedAt:"2026-09-20", boughtAt:null },
+      { id:"c-2", name:"pane", addedAt:"2026-09-20", boughtAt:"2026-09-21" },
+      { id:"c-3", name:"uova", qty:"6", addedAt:"2026-09-10", boughtAt:"2026-09-15" } ] }));
   }, tema);
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(500);

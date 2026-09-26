@@ -84,6 +84,9 @@ check("e il promemoria sparisce", await page.locator("#backup-alert").isHidden()
 check("si ricomincia a contare da oggi", (await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:backup")).lastSavedOn)) === "2026-09-21");
 
 console.log("\n== copia di sicurezza: giro completo ==");
+await page.evaluate(() => localStorage.setItem("agenda:shopping", JSON.stringify({ items: [
+  { id: "c-prova", name: "cosa da comprare", addedAt: "2026-09-21", boughtAt: null }] })));
+await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(300);
 await page.click("#open-settings"); await page.waitForTimeout(300);
 await page.click('[data-page="data"]'); await page.waitForTimeout(200);
 const dl = page.waitForEvent("download", { timeout: 15000 }).catch(() => null);
@@ -94,8 +97,9 @@ let percorso = null;
 if (file) { percorso = "/tmp/copia.json"; await file.saveAs(percorso); }
 // la data dell'ultima copia dice qualcosa di questo telefono: nel file non va (A20)
 check("il file non si porta dietro la data dell'ultima copia", percorso && !readFileSync(percorso, "utf8").includes("lastSavedOn"));
+check("e porta la lista della spesa", percorso && readFileSync(percorso, "utf8").includes("cosa da comprare"));
 // ora distruggo tutto e ripristino
-await page.evaluate(() => { localStorage.removeItem("agenda:tasks"); });
+await page.evaluate(() => { localStorage.removeItem("agenda:tasks"); localStorage.removeItem("agenda:shopping"); });
 await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(400);
 check("dopo aver cancellato, l'elenco è vuoto", await page.locator(".ag-empty").count() === 1);
 // aggiungo un compito NUOVO, che il file non conosce: il ripristino non deve toccarlo
@@ -110,6 +114,7 @@ const titoli = await all("#list .ag-task__title");
 console.log("   elenco dopo il ripristino:", titoli.join(" · "));
 check("i compiti del file sono tornati", titoli.includes("Da fare adesso"));
 check("il compito nato DOPO la copia è ancora lì", titoli.includes("Nato dopo la copia"));
+check("e la spesa è tornata", await page.evaluate(() => (JSON.parse(localStorage.getItem("agenda:shopping")) || { items: [] }).items.some((x) => x.id === "c-prova")));
 await page.screenshot({ path: "/tmp/shots/14-ripristino.png" });
 
 console.log("\n== un file che non è una copia dell'Agenda ==");

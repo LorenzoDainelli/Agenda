@@ -3,8 +3,8 @@
  *   node test/tutti.mjs
  *
  * Non serve un browser e non serve installare niente: i moduli che si provano
- * qui (days, model, timetable, subjects, tasks, e la regola del promemoria di
- * backup) non toccano la pagina, e sono
+ * qui (days, model, timetable, subjects, tasks, la lista della spesa e la
+ * regola del promemoria di backup) non toccano la pagina, e sono
  * i moduli in cui vivono le regole dell'app. Quelli che disegnano si provano
  * aprendola.
  */
@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const files = ["days.mjs", "model.mjs", "timetable.mjs", "tasks.mjs", "backup.mjs"];
+const files = ["days.mjs", "model.mjs", "timetable.mjs", "tasks.mjs", "backup.mjs", "shopping.mjs"];
 
 let falliti = 0;
 for (const file of files) {

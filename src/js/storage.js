@@ -18,6 +18,7 @@ const KEY_REVIEW = "agenda:review";
 // (assunzione A20): dice qualcosa di questo telefono, e ripristinare una copia
 // vecchia non deve far credere all'app di averne appena fatta una.
 const KEY_BACKUP = "agenda:backup";
+const KEY_SHOPPING = "agenda:shopping";
 
 /*
  * Numero di versione del file esportato.
@@ -138,6 +139,19 @@ export function saveReview(state) {
   return write(KEY_REVIEW, state);
 }
 
+/* ── Lista della spesa ────────────────────────────────────────────── */
+
+/** Le cose da comprare, così come sono salvate. Le regole per leggerle e
+ *  cambiarle stanno in shopping.js: qui passano e basta. */
+export function loadShopping() {
+  const stored = read(KEY_SHOPPING, null);
+  return Array.isArray(stored?.items) ? stored.items : [];
+}
+
+export function saveShopping(items) {
+  return write(KEY_SHOPPING, { items });
+}
+
 /* ── Promemoria della copia ───────────────────────────────────────── */
 
 export function loadBackupInfo() {
@@ -164,6 +178,9 @@ export function exportAll(todayISO) {
     tasks: loadTasks(),
     timetables: loadTimetables(),
     review: loadReview(),
+    // un campo in più, il formato resta alla versione 1: chi non lo conosce
+    // lo ignora, chi lo conosce lo rimette dentro (A41)
+    shopping: { items: loadShopping() },
   };
 }
 
@@ -190,6 +207,8 @@ export function readBackup(text) {
     settings: data.settings && typeof data.settings === "object" ? data.settings : {},
     tasks,
     timetables: Array.isArray(data.timetables) ? data.timetables : [],
+    // una copia fatta prima che la spesa esistesse non ce l'ha: elenco vuoto
+    shopping: Array.isArray(data.shopping?.items) ? data.shopping.items : [],
   };
 }
 
@@ -211,6 +230,13 @@ export function applyBackup(parsed) {
     if (tt && typeof tt.weekStart === "string" && tt.grid) mergedTT.set(tt.weekStart, tt);
   }
   saveTimetables([...mergedTT.values()]);
+
+  // la spesa come i compiti: per id, e quello che nel file non c'è resta
+  const mergedShop = new Map(loadShopping().map((item) => [item.id, item]));
+  for (const item of parsed.shopping || []) {
+    if (item && typeof item.id === "string" && typeof item.name === "string") mergedShop.set(item.id, item);
+  }
+  saveShopping([...mergedShop.values()]);
 
   // Le materie si uniscono per id: una materia del telefono che nel file non
   // c'è non deve sparire, se no i compiti che la usano perdono il colore.
@@ -235,7 +261,7 @@ export function applyBackup(parsed) {
 
 /** Per il pulsante "ricomincia da zero", se un giorno servirà. Oggi non è usato. */
 export function wipe() {
-  for (const key of [KEY_SETTINGS, KEY_TASKS, KEY_TIMETABLES, KEY_REVIEW, KEY_BACKUP]) {
+  for (const key of [KEY_SETTINGS, KEY_TASKS, KEY_TIMETABLES, KEY_REVIEW, KEY_BACKUP, KEY_SHOPPING]) {
     try { localStorage.removeItem(key); } catch { /* niente da fare */ }
   }
 }
