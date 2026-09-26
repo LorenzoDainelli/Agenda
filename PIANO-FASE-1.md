@@ -163,6 +163,9 @@ Dopo averla installata sul telefono.
 | l'orario | esce dalle impostazioni e diventa un **pulsante nella testata, a sinistra del calendario** |
 | orario provvisorio e definitivo | a inizio anno l'orario cambia di settimana in settimana ed è **modificabile**; quando è quello **definitivo** lo si dice con un pulsante in fondo all'orario, e da lì **si guarda soltanto** |
 | tornare a modificare un orario definitivo | **solo dalle impostazioni**, così non lo si cambia per sbaglio |
+| le parti di una verifica | la sezione si chiama **«Cosa studiare»**: in una verifica le parti sono gli argomenti |
+| la data in cima | **più piccola e su una riga**: sta sotto i pulsanti, larga quanto lo schermo |
+| il peso di un compito nuovo | parte da **Medio**, che è quello che capita più spesso |
 | impostazioni | **tutto quello proposto**: divise in pagine (Aspetto, Materie, Ambiti, Compiti, Orario, I tuoi dati) con un elenco corto all'inizio; «Automatica» al posto di «Come il telefono»; righe più compatte; lingua e tema in cima, la copia in fondo |
 
 #### Assunzioni prese nel farlo (si ribaltano senza discutere)
@@ -446,7 +449,8 @@ che si aprono sopra e si chiudono con una ✕, come in Shift Hours.
 
 ### 6.1 Da fare (si apre sempre qui)
 
-Testata: titolo + quattro icone (orario, calendario, archivio, impostazioni).
+Testata: l'occhiello «Da fare» con le quattro icone (orario, calendario,
+archivio, impostazioni), e sotto la data, su una riga sola.
 
 Sotto, due cose e in quest'ordine:
 

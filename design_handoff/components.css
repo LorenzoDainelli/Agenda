@@ -97,16 +97,17 @@ button { cursor: pointer; touch-action: manipulation; }
 
 /* ── 2. Testata ───────────────────────────────────────────────────── */
 
+/* Testata su due righe: l'occhiello accanto ai pulsanti, la data sotto, larga
+   quanto lo schermo. Accanto a quattro pulsanti la data aveva 160px e andava
+   su due righe enormi (decisione del quarto giro: «su una riga»). */
 .ag-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--ag-space-4);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--ag-space-4);
   padding: var(--ag-space-5) var(--ag-gutter) var(--ag-space-4);
   padding-top: max(var(--ag-space-5), env(safe-area-inset-top));
 }
-
-.ag-header > :first-child { min-width: 0; }
 
 .ag-header__eyebrow {
   display: block;
@@ -118,11 +119,17 @@ button { cursor: pointer; touch-action: manipulation; }
 }
 
 .ag-header__title {
+  grid-column: 1 / -1;
   margin: var(--ag-space-1) 0 0;
-  font-size: var(--ag-size-xl);
+  font-size: var(--ag-size-date);
   font-weight: var(--ag-weight-bold);
   letter-spacing: var(--ag-tracking-tight);
   line-height: var(--ag-leading-tight);
+  /* una riga sola: su un telefono più stretto di quelli misurati si taglia
+     coi puntini invece di andare a capo */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ag-header__actions {

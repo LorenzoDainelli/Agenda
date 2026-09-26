@@ -346,8 +346,10 @@ function partsBlock() {
   });
 
   const p = progress(draft);
-  // nella scuola le parti sono il compito stesso, e il titolo lo dice
-  const label = isSchool() ? t("task.parts.todo") : t("task.parts");
+  // nella scuola le parti sono il compito stesso, e il titolo lo dice; in una
+  // verifica sono gli argomenti da studiare (decisione del quarto giro)
+  const label = !isSchool() ? t("task.parts")
+    : draft.kind === "test" ? t("task.parts.study") : t("task.parts.todo");
   return `
     <div class="ag-group">
       <span class="ag-group__label">

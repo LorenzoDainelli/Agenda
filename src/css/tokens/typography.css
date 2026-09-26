@@ -23,6 +23,8 @@
   --ag-size-md: 1.0625rem;   /* 17px — corpo, misura di sistema iOS */
   --ag-size-lg: 1.25rem;     /* 20px — titoli di sezione */
   --ag-size-xl: 1.75rem;     /* 28px — titoli di schermata */
+  --ag-size-date: 1.5rem;    /* 24px — la data in cima: su una riga sola anche la più
+                                lunga («Wednesday, September 23», 294px su 361) */
   --ag-size-2xl: 2.125rem;   /* 34px */
   --ag-size-3xl: 2.75rem;    /* 44px — il numero nel blocco in cima */
 

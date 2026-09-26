@@ -355,11 +355,15 @@ check("la materia viene prima del nome", await page.evaluate(() => {
 await page.click("#task-save"); await page.waitForTimeout(250);
 check("senza materia e senza nome non si salva, e lo dice", !(await page.locator("#task-layer").isHidden())
       && (await all(".ag-toast__text")).some((x) => x.includes("Scegli una materia")), (await all(".ag-toast__text")).join(" | "));
+check("un compito nuovo parte da peso medio", (await page.locator('[data-weight="2"]').getAttribute("aria-pressed")) === "true");
+await page.locator('[data-kind="test"]').click(); await page.waitForTimeout(200);
+check("in una verifica le parti sono «Cosa studiare»", (await all("#task-body .ag-group__label")).some((x) => x.startsWith("Cosa studiare")), (await all("#task-body .ag-group__label")).join(" | "));
+await page.locator('[data-kind="homework"]').click(); await page.waitForTimeout(200);
 await page.locator('#subject-chips [data-subject="s-mate"]').click(); await page.waitForTimeout(200);
 check("il nome vuoto mostra quello che prenderà", (await page.getAttribute("#task-title", "placeholder")) === "Matematica",
       await page.getAttribute("#task-title", "placeholder"));
 await page.fill("#part-new", "problemi pag 12");
-await page.locator('[data-weight="2"]').click(); await page.waitForTimeout(200);
+await page.locator('[data-weight="1"]').click(); await page.waitForTimeout(200);
 check("una parte scritta e non aggiunta resta scritta dopo un altro tocco", (await page.inputValue("#part-new")) === "problemi pag 12");
 await page.click("#task-save"); await page.waitForTimeout(300);
 const senzaNome = page.locator("#list .ag-task", { has: page.locator(".ag-task__title--subject") });
@@ -372,13 +376,16 @@ check("il nome salvato resta vuoto", await page.evaluate(() => JSON.parse(localS
 
 console.log("\n== l'orario, dal pulsante in alto ==");
 const testata = await page.evaluate(() => {
-  const title = document.getElementById("today-title").getBoundingClientRect();
+  const h = document.getElementById("today-title");
+  const title = h.getBoundingClientRect();
   const btns = [...document.querySelectorAll(".ag-header__actions .ag-iconbtn")].map((b) => b.getBoundingClientRect());
-  return { n: btns.length, minW: Math.min(...btns.map((b) => b.width)), titleRight: title.right, firstLeft: Math.min(...btns.map((b) => b.left)) };
+  return { n: btns.length, minW: Math.min(...btns.map((b) => b.width)), titleTop: title.top,
+           btnBottom: Math.max(...btns.map((b) => b.bottom)), oneLine: h.scrollWidth <= h.clientWidth && title.height < 40, h: title.height };
 });
 check("in testata ci sono quattro pulsanti, l'orario per primo", testata.n === 4 && (await page.locator(".ag-header__actions .ag-iconbtn").first().getAttribute("id")) === "open-timetable");
 check("larghi almeno 44px", testata.minW >= 44, `${testata.minW}px`);
-check("e il titolo non ci finisce sotto", testata.titleRight <= testata.firstLeft + 1, `${testata.titleRight} / ${testata.firstLeft}`);
+check("la data sta sotto i pulsanti, su una riga intera", testata.titleTop >= testata.btnBottom - 1 && testata.oneLine,
+      `alta ${testata.h}px, da ${testata.titleTop} (pulsanti fino a ${testata.btnBottom})`);
 await page.click("#open-timetable"); await page.waitForTimeout(300);
 check("provvisorio: le caselle si toccano", await page.locator("#timetable-body button.ag-tt__cell").count() > 0);
 await page.locator('#timetable-body [data-cell^="2:1:"]').click(); await page.waitForTimeout(250);
