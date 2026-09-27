@@ -232,6 +232,31 @@ Dopo qualche giorno d'uso.
 | A54 | Nella spesa lo scorrimento funziona come nell'elenco: scatta **oltre un terzo della riga**. Verso destra togliere chiede **conferma** (regola 4), poi il toast offre l'annulla; verso sinistra sale un foglio col testo com'era scritto («2 latte») da correggere. Supera A39 dove diceva «nemmeno con un tocco»: uno scorrimento non si fa per sbaglio come un tocco, e la conferma c'è. Le «Già comprate» si svuotano sempre e solo con «Svuota». Sotto la lista una nota dice i due gesti: un gesto che non si sa che c'è, non c'è. | `bindSwipe()` in `ui.js`, `shopping-view.js` |
 | A55 | Correggere una cosa col **nome di un'altra che c'è già** (in lista o fra le comprate) non si fa: l'avviso lo dice e non cambia niente. Due righe con lo stesso nome sarebbero la stessa cosa scritta due volte. | `editItem()` in `shopping.js` |
 
+### Chieste dall'utente il 27 settembre 2026, nel sesto giro
+
+Con due immagini: una schermata del telefono e la tabella dei colori
+dell'iPhone.
+
+| cosa | decisione |
+|---|---|
+| i filtri sotto la striscia dei giorni | **erano tagliati**: il corpo della schermata è una colonna che scorre, e una colonna così schiaccia i figli che scorrono a loro volta (i filtri scorrono di lato) fino a zero. Ora nessun figlio si schiaccia. Era un errore, non una scelta |
+| i giorni della striscia | **meno alti**: sotto il numero del giorno c'era una riga riservata al conto delle cose, quasi sempre vuota da quando «Da pianificare» non c'è più (A52). Via la riga (A56) |
+| i colori delle materie | si scelgono da **una tabella come quella dell'iPhone**, dieci righe per dodici colonne, con i colori **ammorbiditi in automatico a pastello** (A57–A60) |
+
+#### Assunzioni prese nel farlo (si ribaltano senza discutere)
+
+Le tre scelte sotto erano pronte da mostrare (le due strisce affiancate, i
+tre livelli di pastello) ma non sono state chieste: si è andati avanti con
+quelle consigliate, e si cambiano con una riga.
+
+| # | Assunzione | Come si ribalta |
+|---|---|---|
+| A56 | La striscia dei giorni **non dice più quante cose ci sono**: il fondo dice già quanto pesa il giorno, e il conto (le parti e i giorni scelti, le verifiche) con la fila dei giorni chiusa restava vuoto quasi sempre. Il giorno scende da 75 a 54 px d'altezza. | rimettere `ag-nday__n2` in `renderNext()` (`app.js`) e la sua regola in `components.css` |
+| A57 | Il pastello è **l'intensità tagliata a 34** (LCh): delle tre prove — 22 tenue, 34 pastello, 46 vivo — quella di mezzo, che tiene distinte le colonne vicine senza gridare. Della tabella di partenza si tengono la tinta e il posto nella riga; la chiarezza la decide il tema. Nel **tema scuro** i pallini sono pastello davvero (L 60–90). Nel **chiaro** un pastello sul fondo chiaro non passa 3:1, quindi il pallino è scuro e il pastello sta nel fondo dei chip e delle caselle dell'orario. | `INTENSITA` in `tools/genera-tavolozza.py`, e si rilancia |
+| A58 | I **dodici colori di prima restano validi** per le materie che li hanno già (e nelle copie di sicurezza), ma non si propongono più: nella scelta c'è solo la tabella, e una materia con un colore di prima non ha una casella accesa finché non se ne tocca una. Una materia nuova (e un ambito nuovo) nasce con un colore della tabella: sei tinte lontane fra loro (rosso, blu, verde, ambra, rosa, viola) in due chiarezze, lontane dal colore d'azione. | `COLORS` e `SUGGESTED` in `subjects.js` |
+| A59 | La tabella si usa **trascinando il dito**, come sull'iPhone: le caselle sono da 28 px, sotto i 44 della regola 10, e la tabella intera è un controllo solo, come la colonna della settimana (terzo giro). Si appoggia il dito e si scorre; sopra la tabella il chip della materia, col suo nome, fa vedere il colore sotto il dito, che il dito copre. Da tastiera si scorre con le frecce. | `palettePicker()` in `settings.js` |
+| A60 | La tabella ha tutte le tinte, **blu compresi**: 3 caselle nel tema chiaro e 6 nello scuro stanno a meno di ΔE 15 dal colore d'azione, la soglia che i dodici colori di prima rispettavano. Non si tolgono, perché una tabella coi buchi non si legge: il colore lo sceglie lui, e accanto al colore di una materia c'è sempre il suo nome o la sua sigla. Rischio noto; nessuna materia nuova nasce con una di quelle (A58). | togliere le caselle nel generatore |
+
 Rimasta aperta e **non** decisa: la forma definitiva dell'ambito privato
 (vedi §6.4). Il nome dell'app non è più in questa lista.
 
@@ -250,6 +275,7 @@ Il progetto sta **alla radice della repo** (decisione dell'utente): la repo
   design_handoff/               sorgente di verità del sistema visivo
     tokens/
       colors.css                colori, tema chiaro e scuro
+      tavolozza.css             la tabella dei colori delle materie (GENERATO)
       typography.css            tipografia
       space.css                 spaziature, raggi, ombre, movimento
     components.css              stili dei componenti
@@ -296,7 +322,7 @@ Il progetto sta **alla radice della repo** (decisione dell'utente): la repo
     browser/                    prove che guidano l'app in un browser vero
                                 (servono Playwright: vedi test/browser/LEGGIMI.md)
       audit.mjs                 il controllo dei contrasti sulla pagina renderizzata
-      contrasti.mjs             lo passa su quattordici schermate dell'app, nei due temi
+      contrasti.mjs             lo passa su sedici schermate dell'app, nei due temi
       cattura-schermate.mjs     salva il markup vero dell'app, per il confronto palette
       confronto-palette.mjs     guarda le palette candidate e le verifica
       percorso-base.mjs         il giro completo: creare, pianificare, spuntare
@@ -305,6 +331,7 @@ Il progetto sta **alla radice della repo** (decisione dell'utente): la repo
   tools/                        strumenti di progetto, non finiscono nell'app
     colore.py                   matematica del colore: contrasti WCAG, CIELAB, ΔE
     genera-palette.py           genera una palette intera dai suoi vincoli
+    genera-tavolozza.py         genera e verifica la tabella dei colori delle materie
     confronto-palette.py        costruisce la pagina di confronto delle palette
     colori-fuori-dai-token.py   controlla i pochi colori che stanno fuori dai token
   .github/workflows/deploy.yml  pubblica src/ su GitHub Pages
@@ -338,11 +365,13 @@ I giorni della settimana sono numeri **1 = lunedì … 7 = domenica** (ISO).
   lang: null,          // null = segue il telefono; "it" | "en"
   theme: null,         // null = segue il telefono; "light" | "dark"
   subjects: [          // le materie dell'anno, inserite da lui
-    { id: "s-1", name: "Inglese", short: "INGL", color: "petrolio",
+    { id: "s-1", name: "Inglese", short: "INGL", color: "t-5-5",
       lab: false }     // true = si divide in teoria e laboratorio (A44)
+                       // color: una casella della tabella, "t-RIGA-COLONNA"
+                       // (A58), o uno dei dodici nomi di prima ("petrolio")
   ],
   areas: [             // SOLO gli ambiti personalizzati: i due fissi non stanno qui
-    { id: "a-1", name: "Palestra", color: "oliva" }
+    { id: "a-1", name: "Palestra", color: "t-3-11" }
   ],
   lessonsPerDay: 6,    // righe della griglia dell'orario
   schoolDays: [1,2,3,4,5,6],
@@ -529,8 +558,8 @@ Sotto, due cose e in quest'ordine:
    entro domani. Un avviso che c'è sempre non è un avviso. Più giù, sulla
    strada fra i filtri e l'elenco, l'avviso della rassegna (§7) e quello della
    **copia di sicurezza**, una volta al mese (assunzioni A18–A20);
-2. la **striscia dei prossimi sette giorni**, ognuno col fondo del suo peso e
-   il numero di cose che ci sono. Non è un riepilogo, è uno strumento: serve a
+2. la **striscia dei prossimi sette giorni**, ognuno col fondo del suo peso
+   (A56: il numero delle cose non c'è più, il peso lo dice già). Non è un riepilogo, è uno strumento: serve a
    rispondere alla domanda «dove lo metto?», che è il problema dell'app — e a
    quella domanda il numero di cose di oggi non risponde. Toccando un giorno si
    apre il calendario su quel giorno.
@@ -630,7 +659,9 @@ un unico riquadro, e ogni riga dice a destra come stanno le cose:
 1. **Aspetto** — tema e lingua, in quest'ordine: `Automatico · Chiaro ·
    Scuro` e `Automatica · IT · EN`. «Automatico» segue il telefono.
 2. **Materie** — elenco con nome, sigla e colore. Aggiungi, rinomina, cambia
-   colore, elimina, e **«Solo teoria · Teoria e laboratorio»** (A44). Eliminare una materia **non cancella i compiti**: restano
+   colore, elimina, e **«Solo teoria · Teoria e laboratorio»** (A44). Il colore si
+   sceglie dalla **tabella** a dieci righe per dodici colonne, trascinando il dito
+   (A57–A60). Eliminare una materia **non cancella i compiti**: restano
    col nome che avevano (come il `typeName` congelato di Shift Hours).
 3. **Ambiti** — Scuola e Privato ci sono sempre; qui si aggiungono gli altri.
 4. **Compiti** — **cosa fa un tocco su una parte con un numero** dall'elenco:
@@ -760,7 +791,9 @@ successivo.
 - Token per tema chiaro **e** scuro, con `prefers-color-scheme` e sovrascrittura
   via `data-theme` sull'elemento radice.
 - 11 colori materia, ognuno con tre valori per tema (pieno, chip, testo sul
-  chip) e **il contrasto misurato scritto accanto**.
+  chip) e **il contrasto misurato scritto accanto**. Dal sesto giro si
+  sceglie da una tabella di 120 (`tokens/tavolozza.css`, generata), con gli
+  stessi tre valori e gli stessi due numeri accanto.
 - Sei gradini di peso per il calendario, ognuno con l'inchiostro già verificato.
 - **Accettazione**: `reference.html` mostra ogni componente previsto nelle due
   schermate intere (Da fare, Calendario) alla larghezza di un iPhone, si apre
@@ -792,7 +825,10 @@ pannello impostazioni.
   lezione. Da definitivo le caselle dell'orario non si toccano e non c'è
   «Nuova settimana»; dalle impostazioni torna modificabile. Una materia col
   laboratorio si mette nell'orario come teoria o come laboratorio, e un
-  compito di laboratorio propone la prossima ora di laboratorio.
+  compito di laboratorio propone la prossima ora di laboratorio. Il colore di
+  una materia si sceglie trascinando il dito sulla tabella, e il chip sopra
+  mostra il colore sotto il dito; una materia col colore di prima lo tiene
+  finché non se ne sceglie un altro.
 
 ### Task 4 — Inserimento e compito aperto
 `src/js/compose.js`, `src/js/planner.js`.
@@ -863,7 +899,9 @@ workflow di pubblicazione (`.github/workflows/deploy.yml`), che diventa rosso:
    invece che nella sorgente se ne andrebbe al primo ricopiaggio, senza un
    errore e senza un test rosso. (È esattamente l'incidente che MyMoney
    racconta nel suo `design_handoff_mymoney/README.md`, dove quarantuno righe
-   sono sparite così.)
+   sono sparite così.) E la tabella dei colori delle materie è quella che esce
+   da `tools/genera-tavolozza.py`: toccata a mano, i contrasti scritti accanto
+   smetterebbero di essere veri.
 2. **Ogni file `.js` è in `CORE_ASSETS`** del service worker. Un modulo
    dimenticato non si nota provando l'app online: si nota in aereo, cioè
    quando è troppo tardi.

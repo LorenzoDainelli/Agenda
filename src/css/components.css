@@ -95,6 +95,15 @@ button { cursor: pointer; touch-action: manipulation; }
   gap: var(--ag-space-5);
 }
 
+/* Nessun figlio del corpo si schiaccia. Il corpo scorre da sé, ma resta una
+   colonna flex alta quanto lo schermo, e quando l'elenco è lungo prova a
+   farci stare tutto restringendo i figli. Un figlio qualunque si ferma al suo
+   contenuto; uno che scorre a sua volta (i filtri, che scorrono di lato) non
+   ha un minimo e scende a zero: i filtri si vedevano tagliati a metà, o per
+   niente (sesto giro). Qui l'altezza la decide il contenuto, e scorre il
+   corpo. */
+.ag-app__body > * { flex-shrink: 0; }
+
 /* ── 2. Testata ───────────────────────────────────────────────────── */
 
 /* Testata su due righe: l'occhiello accanto ai pulsanti, la data sotto, larga
@@ -204,7 +213,7 @@ button { cursor: pointer; touch-action: manipulation; }
 .ag-nday {
   flex: none;
   width: 60px;
-  padding: var(--ag-space-2) var(--ag-space-1) var(--ag-space-3);
+  padding: var(--ag-space-2) var(--ag-space-1);
   border-radius: var(--ag-radius-sm);
   background: var(--ag-load, var(--ag-surface));
   color: var(--ag-load-ink, var(--ag-text));
@@ -232,10 +241,9 @@ button { cursor: pointer; touch-action: manipulation; }
   line-height: var(--ag-leading-tight);
 }
 
-/* Quante cose ci sono quel giorno. Uno spazio vuoto invece di uno zero: un
-   giorno libero si riconosce dal fatto che non c'è scritto niente, e una
-   colonna di zeri è rumore. */
-.ag-nday__n2 { font-size: var(--ag-size-2xs); opacity: 0.85; min-height: 1em; }
+/* Sotto il numero c'era il conto delle cose del giorno. Con la fila dei
+   giorni chiusa (A52) era vuoto quasi sempre, e teneva ogni giorno alto un
+   terzo in più per niente: il peso lo dice già il fondo (A56). */
 
 /* L'anello ambra: quel giorno c'è una verifica. */
 .ag-nday--test .ag-nday__n {
@@ -861,8 +869,10 @@ button { cursor: pointer; touch-action: manipulation; }
 
 /* Un chip di materia acceso prende il colore della materia, non il blu: è il
    solo caso in cui il colore d'azione cede il posto, perché qui il colore È
-   l'informazione. */
-.ag-chip--subject[aria-pressed="true"] {
+   l'informazione. Il campione sopra la tabella dei colori è un chip acceso
+   che non si tocca: fa vedere la materia come la si vedrà (A59). */
+.ag-chip--subject[aria-pressed="true"],
+.ag-chip--sample {
   background: var(--ag-chip-soft, var(--ag-primary-soft));
   color: var(--ag-chip-ink, var(--ag-primary-ink));
   box-shadow: inset 0 0 0 2px var(--ag-dot, var(--ag-primary));
@@ -914,6 +924,54 @@ button { cursor: pointer; touch-action: manipulation; }
 /* La riga del tipo ha bisogno di una distinzione più forte: una verifica
    scelta accende l'ambra, così il pannello cambia faccia e non si sbaglia. */
 .ag-seg__opt--test[aria-pressed="true"] { color: var(--ag-test-ink); }
+
+/* La tabella dei colori di una materia (A57–A59): dieci righe per dodici
+   colonne, come quella dell'iPhone da cui viene. Il numero di colonne arriva
+   da subjects.js, che è anche quello che sa i nomi delle caselle.
+
+   Le caselle sono da 28px, sotto i 44 della regola 10: la tabella intera è
+   un controllo solo, e si usa trascinando il dito (A59), come la colonna
+   della settimana si tocca intera invece del blocchetto. Il dito copre la
+   casella, e il colore sotto il dito lo fa vedere il campione sopra. */
+.ag-palette {
+  display: grid;
+  grid-template-columns: repeat(var(--ag-palette-cols), 1fr);
+  border-radius: var(--ag-radius-xs);
+  overflow: hidden;
+  /* trascinando si sceglie, non si scorre il pannello e non si seleziona */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.ag-palette__cell {
+  position: relative;
+  aspect-ratio: 1;
+  padding: 0;
+  background: var(--ag-dot);
+}
+
+/* La casella scelta: un anello a due colori, testo fuori e fondo dentro,
+   così si stacca sia da una casella scura sia da una chiara — un colore solo
+   sparirebbe su metà della tabella. Fra loro i due stanno a 18.22:1 nel
+   chiaro e 16.39:1 nello scuro (--ag-text su --ag-bg, misurati nei token).
+   Il raggio è quello della tabella, così nelle caselle d'angolo l'anello
+   segue il bordo invece di esserne tagliato. */
+.ag-palette__cell[aria-checked="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--ag-radius-xs);
+  box-shadow: inset 0 0 0 2px var(--ag-text), inset 0 0 0 4px var(--ag-bg);
+}
+
+/* Il contorno di tastiera generale sta fuori dall'elemento: qui finirebbe
+   sotto le caselle vicine, o tagliato dal bordo della tabella. */
+.ag-palette__cell:focus-visible {
+  outline-offset: -3px;
+  border-radius: var(--ag-radius-xs);
+}
 
 /* ── 11. Fila dei giorni (pianificazione) ─────────────────────────── */
 

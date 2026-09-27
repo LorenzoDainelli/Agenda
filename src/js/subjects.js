@@ -2,33 +2,68 @@
  *
  * Una materia è un nome, una sigla e un colore, e può dividersi in teoria e
  * laboratorio (`lab: true`, A44). Il colore non è un valore
- * esadecimale: è il NOME di un token (`sky`, `teal`, …). Nessun colore viene
- * mai scritto nel JavaScript — qui si sceglie quale token usare, e il valore
- * vero vive solo in `design_handoff/tokens/colors.css` (regola 3 di CLAUDE.md).
+ * esadecimale: è il NOME di un token (`t-5-5`, `petrolio`, …). Nessun colore
+ * viene mai scritto nel JavaScript — qui si sceglie quale token usare, e il
+ * valore vero vive solo in `design_handoff/tokens/` (regola 3 di CLAUDE.md).
  */
 
 import { newId } from "./model.js";
 
+/** Le dimensioni della tabella dei colori (`tokens/tavolozza.css`, A57). */
+export const PALETTE_ROWS = 10;
+export const PALETTE_COLS = 12;
+
+/** Il nome di una casella della tabella, contando da zero. */
+export function paletteColor(row, col) {
+  return `t-${row}-${col}`;
+}
+
+/** Riga e colonna di una casella, o null se il colore non è della tabella. */
+export function palettePos(color) {
+  const match = /^t-(\d+)-(\d+)$/.exec(String(color));
+  if (!match) return null;
+  const row = Number(match[1]);
+  const col = Number(match[2]);
+  return row < PALETTE_ROWS && col < PALETTE_COLS ? { row, col } : null;
+}
+
 /**
- * I dodici colori disponibili, nell'ordine in cui vengono proposti.
+ * I dodici colori di prima della tabella (A58).
  *
- * Sono sei tonalità in due intensità (vedi il commento nei token, che spiega
- * perché sei e non dodici). L'ordine conta: prima tutte e sei le tonalità
- * piene, alternate in modo da mettere le più lontane vicine nell'elenco, e
- * solo dopo le versioni chiare. Così le prime sei materie che si creano
- * prendono sei tonalità diverse, e due materie si assomigliano solo quando ce
- * ne sono più di sei — che è il momento in cui è inevitabile.
+ * Non si propongono più, ma restano validi: una materia creata prima della
+ * tabella, o arrivata da una copia di sicurezza, tiene il suo colore finché
+ * non se ne sceglie un altro. Toglierli le lascerebbe tutte col colore di
+ * ripiego, e sarebbe perdere un dato in silenzio (regola 4).
  */
 export const COLORS = [
   "petrolio", "mattone", "oltremare", "oliva", "prugna", "muschio",
   "petrolio-2", "mattone-2", "oltremare-2", "oliva-2", "prugna-2", "muschio-2",
 ];
 
+/**
+ * I colori con cui nasce una materia nuova, nell'ordine (A58).
+ *
+ * Sei tinte della tabella lontane fra loro — rosso, blu, verde, ambra, rosa,
+ * viola — prima in una chiarezza e poi in un'altra: le prime sei materie
+ * prendono sei tinte diverse, e due si assomigliano solo dalla settima. La
+ * colonna dell'azzurro non c'è: è quella vicina al colore d'azione (A60), e
+ * una materia che nasce lì sembrerebbe un pulsante.
+ */
+export const SUGGESTED = [
+  "t-3-5", "t-3-1", "t-3-11", "t-3-8", "t-3-4", "t-3-3",
+  "t-7-5", "t-7-1", "t-7-11", "t-7-8", "t-7-4", "t-7-3",
+];
+
+/** Un colore che ha i suoi token: una casella della tabella o uno di prima. */
+export function isColor(color) {
+  return palettePos(color) !== null || COLORS.includes(color);
+}
+
 /** Le tre variabili che servono a dipingere qualcosa col colore di una materia. */
 export function colorVars(color) {
-  // Un nome sconosciuto (un dato vecchio, un backup di un'altra versione) non
-  // deve dare un colore vuoto: ripiega sulla prima tonalità.
-  const name = COLORS.includes(color) ? color : COLORS[0];
+  // Un nome sconosciuto (un dato rovinato, un backup di una versione futura)
+  // non deve dare un colore vuoto: ripiega sul primo colore proposto.
+  const name = isColor(color) ? color : SUGGESTED[0];
   return {
     "--ag-dot": `var(--ag-subj-${name})`,
     "--ag-chip-soft": `var(--ag-subj-${name}-soft)`,
@@ -59,7 +94,7 @@ export function suggestShort(name) {
 /** Il primo colore non ancora usato, così due materie nuove non nascono uguali. */
 export function nextColor(subjects) {
   const used = new Set(subjects.map((s) => s.color));
-  return COLORS.find((c) => !used.has(c)) || COLORS[subjects.length % COLORS.length];
+  return SUGGESTED.find((c) => !used.has(c)) || SUGGESTED[subjects.length % SUGGESTED.length];
 }
 
 export function newSubject(name, subjects = []) {
@@ -106,7 +141,7 @@ export function modeOf(subjects, task) {
 
 export function subjectColor(subjects, task) {
   const found = task.subjectId ? findSubject(subjects, task.subjectId) : null;
-  return found?.color ?? COLORS[0];
+  return found?.color ?? SUGGESTED[0];
 }
 
 /** Quanti compiti usano una materia: serve a dirlo nella conferma di eliminazione. */

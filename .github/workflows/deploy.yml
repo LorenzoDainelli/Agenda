@@ -39,12 +39,21 @@ jobs:
         # un test rosso. Qui diventa rossa.
         run: |
           set -euo pipefail
-          for f in colors typography space; do
-            diff -q "design_handoff/tokens/$f.css" "src/css/tokens/$f.css" \
-              || { echo "src/css/tokens/$f.css non è uguale alla sorgente in design_handoff/"; exit 1; }
+          # tutti i file dei token, non un elenco: un file nuovo (è successo
+          # con la tabella dei colori) non deve restare fuori dal controllo
+          for f in design_handoff/tokens/*.css; do
+            name="$(basename "$f")"
+            diff -q "$f" "src/css/tokens/$name" \
+              || { echo "src/css/tokens/$name non è uguale alla sorgente in design_handoff/"; exit 1; }
           done
           diff -q design_handoff/components.css src/css/components.css \
             || { echo "src/css/components.css non è uguale alla sorgente in design_handoff/"; exit 1; }
+
+      - name: Controlla che la tabella dei colori sia quella generata
+        # I contrasti scritti accanto a ogni casella sono veri solo se il file
+        # esce dal generatore: una casella ritoccata a mano porterebbe un
+        # numero che non è più il suo (regola 3).
+        run: python3 tools/genera-tavolozza.py --verifica
 
       - name: Controlla i colori costretti a stare fuori dai token
         # Il manifest è JSON e il <meta name="theme-color"> è HTML: nessuno dei

@@ -13,7 +13,10 @@
 import { today as todayISO, diffDays } from "./days.js";
 import { t, LANGS } from "./i18n.js";
 import { newId, AREA_PRIVATE, PART_TAP } from "./model.js";
-import { COLORS, newSubject, colorStyle, suggestShort, findSubject, countUsing, nextColor } from "./subjects.js";
+import {
+  newSubject, colorStyle, suggestShort, findSubject, countUsing, nextColor,
+  PALETTE_ROWS, PALETTE_COLS, paletteColor, palettePos,
+} from "./subjects.js";
 import { countInArea, moveArea } from "./tasks.js";
 import { loadBackupInfo } from "./storage.js";
 import {
@@ -99,14 +102,14 @@ function editSubject(id) {
           </button>`).join("")}
       </div>
       <span class="ag-group__label">${esc(t("settings.subjects.color"))}</span>
-      <div class="ag-chips ag-chips--wrap">
-        ${COLORS.map((color) => `
-          <button class="ag-chip ag-chip--subject" type="button" data-color="${color}"
-                  aria-pressed="${subject.color === color ? "true" : "false"}"
-                  style="${colorStyle(color)}" aria-label="${color}">
-            ${dot(colorStyle(color))}
-          </button>`).join("")}
+      <div class="ag-chips">
+        <span class="ag-chip ag-chip--subject ag-chip--sample" id="s-sample"
+              style="${colorStyle(subject.color)}" aria-hidden="true">
+          ${dot(colorStyle(subject.color))}<span id="s-sample-name">${esc(subject.name)}</span>
+        </span>
       </div>
+      ${palettePicker(subject.color)}
+      <p class="ag-group__note">${esc(t("settings.subjects.color.note"))}</p>
       <button class="ag-btn" type="button" data-act="save">${esc(t("common.save"))}</button>
       <button class="ag-btn ag-btn--danger" type="button" data-act="del">${esc(t("common.delete"))}</button>
     </div>
@@ -122,11 +125,16 @@ function editSubject(id) {
       opt.setAttribute("aria-pressed", (opt.dataset.lab === "1") === lab ? "true" : "false");
     }
   });
-  onEach(body, "[data-color]", "click", (event) => {
-    color = event.currentTarget.dataset.color;
-    for (const chip of body.querySelectorAll("[data-color]")) {
-      chip.setAttribute("aria-pressed", chip.dataset.color === color ? "true" : "false");
-    }
+  // il campione dice il colore col nome della materia, anche mentre lo si
+  // cambia: è così che la si vedrà nel compito
+  const sample = body.querySelector("#s-sample");
+  bindPalette(body.querySelector(".ag-palette"), (picked) => {
+    color = picked;
+    sample.setAttribute("style", colorStyle(color));
+    sample.querySelector(".ag-dot").setAttribute("style", colorStyle(color));
+  });
+  body.querySelector("#s-name").addEventListener("input", (event) => {
+    body.querySelector("#s-sample-name").textContent = event.target.value.trim() || subject.name;
   });
 
   body.querySelector('[data-act="save"]').addEventListener("click", () => {
@@ -150,6 +158,93 @@ function editSubject(id) {
         });
       },
     });
+  });
+}
+
+/**
+ * La tabella dei colori (A57–A59): una casella per colore, e la tabella intera
+ * è un gruppo di scelte, come i bottoni radio. Dalla tastiera ci si entra una
+ * volta sola, sulla casella scelta, e dentro ci si muove con le frecce: 120
+ * fermate del tasto Tab sarebbero un muro.
+ */
+function palettePicker(current) {
+  const pos = palettePos(current);
+  // una materia col colore di prima non ha una casella accesa (A58): si
+  // entra dalla prima
+  const focus = pos ?? { row: 0, col: 0 };
+  const cells = [];
+  for (let row = 0; row < PALETTE_ROWS; row += 1) {
+    for (let col = 0; col < PALETTE_COLS; col += 1) {
+      const color = paletteColor(row, col);
+      const on = color === current;
+      const entry = row === focus.row && col === focus.col;
+      cells.push(`<button class="ag-palette__cell" type="button" role="radio"
+        data-color="${color}" aria-checked="${on ? "true" : "false"}" tabindex="${entry ? "0" : "-1"}"
+        style="--ag-dot:var(--ag-subj-${color})"
+        aria-label="${esc(t("settings.subjects.color.cell", { row: row + 1, col: col + 1 }))}"></button>`);
+    }
+  }
+  return `<div class="ag-palette" role="radiogroup" aria-label="${esc(t("settings.subjects.color"))}"
+    style="--ag-palette-cols:${PALETTE_COLS}">${cells.join("")}</div>`;
+}
+
+/**
+ * Il dito appoggiato sulla tabella sceglie la casella sotto di sé, e
+ * trascinando la cambia (A59). La casella si trova dalla posizione e non da
+ * cosa c'è sotto il dito: così uscendo dalla tabella si resta sulla casella
+ * del bordo, invece di perderla — come sull'iPhone.
+ */
+function bindPalette(grid, onPick) {
+  const cells = [...grid.querySelectorAll(".ag-palette__cell")];
+  let current = cells.find((cell) => cell.getAttribute("aria-checked") === "true")?.dataset.color ?? null;
+
+  const select = (cell) => {
+    if (cell.dataset.color === current) return;
+    current = cell.dataset.color;
+    for (const other of cells) {
+      const on = other === cell;
+      other.setAttribute("aria-checked", on ? "true" : "false");
+      other.tabIndex = on ? 0 : -1;
+    }
+    onPick(current);
+  };
+  const at = (row, col) => {
+    const r = Math.min(PALETTE_ROWS - 1, Math.max(0, row));
+    const c = Math.min(PALETTE_COLS - 1, Math.max(0, col));
+    return cells[r * PALETTE_COLS + c];
+  };
+  const underFinger = (event) => {
+    const box = grid.getBoundingClientRect();
+    return at(
+      Math.floor(((event.clientY - box.top) / box.height) * PALETTE_ROWS),
+      Math.floor(((event.clientX - box.left) / box.width) * PALETTE_COLS),
+    );
+  };
+
+  grid.addEventListener("pointerdown", (event) => {
+    // il puntatore resta alla tabella anche uscendone, così il trascinamento
+    // non si interrompe al bordo
+    grid.setPointerCapture(event.pointerId);
+    select(underFinger(event));
+  });
+  grid.addEventListener("pointermove", (event) => {
+    if (grid.hasPointerCapture(event.pointerId)) select(underFinger(event));
+  });
+  // Invio e spazio su una casella arrivano come click
+  grid.addEventListener("click", (event) => {
+    const cell = event.target.closest(".ag-palette__cell");
+    if (cell) select(cell);
+  });
+  const STEPS = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+  grid.addEventListener("keydown", (event) => {
+    const step = STEPS[event.key];
+    const cell = event.target.closest(".ag-palette__cell");
+    if (!step || !cell) return;
+    event.preventDefault();
+    const index = cells.indexOf(cell);
+    const next = at(Math.floor(index / PALETTE_COLS) + step[0], (index % PALETTE_COLS) + step[1]);
+    select(next);
+    next.focus();
   });
 }
 

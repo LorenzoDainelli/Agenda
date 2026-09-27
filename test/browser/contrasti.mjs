@@ -1,6 +1,6 @@
 /* Verifica dei contrasti sulla pagina renderizzata, non sui numeri dei token.
  *
- * Guida l'app nei due temi e su quattordici schermate, e su ognuna passa il
+ * Guida l'app nei due temi e su sedici schermate, e su ognuna passa il
  * controllo di audit.mjs. Quello che trova qui e non nei token è la differenza
  * fra un numero scritto in un commento e un pixel disegnato davvero.
  */
@@ -38,6 +38,12 @@ const scenari = [
   ["impostazioni", async () => { await page.click('[data-close="calendar-layer"]'); await page.click("#open-settings"); await page.waitForTimeout(400); }],
   // le pagine delle impostazioni: le righe in un riquadro solo e i segmenti
   ["impostazioni materie", async () => { await page.click('[data-page="subjects"]'); await page.waitForTimeout(300); }],
+  // la tabella dei colori (A57–A59), col campione acceso su una casella del
+  // fondo, la più chiara; salvando, da qui in poi una materia ha un colore
+  // della tabella e si misura anche quello
+  ["materia, tabella colori", async () => { await page.click('#settings-body [data-subject="s-petrolio"]'); await page.waitForTimeout(300);
+    await page.locator('#sheet [data-color="t-9-9"]').click(); await page.waitForTimeout(200); }],
+  ["impostazioni, dopo", async () => { await page.click('#sheet [data-act="save"]'); await page.waitForTimeout(300); }],
   ["impostazioni aspetto", async () => { await page.click("#settings-back"); await page.click('[data-page="look"]'); await page.waitForTimeout(300); }],
   ["impostazioni dati", async () => { await page.click("#settings-back"); await page.click('[data-page="data"]'); await page.waitForTimeout(300); }],
   ["orario", async () => { await page.click('[data-close="settings-layer"]'); await page.click("#open-timetable"); await page.waitForTimeout(400); }],
