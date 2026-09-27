@@ -90,12 +90,26 @@ eq("nome di una parola", S.suggestShort("Matematica"), "MATE");
 eq("nome di due parole", S.suggestShort("Scienze motorie"), "SM");
 eq("nome di tre parole", S.suggestShort("Lingua e letteratura italiana"), "LEL");
 eq("nome vuoto", S.suggestShort("   "), "");
-eq("colori diversi per materie nuove", S.nextColor([{color:"petrolio"},{color:"mattone"}]), "oltremare");
-eq("il colore è un token, non un esadecimale", S.colorStyle("petrolio"),
+eq("una materia nuova nasce con un colore della tabella (A58)", S.nextColor([]), "t-3-5");
+eq("colori diversi per materie nuove", S.nextColor([{color:"t-3-5"},{color:"t-3-1"}]), "t-3-11");
+eq("un colore di prima non toglie niente alla tabella", S.nextColor([{color:"petrolio"}]), "t-3-5");
+eq("dodici colori proposti, tutti diversi", new Set(S.SUGGESTED).size, 12);
+eq("le prime sei materie hanno sei tinte diverse",
+   new Set(S.SUGGESTED.slice(0,6).map(c => S.palettePos(c).col)).size, 6);
+eq("nessuna nasce nella colonna vicina al colore d'azione (A60)",
+   S.SUGGESTED.every(c => S.palettePos(c).col !== 0), true);
+eq("il colore è un token, non un esadecimale", S.colorStyle("t-4-7"),
+   "--ag-dot:var(--ag-subj-t-4-7);--ag-chip-soft:var(--ag-subj-t-4-7-soft);--ag-chip-ink:var(--ag-subj-t-4-7-ink)");
+eq("i colori di prima restano validi (A58)", S.colorStyle("petrolio"),
    "--ag-dot:var(--ag-subj-petrolio);--ag-chip-soft:var(--ag-subj-petrolio-soft);--ag-chip-ink:var(--ag-subj-petrolio-ink)");
-eq("un colore sconosciuto ripiega sul primo, non sul nulla", S.colorStyle("verdolino").includes("petrolio"), true);
-eq("dodici colori disponibili", S.COLORS.length, 12);
-eq("le sei tonalità piene vengono prima", S.COLORS.slice(0,6).every(c => !c.endsWith("-2")), true);
+eq("un colore sconosciuto ripiega sul primo proposto, non sul nulla", S.colorStyle("verdolino").includes("t-3-5"), true);
+eq("una casella fuori dalla tabella è sconosciuta", S.colorStyle("t-10-0").includes("t-3-5"), true);
+eq("e anche una colonna di troppo", S.isColor("t-0-12"), false);
+eq("la tabella è dieci per dodici", [S.PALETTE_ROWS, S.PALETTE_COLS], [10, 12]);
+eq("nome di una casella", S.paletteColor(9, 11), "t-9-11");
+eq("e ritorno", S.palettePos("t-9-11"), { row: 9, col: 11 });
+eq("un colore di prima non ha una casella", S.palettePos("petrolio"), null);
+eq("dodici colori di prima, sempre validi", S.COLORS.every(S.isColor) && S.COLORS.length === 12, true);
 eq("materia eliminata: resta il nome congelato",
    S.subjectLabel([], { subjectId: "s-x", subjectName: "Inglese" }), "Inglese");
 eq("materia esistente: vince il nome attuale",

@@ -178,6 +178,16 @@ console.log("\n== sezioni complete ==");
 console.log("   ", (await all(".ag-section__title")).join(" · "));
 console.log("   prossimi giorni:", (await all("#next-days .ag-nday")).join(" | "));
 check("la striscia mostra sette giorni", await page.locator("#next-days .ag-nday").count() === 7);
+{
+  // sesto giro: il giorno non ha più la riga del conto (A56), e i filtri non
+  // si schiacciano sotto un elenco lungo
+  const giorno = await page.locator("#next-days .ag-nday").first().boundingBox();
+  check("un giorno della striscia è più basso di prima (75px)", giorno.height < 60, `${giorno.height}px`);
+  check("e non ha la riga del conto", await page.locator("#next-days .ag-nday__n2").count() === 0);
+  const filtri = await page.locator("#filters").boundingBox();
+  const corpo = await page.evaluate(() => { const b = document.querySelector(".ag-app__body"); return b.scrollHeight > b.clientHeight; });
+  check("con l'elenco più lungo dello schermo i filtri restano interi", corpo && filtri.height >= 44, `${filtri.height}px, il corpo scorre: ${corpo}`);
+}
 check("l'avviso in cima non c'è (niente di urgente)", await page.locator("#urgent").isHidden());
 const metaVerifica = await page.locator("#list .ag-task", { hasText: "Verifica di storia" }).locator(".ag-task__meta").textContent();
 check("una verifica conta i giorni che mancano", metaVerifica.includes("tra 4 giorni"), metaVerifica.trim().replace(/\s+/g, " "));
@@ -469,6 +479,66 @@ await page.click('[data-close="settings-layer"]'); await page.waitForTimeout(200
 await page.click("#open-timetable"); await page.waitForTimeout(250);
 check("e l'orario si tocca di nuovo", await page.locator("#timetable-body button.ag-tt__cell").count() > 0);
 await page.click('[data-close="timetable-layer"]'); await page.waitForTimeout(200);
+
+console.log("\n== la tabella dei colori (A57–A60) ==");
+await page.click("#open-settings"); await page.waitForTimeout(250);
+await page.click('[data-page="subjects"]'); await page.waitForTimeout(200);
+await page.locator('#settings-body [data-subject="s-ingl"]').click(); await page.waitForTimeout(250);
+const caselle = page.locator("#sheet .ag-palette__cell");
+check("dieci righe per dodici colonne", await caselle.count() === 120);
+check("un colore di prima non accende nessuna casella (A58)", await page.locator('#sheet .ag-palette__cell[aria-checked="true"]').count() === 0);
+check("e dalla tastiera si entra da una casella sola", await page.locator('#sheet .ag-palette__cell[tabindex="0"]').count() === 1);
+for (const tema of ["light", "dark"]) {
+  const vuote = await page.evaluate((tema) => {
+    document.documentElement.dataset.theme = tema;
+    return [...document.querySelectorAll("#sheet .ag-palette__cell")]
+      .filter((c) => getComputedStyle(c).backgroundColor === "rgba(0, 0, 0, 0)").map((c) => c.dataset.color);
+  }, tema);
+  check(`ogni casella ha il suo token (tema ${tema === "light" ? "chiaro" : "scuro"})`, vuote.length === 0, vuote.join(" "));
+}
+await page.evaluate(() => { document.documentElement.dataset.theme = "light"; });
+const tabella = await page.locator("#sheet .ag-palette").boundingBox();
+check("le caselle sono quadrate e stanno nella larghezza", Math.abs(tabella.width / 12 - tabella.height / 10) < 1 && tabella.width <= 393,
+      `${(tabella.width / 12).toFixed(1)}×${(tabella.height / 10).toFixed(1)}px`);
+{
+  // si appoggia il dito sulla riga 2 colonna 1 e si trascina fino alla riga 6
+  // colonna 8, uscendo un poco di lato: conta la casella dove ci si ferma
+  const w = tabella.width / 12, h = tabella.height / 10;
+  const punto = (r, c) => [tabella.x + (c + 0.5) * w, tabella.y + (r + 0.5) * h];
+  const [x0, y0] = punto(2, 1), [x1, y1] = punto(6, 8);
+  const scorreva = await page.evaluate(() => document.querySelector("#sheet").scrollTop);
+  await page.mouse.move(x0, y0); await page.mouse.down();
+  check("appoggiando il dito la casella si accende subito", (await page.getAttribute("#sheet [data-color=\"t-2-1\"]", "aria-checked")) === "true");
+  for (let i = 1; i <= 10; i++) await page.mouse.move(x0 + ((x1 - x0) * i) / 10, y0 + ((y1 - y0) * i) / 10);
+  await page.mouse.up(); await page.waitForTimeout(150);
+  check("trascinando la scelta segue il dito", (await page.getAttribute("#sheet [data-color=\"t-6-8\"]", "aria-checked")) === "true"
+        && await page.locator('#sheet .ag-palette__cell[aria-checked="true"]').count() === 1);
+  check("e il pannello non scorre", await page.evaluate(() => document.querySelector("#sheet").scrollTop) === scorreva);
+  check("il campione sopra ha il colore sotto il dito, col nome della materia",
+        (await page.getAttribute("#s-sample", "style")).includes("--ag-subj-t-6-8-soft") && (await txt("#s-sample")) === "Inglese");
+  // uscendo dalla tabella si resta sulla casella del bordo
+  await page.mouse.move(x1, y1); await page.mouse.down();
+  await page.mouse.move(tabella.x + tabella.width + 40, y1, { steps: 6 }); await page.mouse.up();
+  check("uscendo di lato si resta sul bordo", (await page.getAttribute("#sheet [data-color=\"t-6-11\"]", "aria-checked")) === "true");
+}
+await page.locator('#sheet [data-color="t-4-5"]').click();
+check("un tocco solo sceglie", (await page.getAttribute('#sheet [data-color="t-4-5"]', "aria-checked")) === "true");
+await page.locator('#sheet [data-color="t-4-5"]').press("ArrowRight");
+check("con le frecce ci si sposta", (await page.getAttribute('#sheet [data-color="t-4-6"]', "aria-checked")) === "true"
+      && await page.evaluate(() => document.activeElement?.dataset.color) === "t-4-6");
+await page.locator("#s-name").fill("Inglese B");
+check("il campione segue anche il nome", (await txt("#s-sample")) === "Inglese B");
+await page.locator("#s-name").fill("Inglese");
+await page.locator('#sheet [data-act="save"]').click(); await page.waitForTimeout(250);
+check("il colore si salva col nome della casella", await page.evaluate(() =>
+  JSON.parse(localStorage.getItem("agenda:settings")).subjects.find((s) => s.id === "s-ingl").color) === "t-4-6");
+check("e il pallino della materia lo usa", (await page.getAttribute('#settings-body [data-subject="s-ingl"] .ag-dot', "style")).includes("--ag-subj-t-4-6"));
+await page.locator("#subject-new").fill("Materia di prova");
+await page.locator("#subject-add").click(); await page.waitForTimeout(250);
+check("una materia nuova nasce con un colore della tabella", await page.evaluate(() =>
+  /^t-\d+-\d+$/.test(JSON.parse(localStorage.getItem("agenda:settings")).subjects.at(-1).color)));
+await page.screenshot({ path: "/tmp/shots/05c-tabella-colori.png" });
+await page.click('[data-close="settings-layer"]'); await page.waitForTimeout(200);
 
 console.log("\n== teoria e laboratorio (A44–A47) ==");
 await page.click("#open-settings"); await page.waitForTimeout(250);

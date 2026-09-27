@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Agenda — riferimento dei componenti</title>
 <link rel="stylesheet" href="tokens/colors.css">
+<link rel="stylesheet" href="tokens/tavolozza.css">
 <link rel="stylesheet" href="tokens/typography.css">
 <link rel="stylesheet" href="tokens/space.css">
 <link rel="stylesheet" href="components.css">
@@ -48,9 +49,17 @@
     larghezza di un iPhone.</p>
 
   <h2>1 · Colori delle materie</h2>
-  <p class="lead">Dodici: sei tonalità in due intensità, ognuna con il pieno, il chip e l'inchiostro sul chip.
-    I rapporti di contrasto sono scritti nei commenti di
-    <code>tokens/colors.css</code>, e sono calcolati.</p>
+  <p class="lead">Si scelgono da una tabella di dieci righe per dodici colonne, ammorbidita a
+    pastello (A57), trascinando il dito (A59). Ogni casella ha il pieno, il chip e l'inchiostro
+    sul chip; i contrasti sono nei commenti di <code>tokens/tavolozza.css</code>, che è generato
+    da <code>tools/genera-tavolozza.py</code>. Sopra la tabella, il campione della materia.</p>
+  <div class="bits">
+    <div class="ag-chips"><span class="ag-chip ag-chip--subject ag-chip--sample" id="palette-sample"
+      aria-hidden="true"><span class="ag-dot"></span>Materia</span></div>
+    <div class="ag-palette" id="palette" role="radiogroup" aria-label="Colore"></div>
+  </div>
+  <p class="lead">I dodici colori di prima: non si propongono più, ma restano validi per le materie
+    che li hanno già (A58). Contrasti nei commenti di <code>tokens/colors.css</code>.</p>
   <div class="swatches" id="subj-swatches"></div>
 
   <h2>2 · Peso di una giornata</h2>
@@ -335,6 +344,29 @@ document.getElementById("subj-swatches").innerHTML = SUBJ.map((c) => `
   <div class="sw" style="background:var(--ag-subj-${c}-soft);color:var(--ag-subj-${c}-ink)">
     <span class="ag-dot" style="--ag-dot:var(--ag-subj-${c})"></span> ${c}
   </div>`).join("");
+
+/* La tabella: stessi nomi delle caselle dell'app (`t-RIGA-COLONNA`). */
+const ROWS = 10, COLS = 12, CHOSEN = "t-3-5";
+const palette = document.getElementById("palette");
+palette.style.setProperty("--ag-palette-cols", COLS);
+const paletteCells = [];
+for (let r = 0; r < ROWS; r += 1) {
+  for (let c = 0; c < COLS; c += 1) {
+    const id = `t-${r}-${c}`;
+    paletteCells.push(`<button class="ag-palette__cell" type="button" role="radio" aria-checked="${id === CHOSEN}"
+      tabindex="${id === CHOSEN ? 0 : -1}" style="--ag-dot:var(--ag-subj-${id})" aria-label="${id}"></button>`);
+  }
+}
+palette.innerHTML = paletteCells.join("");
+const vars = (id) => `--ag-dot:var(--ag-subj-${id});--ag-chip-soft:var(--ag-subj-${id}-soft);--ag-chip-ink:var(--ag-subj-${id}-ink)`;
+const sample = document.getElementById("palette-sample");
+sample.setAttribute("style", vars(CHOSEN));
+palette.addEventListener("click", (event) => {
+  const cell = event.target.closest(".ag-palette__cell");
+  if (!cell) return;
+  for (const other of palette.children) other.setAttribute("aria-checked", String(other === cell));
+  sample.setAttribute("style", vars(cell.getAttribute("aria-label")));
+});
 
 document.getElementById("load-swatches").innerHTML = [0,1,2,3,4,5].map((n) => `
   <div class="sw" style="background:var(--ag-load-${n});color:var(--ag-load-ink-${n})">gradino ${n}</div>`).join("");

@@ -23,6 +23,7 @@ const CORE_ASSETS = [
   "./css/app.css",
   "./css/components.css",
   "./css/tokens/colors.css",
+  "./css/tokens/tavolozza.css",
   "./css/tokens/typography.css",
   "./css/tokens/space.css",
   "./js/app.js",

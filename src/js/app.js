@@ -26,7 +26,7 @@ import {
 } from "./model.js";
 import {
   sections, summary, countsByArea, replaceTask, removeTask, findTask, archive,
-  byArea, entriesOn,
+  byArea,
 } from "./tasks.js";
 import { subjectLabel, subjectColor, colorStyle, modeOf } from "./subjects.js";
 import {
@@ -166,7 +166,6 @@ function renderNext() {
   el("next-days").innerHTML = days.map((d) => {
     const load = dayLoad(filtered, d);
     const step = loadStep(load);
-    const n = entriesOn(filtered, d).filter((entry) => !entry.done).length;
     const hasTest = filtered.some((task) => isOpen(task) && task.kind === "test" && task.due === d);
     return `
       <button class="ag-nday ${d === day ? "ag-nday--today" : ""} ${hasTest ? "ag-nday--test" : ""}"
@@ -175,7 +174,6 @@ function renderNext() {
               aria-label="${esc(full(d, lang))}">
         <span class="ag-nday__dow">${esc(d === day ? t("common.today") : dowShort(d, lang))}</span>
         <span class="ag-nday__n">${dayNumber(d)}</span>
-        <span class="ag-nday__n2">${n || ""}</span>
       </button>`;
   }).join("");
 

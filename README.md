@@ -45,7 +45,7 @@ telefono. PWA installabile: si aggiunge alla schermata home e funziona offline.
 
 ```
 design_handoff/     sorgente di verità del sistema visivo
-  tokens/           colori (due temi), tipografia, spaziature
+  tokens/           colori (due temi), tabella dei colori delle materie, tipografia, spaziature
   components.css    gli stili dei componenti
 src/                l'app — l'unica cartella che viene pubblicata
   css/tokens/       COPIE dei token
@@ -59,7 +59,7 @@ src/                l'app — l'unica cartella che viene pubblicata
 | `storage.js` | **l'unica porta verso i dati** |
 | `model.js` | la regola della finestra, lo stato di un compito, il peso di un giorno |
 | `tasks.js` | le domande all'elenco: sezioni, ordinamenti, archivio |
-| `subjects.js` | materie, sigle, colori |
+| `subjects.js` | materie, sigle, colori: la tabella da cui si scelgono e i dodici di prima |
 | `timetable.js` | gli orari settimanali e la proposta della scadenza |
 | `planner.js` | la fila dei giorni e i suoi tre gesti |
 | `compose.js` | il pannello di un compito, nuovo o aperto |
@@ -85,6 +85,12 @@ pubblicata da sola. Anche questo lo controlla il workflow.
 cp design_handoff/tokens/*.css src/css/tokens/
 cp design_handoff/components.css src/css/components.css
 ```
+
+`tokens/tavolozza.css`, la tabella dei colori delle materie, non si scrive
+nemmeno lì: la **genera** `tools/genera-tavolozza.py`, che ammorbidisce i colori
+a pastello, misura ogni contrasto e si ferma se uno non passa. Si cambia il
+generatore e lo si rilancia (`python3 tools/genera-tavolozza.py`), poi si
+ricopia; il workflow controlla che il file sia quello che ne esce.
 
 ## L'orario cambia ogni settimana, e va bene
 
