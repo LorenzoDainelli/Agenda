@@ -602,6 +602,7 @@ console.log("\n== la spesa ==");
 check("il carrello è il primo pulsante in testata", (await page.locator(".ag-header__actions .ag-iconbtn").first().getAttribute("id")) === "open-shopping");
 await page.click("#open-shopping"); await page.waitForTimeout(250);
 check("la lista vuota lo dice", (await txt("#shopping-body .ag-group__note")).includes("vuota"));
+check("e non c'è niente da copiare", await page.locator("#shop-copy").count() === 0);
 await page.fill("#shop-new", "latte"); await page.press("#shop-new", "Enter"); await page.waitForTimeout(200);
 check("dopo aver aggiunto, il cursore resta nel campo", await page.evaluate(() => document.activeElement?.id === "shop-new"));
 await page.fill("#shop-new", "pane"); await page.click("#shop-add"); await page.waitForTimeout(200);
@@ -652,6 +653,22 @@ check("confermando se ne va", (await all("#shopping-body .ag-shop .ag-row__label
 await page.locator(".ag-toast__undo").last().click(); await page.waitForTimeout(250);
 check("e l'annulla la rimette dov'era", (await all("#shopping-body .ag-shop .ag-row__label")).join("/") === "latte/pane integrale/uova",
       (await all("#shopping-body .ag-shop .ag-row__label")).join("/"));
+await ctx.grantPermissions(["clipboard-read", "clipboard-write"]);
+const boxCopia = await page.locator("#shop-copy").boundingBox();
+check("«Copia la lista» sta sotto il campo per aggiungere", boxCopia && boxCopia.y > (await page.locator("#shop-new").boundingBox()).y
+      && boxCopia.height >= 44);
+await page.click("#shop-copy"); await page.waitForTimeout(250);
+const copiato = await page.evaluate(() => navigator.clipboard.readText());
+check("copia solo le cose da comprare, come sullo schermo", copiato === "Spesa\n- pane integrale ×2", JSON.stringify(copiato));
+check("e lo dice", (await all(".ag-toast__text")).includes("Lista copiata"));
+// un telefono che non lascia scrivere negli appunti: lo dice, senza alert
+await page.evaluate(() => {
+  navigator.clipboard.writeText = () => Promise.reject(new Error("negato"));
+  document.execCommand = () => false;
+});
+await page.click("#shop-copy"); await page.waitForTimeout(250);
+check("se non riesce a copiare lo dice", (await all(".ag-toast__text")).includes("Non sono riuscito a copiare la lista"));
+await page.evaluate(() => { delete navigator.clipboard.writeText; delete document.execCommand; });
 await page.click('[data-close="shopping-layer"]'); await page.waitForTimeout(200);
 
 console.log("\n== a mezzanotte le cose fatte vanno nell'archivio ==");
