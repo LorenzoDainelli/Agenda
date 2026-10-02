@@ -1,0 +1,20 @@
+/* Agenda — regole di layout specifiche dell'app.
+ * Qui sta solo ciò che riguarda questa applicazione, non il sistema visivo:
+ * i componenti riutilizzabili vivono in components.css.
+ */
+
+/* L'app occupa esattamente la finestra: non scorre la pagina, scorre solo
+   l'elenco. */
+html, body { height: 100%; overflow: hidden; }
+
+/* Vale su tutto: diversi componenti a comparsa usano flex, e senza questa
+   riga `hidden` non basterebbe a nasconderli. */
+[hidden] { display: none !important; }
+
+/* Su schermo largo l'app resta una colonna da telefono centrata, ma il fondo
+   attorno non è bianco: se no la colonna non si distingue dalla pagina e
+   sembra un sito, non un'app. */
+@media (min-width: 620px) {
+  body { background: var(--ag-surface); }
+  .ag-app { box-shadow: var(--ag-shadow-md); }
+}
