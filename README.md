@@ -68,7 +68,7 @@ src/                l'app — l'unica cartella che viene pubblicata
 | `settings.js` | le impostazioni, divise in pagine: aspetto, materie, ambiti, compiti, orario, dati |
 | `timetable-view.js` | il pannello dell'orario, provvisorio o definitivo |
 | `shopping.js` | la lista della spesa: cosa è in lista, cosa è già comprato |
-| `shopping-view.js` | il pannello della spesa: si spunta toccando, si corregge e si toglie facendo scorrere la riga |
+| `shopping-view.js` | il pannello della spesa: si spunta toccando, si corregge e si toglie facendo scorrere la riga, si copia per incollarla in un messaggio |
 | `backup.js` | il file che esce e quello che rientra |
 | `ui.js` | fogli, conferme, notifiche: mai una finestra del browser |
 | `app.js` | orchestrazione e schermata «Da fare» |

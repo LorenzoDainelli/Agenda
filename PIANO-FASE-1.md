@@ -257,6 +257,23 @@ quelle consigliate, e si cambiano con una riga.
 | A59 | La tabella si usa **trascinando il dito**, come sull'iPhone: le caselle sono da 28 px, sotto i 44 della regola 10, e la tabella intera è un controllo solo, come la colonna della settimana (terzo giro). Si appoggia il dito e si scorre; sopra la tabella il chip della materia, col suo nome, fa vedere il colore sotto il dito, che il dito copre. Da tastiera si scorre con le frecce. | `palettePicker()` in `settings.js` |
 | A60 | La tabella ha tutte le tinte, **blu compresi**: 3 caselle nel tema chiaro e 6 nello scuro stanno a meno di ΔE 15 dal colore d'azione, la soglia che i dodici colori di prima rispettavano. Non si tolgono, perché una tabella coi buchi non si legge: il colore lo sceglie lui, e accanto al colore di una materia c'è sempre il suo nome o la sua sigla. Rischio noto; nessuna materia nuova nasce con una di quelle (A58). | togliere le caselle nel generatore |
 
+### Chieste dall'utente il 2 ottobre 2026, nel settimo giro
+
+| cosa | decisione |
+|---|---|
+| copiare la spesa | sotto la lista c'è **«Copia la lista»**: un tocco la mette negli appunti come testo, da incollare in un messaggio. È il tasto che Shift Hours ha per le ore |
+| cosa copia | **solo le cose da comprare**: quelle spuntate oggi e le «Già comprate» restano fuori |
+| come è scritta | **come sullo schermo**: un titolo, poi una riga per cosa col trattino davanti, il nome prima e la quantità dopo («- latte ×2», «- farina 500 g») |
+| dove sta | **subito sotto il campo «Aggiungi…»**, prima delle «Già comprate»: si trova senza scorrere anche quando le comprate sono tante |
+
+#### Assunzioni prese nel farlo (si ribaltano senza discutere)
+
+| # | Assunzione | Come si ribalta |
+|---|---|---|
+| A61 | Il titolo del testo copiato è quello del pannello, **«Spesa»** («Shopping» in inglese), senza data e senza conto: chi lo riceve le righe le vede. Le cose stanno nell'ordine della lista, cioè in cui sono state scritte. | `listText()` in `shopping.js` |
+| A62 | Il tasto c'è **solo se c'è qualcosa da comprare**: con la lista vuota, o tutta spuntata, copierebbe un titolo e basta. | `render()` in `shopping-view.js` |
+| A63 | Copiata, lo dice un avviso: **«Lista copiata»**. Se il telefono non lascia scrivere negli appunti (succede aprendo l'app da un indirizzo non sicuro, per esempio in prova da un altro computer di casa) si prova la strada vecchia del browser; se non va nemmeno quella, l'avviso dice **«Non sono riuscito a copiare la lista»**. Mai un `alert` (regola 4). | `copyText()` in `shopping-view.js` |
+
 Rimasta aperta e **non** decisa: la forma definitiva dell'ambito privato
 (vedi §6.4). Il nome dell'app non è più in questa lista.
 
@@ -728,6 +745,9 @@ Un pannello che si apre dal carrello, il primo pulsante della testata.
 - Sotto, il campo **«Aggiungi…»** col `+`. Dopo aver aggiunto una cosa il
   cursore resta lì, pronto per la prossima. La **quantità** si scrive davanti
   («2 latte», «500 g farina») e si legge a destra della riga (A42–A43).
+- Sotto il campo, **«Copia la lista»** (settimo giro): mette negli appunti le
+  cose da comprare, una per riga come sullo schermo, sotto il titolo
+  «Spesa», e lo dice. Con niente da comprare non c'è (A61–A63).
 - Sul carrello in testata, un **numerino** con le cose che restano da
   comprare; con la lista vuota non c'è.
 - **Già comprate**: quello che è stato comprato nei giorni prima, il più
@@ -888,6 +908,9 @@ pannello impostazioni.
   doppione; «Svuota» chiede conferma coi numeri; la lista esce nella copia e
   torna col ripristino. Scorrendo verso sinistra una cosa si corregge,
   verso destra si toglie dopo una conferma, e l'annulla la rimette.
+  «Copia la lista» mette negli appunti solo le cose da comprare, come
+  «Spesa» e sotto «- latte ×2», e l'avviso lo dice; con niente da comprare
+  il tasto non c'è.
 
 ## 9-bis. Cosa si controlla da sé
 

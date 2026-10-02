@@ -5,7 +5,7 @@
  */
 import {
   normalize, addItem, toggleItem, inList, boughtBefore, countToBuy, clearBought, parseItem, qtyLabel,
-  itemText, editItem, removeItem,
+  itemText, editItem, removeItem, listText,
 } from "../src/js/shopping.js";
 
 let pass = 0, fail = 0;
@@ -94,6 +94,16 @@ eq("nemmeno col nome di una già comprata", editItem(e, e[1].id, "sale").status,
 eq("una comprata resta comprata anche corretta", editItem(e, e[2].id, "sale grosso").items[2].boughtAt, IERI);
 eq("una cosa che non c'è più", editItem(e, "c-nessuna", "x").status, "missing");
 eq("togliere toglie quella e basta", nomi(removeItem(e, e[1].id)), ["latte", "sale"]);
+
+console.log("copiare la lista (A61)");
+let c = addItem([], "2 latte", OGGI).items;
+c = addItem(c, "500g farina", OGGI).items;
+c = addItem(c, "pane", OGGI).items;
+c = addItem(c, "sale", OGGI).items;
+c = toggleItem(c, c[3].id, IERI);
+eq("il titolo, poi una riga per cosa, come sullo schermo", listText(c, "Spesa"), "Spesa\n- latte ×2\n- farina 500 g\n- pane");
+eq("una spuntata oggi resta fuori", listText(toggleItem(c, c[2].id, OGGI), "Spesa"), "Spesa\n- latte ×2\n- farina 500 g");
+eq("niente da comprare: il titolo e basta", listText([], "Shopping"), "Shopping");
 
 console.log("un elenco che arriva da fuori");
 eq("scarta quello che non è una cosa da comprare", nomi(normalize([

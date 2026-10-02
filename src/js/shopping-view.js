@@ -12,7 +12,7 @@ import { today as todayISO } from "./days.js";
 import { t } from "./i18n.js";
 import {
   addItem, toggleItem, inList, boughtBefore, clearBought, parseItem, qtyLabel,
-  itemText, editItem, removeItem,
+  itemText, editItem, removeItem, countToBuy, listText,
 } from "./shopping.js";
 import { el, esc, onEach, toast, confirmSheet, openSheet, closeSheet, bindSwipe } from "./ui.js";
 
@@ -77,6 +77,11 @@ export function render() {
         </button>
       </div>
       <p class="ag-group__note">${esc(t("shop.qty.hint"))}</p>
+      ${countToBuy(items) ? `
+        <button class="ag-btn ag-btn--secondary" type="button" id="shop-copy">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>
+          ${esc(t("shop.copy"))}
+        </button>` : ""}
     </div>
     ${before.length ? `
       <div class="ag-group">
@@ -190,10 +195,49 @@ function bind(body, nBought) {
     change(toggleItem(items, event.currentTarget.dataset.back, todayISO()));
   });
 
+  body.querySelector("#shop-copy")?.addEventListener("click", async () => {
+    const copied = await copyText(listText(items, t("shop.title")));
+    toast(copied ? t("shop.copied") : t("shop.copy.failed"));
+  });
+
   body.querySelector("#shop-clear")?.addEventListener("click", () => {
     confirmSheet(nBought === 1 ? t("shop.clear.confirm.one") : t("shop.clear.confirm", { n: nBought }), {
       confirmLabel: t("shop.clear"),
       onConfirm: () => change(clearBought(items, todayISO())),
     });
   });
+}
+
+/** Mette un testo negli appunti e dice se ci è riuscito (A63). La strada
+ *  nuova vuole un indirizzo sicuro: l'app pubblicata lo è, una prova aperta
+ *  da un altro computer di casa no, e lì si ripiega sulla vecchia. */
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return copyTextOld(text);
+  }
+}
+
+/** La strada vecchia: un campo nascosto, selezionato e copiato. In sola
+ *  lettura perché sul telefono non apra la tastiera; `ag-input` per i suoi
+ *  17px, sotto i quali Safari ingrandirebbe la pagina prendendo il fuoco. */
+function copyTextOld(text) {
+  const area = document.createElement("textarea");
+  area.className = "ag-input ag-visually-hidden";
+  area.setAttribute("readonly", "");
+  area.setAttribute("aria-hidden", "true");
+  area.value = text;
+  document.body.append(area);
+  try {
+    area.focus({ preventScroll: true });
+    area.select();
+    area.setSelectionRange(0, text.length);
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    area.remove();
+  }
 }

@@ -154,6 +154,20 @@ export function countToBuy(items) {
   return items.filter((item) => !item.boughtAt).length;
 }
 
+/**
+ * La lista come testo da incollare in un messaggio (settimo giro, A61):
+ * il titolo, poi una riga per ogni cosa ancora da comprare, scritta come si
+ * legge sullo schermo («- latte ×2»). Quelle già prese restano fuori: a chi
+ * la riceve servono quelle che mancano. Il titolo arriva da fuori perché qui
+ * non si sa in che lingua è il telefono.
+ */
+export function listText(items, title) {
+  const lines = items
+    .filter((item) => !item.boughtAt)
+    .map((item) => `- ${item.name}${item.qty ? ` ${qtyLabel(item.qty)}` : ""}`);
+  return [title, ...lines].join("\n");
+}
+
 /** «Svuota»: toglie le «Già comprate», e solo quelle. La conferma coi numeri
  *  la chiede chi la chiama (regola 4). */
 export function clearBought(items, today) {
