@@ -286,6 +286,18 @@ quelle consigliate, e si cambiano con una riga.
 |---|---|---|
 | A64 | Le ore di un giorno sono la lunghezza della sua fila nella griglia, quindi cambiano con la settimana come le materie: «Ore per giorno» (sotto «Nuova settimana») chiede il giorno e poi quante ore, da 1 a 10, solo a tocchi. Accorciando un giorno che ha lezioni o pause nelle ore tolte si chiede prima, dicendo quante caselle tornano vuote. La pausa è una scelta della casella come una materia (valore `@break`): si vede «Pausa», non conta fra le ore di lezione e non propone scadenze. `lessonsPerDay` resta il numero di serie per un giorno che non ha ancora una fila. | `dayHours()` e `setDayHours()` in `timetable.js`, `editDays()` in `timetable-view.js` |
 
+### Chieste dall'utente il 10 ottobre 2026, nel nono giro
+
+| richiesta | decisione |
+|---|---|
+| creando un orario nuovo, chiedere da che giorno parte | «Nuovo orario» (era «Nuova settimana») chiede prima il giorno |
+
+**Assunzioni**
+
+| # | assunzione | come si ribalta |
+|---|---|---|
+| A65 | Si sceglie fra i giorni di scuola delle prossime quattro settimane, da oggi (o dal giorno dopo l'inizio dell'ultimo orario, se è nel futuro): mai un giorno passato né uno prima dell'ultimo orario, che lo nasconderebbe. Il giorno può essere a metà settimana: i giorni prima restano all'orario vecchio. Il campo salvato resta `weekStart`, così gli orari già salvati valgono come prima. | `startChoices()` e `timetableFor()` in `timetable.js`, il pulsante `#tt-add` in `timetable-view.js` |
+
 Rimasta aperta e **non** decisa: la forma definitiva dell'ambito privato
 (vedi §6.4). Il nome dell'app non è più in questa lista.
 

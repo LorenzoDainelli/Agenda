@@ -463,13 +463,21 @@ await page.locator('#sheet-body [data-value="4"]').click(); await page.waitForTi
 check("accorciando sopra la pausa lo chiede prima", await page.locator("#sheet-body [data-act=\"no\"]").count() > 0
       && await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:timetables"))[0].grid["6"].length) === 8);
 await page.locator('#sheet-body [data-act="no"]').first().click(); await page.waitForTimeout(250);
+await page.click("#tt-add"); await page.waitForTimeout(250);
+const giornoScelto = await page.locator("#sheet-body [data-value]").nth(2).getAttribute("data-value");
+check("un orario nuovo chiede da che giorno parte", (await txt("#sheet-body .ag-sheet__title")).includes("Da che giorno"));
+await page.locator("#sheet-body [data-value]").nth(2).click(); await page.waitForTimeout(250);
+check("e parte proprio da quel giorno", await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:timetables"))[0].weekStart) === giornoScelto);
+// lo si toglie (con la sua conferma), così le prove dopo lavorano sull'orario di oggi
+await page.locator(`[data-tt-del="${giornoScelto}"]`).click(); await page.waitForTimeout(250);
+await page.locator('#sheet-body [data-act="yes"]').click(); await page.waitForTimeout(250);
 await page.click("#tt-final"); await page.waitForTimeout(250);
 check("renderlo definitivo chiede conferma, e dice come si torna indietro", (await txt("#sheet-body .ag-sheet__title")).includes("Impostazioni › Orario"),
       await txt("#sheet-body .ag-sheet__title"));
 await page.click('#sheet [data-act="yes"]'); await page.waitForTimeout(300);
 check("definitivo: le caselle non si toccano più", await page.locator("#timetable-body button.ag-tt__cell").count() === 0
       && await page.locator("#timetable-body .ag-tt__cell").count() > 0);
-check("e non c'è più «Nuova settimana»", await page.locator("#tt-add").count() === 0);
+check("e non c'è più «Nuovo orario»", await page.locator("#tt-add").count() === 0);
 check("e resta definitivo", await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:settings")).timetableFinal) === true);
 await page.click('[data-close="timetable-layer"]'); await page.waitForTimeout(200);
 

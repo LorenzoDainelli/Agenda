@@ -20,7 +20,7 @@ import { today as todayISO, dayMonth, dowShort, addDays, mondayOf } from "./days
 import { t, getLang } from "./i18n.js";
 import { findSubject, colorStyle } from "./subjects.js";
 import {
-  createNext, timetableFor, blocksOf, setBlock, countHours, cellValue, readCell,
+  createNext, startChoices, timetableFor, blocksOf, setBlock, countHours, cellValue, readCell,
   BREAK, dayHours, maxHours, setDayHours, lostHours,
 } from "./timetable.js";
 import { el, esc, onEach, toast, confirmSheet, chooseSheet } from "./ui.js";
@@ -49,7 +49,7 @@ function isFinal() {
 
 function weekShown() {
   // da definitivo non si sceglie una settimana: si guarda quella di oggi
-  return (!isFinal() && shownWeek) || mondayOf(todayISO());
+  return (!isFinal() && shownWeek) || todayISO();
 }
 
 /** La griglia: ogni colonna è un giorno, ogni riga un'ora. Le ore consecutive
@@ -234,11 +234,19 @@ function editDays() {
 
 function bind(body) {
   body.querySelector("#tt-days")?.addEventListener("click", editDays);
+  // Prima si chiede da che giorno vale (A65): l'orario cambia anche a metà
+  // settimana, e un tocco su un giorno basta.
   body.querySelector("#tt-add")?.addEventListener("click", () => {
-    const created = createNext(ctx.timetables, ctx.settings, todayISO());
-    shownWeek = created.weekStart;
-    handlers.onTimetables([created, ...ctx.timetables]);
-    toast(t("settings.timetable.created", { date: dayMonth(created.weekStart, getLang()) }));
+    const lang = getLang();
+    const days = startChoices(ctx.timetables, ctx.settings, todayISO());
+    chooseSheet(t("timetable.start.how"), days.map((day) => ({
+      value: day, label: `${dowShort(day, lang)} ${dayMonth(day, lang)}`,
+    })), (start) => {
+      const created = createNext(ctx.timetables, ctx.settings, todayISO(), start);
+      shownWeek = created.weekStart;
+      handlers.onTimetables([created, ...ctx.timetables]);
+      toast(t("settings.timetable.created", { date: dayMonth(created.weekStart, lang) }));
+    });
   });
   onEach(body, "[data-cell]", "click", (event) => {
     const [day, from, span] = event.currentTarget.dataset.cell.split(":").map(Number);
