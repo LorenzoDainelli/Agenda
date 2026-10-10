@@ -131,5 +131,19 @@ console.log("ore diverse per giorno e pausa (A64)");
   eq("un giorno senza fila ha le ore di serie", T.dayHours({}, 1, 6), 6);
 }
 
+console.log("orario che parte da un giorno scelto (A65)");
+{
+  const l = [T.newTimetable("2026-09-21", vuota)];
+  const giorni = T.startChoices(l, settings, "2026-09-23");
+  eq("si parte da oggi", giorni[0], "2026-09-23");
+  eq("niente domeniche", giorni.includes("2026-09-27"), false);
+  eq("dopo un orario futuro si parte dal giorno dopo", T.startChoices([T.newTimetable("2026-10-01", vuota)], settings, "2026-09-23")[0], "2026-10-02");
+  const nuovo = T.createNext(l, settings, "2026-09-23", "2026-09-24");
+  const due = [nuovo, ...l];
+  eq("si salva il giorno scelto", nuovo.weekStart, "2026-09-24");
+  eq("il giorno prima resta il vecchio", T.timetableFor(due, "2026-09-23").weekStart, "2026-09-21");
+  eq("da quel giorno vale il nuovo", T.timetableFor(due, "2026-09-24").weekStart, "2026-09-24");
+}
+
 console.log(`\n${pass} passati, ${fail} falliti`);
 process.exit(fail ? 1 : 0);

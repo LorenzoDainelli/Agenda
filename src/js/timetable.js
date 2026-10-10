@@ -74,8 +74,9 @@ export function newTimetable(weekStart, grid) {
  */
 export function timetableFor(list, date) {
   if (!list.length) return null;
-  const week = mondayOf(date);
-  return list.find((tt) => tt.weekStart <= week) || list[list.length - 1];
+  // Si confronta col giorno e non col lunedì: un orario nuovo può partire a
+  // metà settimana (A65), e i giorni prima restano a quello vecchio.
+  return list.find((tt) => tt.weekStart <= date) || list[list.length - 1];
 }
 
 /** L'orario che vale oggi. */
@@ -98,9 +99,29 @@ export function nextWeekStart(list, today = todayISO()) {
   return latest < thisWeek ? thisWeek : addDays(latest, 7);
 }
 
-/** Crea la griglia della settimana nuova copiando l'ultima che esiste. */
-export function createNext(list, settings, today = todayISO()) {
-  const weekStart = nextWeekStart(list, today);
+/**
+ * I giorni da cui può partire un orario nuovo (A65): i giorni di scuola delle
+ * prossime quattro settimane, a partire da oggi o dal giorno dopo l'inizio
+ * dell'ultimo orario se è nel futuro. Mai prima: un orario che parte prima
+ * dell'ultimo sparirebbe sotto di lui, e uno nel passato riscriverebbe
+ * giorni già vissuti.
+ */
+export function startChoices(list, settings, today = todayISO()) {
+  const latest = list[0]?.weekStart;
+  const first = latest && latest >= today ? addDays(latest, 1) : today;
+  const out = [];
+  for (let i = 0; i < 28; i += 1) {
+    const day = addDays(first, i);
+    if (settings.schoolDays.includes(dow(day))) out.push(day);
+  }
+  return out;
+}
+
+/** Crea la griglia nuova copiando l'ultima che esiste. Il campo si chiama
+ *  ancora `weekStart` perché gli orari salvati lo usano già, ma con `start`
+ *  può essere un giorno qualunque (A65). */
+export function createNext(list, settings, today = todayISO(), start = null) {
+  const weekStart = start || nextWeekStart(list, today);
   const source = list[0]?.grid || emptyGrid(settings.schoolDays, settings.lessonsPerDay);
   return newTimetable(weekStart, source);
 }
