@@ -25,6 +25,10 @@
 import { mondayOf, addDays, dow, today as todayISO } from "./days.js";
 
 const LAB = "@lab";
+/** Un'ora di pausa (A64): non è una materia e non è un'ora libera da
+ *  riempire, è il buco a metà di una giornata lunga. Una stringa come le
+ *  altre caselle, così un orario salvato prima resta valido. */
+export const BREAK = "@break";
 
 /** Il valore di una casella per una materia, di teoria o di laboratorio. */
 export function cellValue(subjectId, lab = false) {
@@ -34,6 +38,7 @@ export function cellValue(subjectId, lab = false) {
 
 /** Da valore di una casella a `{ subjectId, lab }`. Un'ora libera dà un id null. */
 export function readCell(value) {
+  if (value === BREAK) return { subjectId: null, lab: false, pause: true };
   if (typeof value !== "string" || !value) return { subjectId: null, lab: false };
   return value.endsWith(LAB)
     ? { subjectId: value.slice(0, -LAB.length), lab: true }
@@ -182,9 +187,40 @@ export function setBlock(grid, day, from, span, value) {
   return { ...grid, [key]: hours };
 }
 
-/** Quante ore di lezione ha in tutto una griglia: per l'etichetta dell'elenco. */
+/** Quante ore di lezione ha in tutto una griglia: per l'etichetta dell'elenco.
+ *  La pausa non è una lezione e non conta. */
 export function countHours(timetable) {
   if (!timetable) return 0;
   return Object.values(timetable.grid)
-    .reduce((sum, hours) => sum + (hours || []).filter(Boolean).length, 0);
+    .reduce((sum, hours) => sum + (hours || []).filter((value) => value && value !== BREAK).length, 0);
+}
+
+/** Quante ore ha un giorno (A64). Ogni giorno ha le sue: la lunghezza della
+ *  sua fila nella griglia. Una griglia salvata prima, con le file tutte
+ *  uguali, dice quindi già il giusto; un giorno senza fila prende quelle di
+ *  serie. */
+export function dayHours(grid, day, lessonsPerDay) {
+  const hours = grid?.[String(day)];
+  return Array.isArray(hours) && hours.length ? hours.length : lessonsPerDay;
+}
+
+/** Le righe della griglia sullo schermo: quelle del giorno più lungo. */
+export function maxHours(grid, schoolDays, lessonsPerDay) {
+  return Math.max(...schoolDays.map((day) => dayHours(grid, day, lessonsPerDay)));
+}
+
+/** Cambia le ore di un giorno: aggiunge ore libere in fondo, o toglie le
+ *  ultime. Quante lezioni si perderebbero lo dice `lostHours`, prima. */
+export function setDayHours(grid, day, count, lessonsPerDay) {
+  const key = String(day);
+  const current = Array.from({ length: dayHours(grid, day, lessonsPerDay) }, (_, i) => grid?.[key]?.[i] ?? null);
+  const hours = current.length >= count
+    ? current.slice(0, count)
+    : [...current, ...new Array(count - current.length).fill(null)];
+  return { ...grid, [key]: hours };
+}
+
+/** Le caselle piene (lezioni o pause) che toglierebbe accorciare il giorno. */
+export function lostHours(grid, day, count) {
+  return (grid?.[String(day)] || []).slice(count).filter(Boolean).length;
 }

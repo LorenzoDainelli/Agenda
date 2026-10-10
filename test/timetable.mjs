@@ -115,5 +115,21 @@ eq("materia eliminata: resta il nome congelato",
 eq("materia esistente: vince il nome attuale",
    S.subjectLabel([{id:"s-x",name:"Inglese 2"}], { subjectId: "s-x", subjectName: "Inglese" }), "Inglese 2");
 
+console.log("ore diverse per giorno e pausa (A64)");
+{
+  let g = T.emptyGrid([1,2,3], 6);
+  g = T.setDayHours(g, 3, 8, 6);
+  g = T.setDayHours(g, 2, 5, 6);
+  eq("ogni giorno le sue ore", [1,2,3].map((d) => T.dayHours(g, d, 6)), [6,5,8]);
+  eq("le righe sono quelle del giorno più lungo", T.maxHours(g, [1,2,3], 6), 8);
+  g = T.setBlock(g, 3, 0, 1, "m-1");
+  g = T.setBlock(g, 3, 4, 1, T.BREAK);
+  eq("la pausa non è una lezione", T.countHours({ grid: g }), 1);
+  eq("e si legge come pausa", T.readCell(T.BREAK).pause, true);
+  eq("accorciando si dice cosa si perde", T.lostHours(g, 3, 4), 1);
+  eq("e si toglie dal fondo", T.setDayHours(g, 3, 4, 6)["3"], ["m-1", null, null, null]);
+  eq("un giorno senza fila ha le ore di serie", T.dayHours({}, 1, 6), 6);
+}
+
 console.log(`\n${pass} passati, ${fail} falliti`);
 process.exit(fail ? 1 : 0);

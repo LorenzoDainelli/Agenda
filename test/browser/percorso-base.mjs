@@ -448,6 +448,21 @@ await page.locator('#timetable-body [data-cell^="2:1:"]').click(); await page.wa
 await page.locator("#sheet-body .ag-sheet__option", { hasText: "Scienze" }).click(); await page.waitForTimeout(250);
 check("toccando una casella si cambia la materia",
       await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:timetables"))[0].grid["2"][1]) === "s-scie");
+// ore diverse per giorno e pausa (A64): il sabato passa a 8 ore, la 5ª è pausa
+await page.click("#tt-days"); await page.waitForTimeout(250);
+await page.locator('#sheet-body [data-value="6"]').click(); await page.waitForTimeout(250);
+await page.locator('#sheet-body [data-value="8"]').click(); await page.waitForTimeout(250);
+check("un giorno può avere più ore degli altri", await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:timetables"))[0].grid["6"].length) === 8
+      && await page.locator('#timetable-body [data-cell^="6:7:"]').count() === 1 && await page.locator('#timetable-body [data-cell^="1:7:"]').count() === 0);
+await page.locator('#timetable-body [data-cell^="6:4:"]').click(); await page.waitForTimeout(250);
+await page.locator('#sheet-body [data-value="@break"]').click(); await page.waitForTimeout(250);
+check("e un'ora può essere la pausa", (await txt('#timetable-body [data-cell^="6:4:"]')) === "Pausa", await txt('#timetable-body [data-cell^="6:4:"]'));
+await page.click("#tt-days"); await page.waitForTimeout(250);
+await page.locator('#sheet-body [data-value="6"]').click(); await page.waitForTimeout(250);
+await page.locator('#sheet-body [data-value="4"]').click(); await page.waitForTimeout(250);
+check("accorciando sopra la pausa lo chiede prima", await page.locator("#sheet-body [data-act=\"no\"]").count() > 0
+      && await page.evaluate(() => JSON.parse(localStorage.getItem("agenda:timetables"))[0].grid["6"].length) === 8);
+await page.locator('#sheet-body [data-act="no"]').first().click(); await page.waitForTimeout(250);
 await page.click("#tt-final"); await page.waitForTimeout(250);
 check("renderlo definitivo chiede conferma, e dice come si torna indietro", (await txt("#sheet-body .ag-sheet__title")).includes("Impostazioni › Orario"),
       await txt("#sheet-body .ag-sheet__title"));

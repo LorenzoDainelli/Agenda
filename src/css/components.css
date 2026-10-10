@@ -1684,6 +1684,10 @@ button.ag-row { width: 100%; text-align: start; }
 }
 
 .ag-tt__cell--empty { background: var(--ag-surface); color: var(--ag-text-faint); }
+/* L'ora di pausa (A64): niente colore di materia, e la parola in testo
+   attenuato, che è testo da leggere: stesso contrasto misurato dei numeri
+   delle ore, che usano lo stesso colore. */
+.ag-tt__cell--break { background: var(--ag-surface); color: var(--ag-text-muted); font-weight: var(--ag-weight-semibold); }
 /* «LAB» sotto la sigla di un'ora di laboratorio (A44). Stessi colori della
    sigla, quindi lo stesso contrasto misurato nei token di materia; più
    leggero, perché è la seconda cosa da leggere. */
