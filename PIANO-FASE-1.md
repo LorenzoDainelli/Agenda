@@ -274,6 +274,18 @@ quelle consigliate, e si cambiano con una riga.
 | A62 | Il tasto c'è **solo se c'è qualcosa da comprare**: con la lista vuota, o tutta spuntata, copierebbe un titolo e basta. | `render()` in `shopping-view.js` |
 | A63 | Copiata, lo dice un avviso: **«Lista copiata»**. Se il telefono non lascia scrivere negli appunti (succede aprendo l'app da un indirizzo non sicuro, per esempio in prova da un altro computer di casa) si prova la strada vecchia del browser; se non va nemmeno quella, l'avviso dice **«Non sono riuscito a copiare la lista»**. Mai un `alert` (regola 4). | `copyText()` in `shopping-view.js` |
 
+### Chieste dall'utente il 10 ottobre 2026, nell'ottavo giro
+
+| richiesta | decisione |
+|---|---|
+| l'orario non ha le stesse ore tutti i giorni: un giorno di più, uno lungo con una pausa | ogni giorno ha le sue ore, e un'ora può essere «Pausa» |
+
+**Assunzioni**
+
+| # | assunzione | come si ribalta |
+|---|---|---|
+| A64 | Le ore di un giorno sono la lunghezza della sua fila nella griglia, quindi cambiano con la settimana come le materie: «Ore per giorno» (sotto «Nuova settimana») chiede il giorno e poi quante ore, da 1 a 10, solo a tocchi. Accorciando un giorno che ha lezioni o pause nelle ore tolte si chiede prima, dicendo quante caselle tornano vuote. La pausa è una scelta della casella come una materia (valore `@break`): si vede «Pausa», non conta fra le ore di lezione e non propone scadenze. `lessonsPerDay` resta il numero di serie per un giorno che non ha ancora una fila. | `dayHours()` e `setDayHours()` in `timetable.js`, `editDays()` in `timetable-view.js` |
+
 Rimasta aperta e **non** decisa: la forma definitiva dell'ambito privato
 (vedi §6.4). Il nome dell'app non è più in questa lista.
 

@@ -19,7 +19,10 @@
 import { today as todayISO, dayMonth, dowShort, addDays, mondayOf } from "./days.js";
 import { t, getLang } from "./i18n.js";
 import { findSubject, colorStyle } from "./subjects.js";
-import { createNext, timetableFor, blocksOf, setBlock, countHours, cellValue, readCell } from "./timetable.js";
+import {
+  createNext, timetableFor, blocksOf, setBlock, countHours, cellValue, readCell,
+  BREAK, dayHours, maxHours, setDayHours, lostHours,
+} from "./timetable.js";
 import { el, esc, onEach, toast, confirmSheet, chooseSheet } from "./ui.js";
 
 let ctx = null;
@@ -57,7 +60,9 @@ function grid(timetable, shown) {
   const { settings } = ctx;
   const lang = getLang();
   const days = settings.schoolDays;
-  const hours = settings.lessonsPerDay;
+  // le righe sono quelle del giorno più lungo; un giorno più corto finisce
+  // prima, e sotto non c'è niente da toccare (A64)
+  const hours = maxHours(timetable.grid, days, settings.lessonsPerDay);
   const editable = !isFinal();
 
   const cells = [];
@@ -65,18 +70,20 @@ function grid(timetable, shown) {
     cells.push(`<span class="ag-tt__hour" style="grid-row:${row + 2}">${row + 1}</span>`);
   }
   for (const [index, day] of days.entries()) {
-    for (const block of blocksOf(timetable.grid[String(day)], hours)) {
+    for (const block of blocksOf(timetable.grid[String(day)], dayHours(timetable.grid, day, settings.lessonsPerDay))) {
       const subject = block.subjectId ? findSubject(settings.subjects, block.subjectId) : null;
       const tag = editable ? "button" : "span";
       // un'ora di laboratorio porta «LAB» sotto la sigla (A44), e lo dice
       // anche a chi non vede la casella
       const lab = subject && block.lab;
-      const name = subject ? ` ${subject.name}${lab ? ` · ${t("mode.lab")}` : ""}` : "";
+      const name = subject ? ` ${subject.name}${lab ? ` · ${t("mode.lab")}` : ""}`
+        : block.pause ? ` ${t("timetable.break")}` : "";
+      const kind = subject ? "" : block.pause ? "ag-tt__cell--break" : "ag-tt__cell--empty";
       cells.push(`
-        <${tag} class="ag-tt__cell ${subject ? "" : "ag-tt__cell--empty"}" ${editable ? `type="button" data-cell="${day}:${block.from}:${block.span}"` : ""}
+        <${tag} class="ag-tt__cell ${kind}" ${editable ? `type="button" data-cell="${day}:${block.from}:${block.span}"` : ""}
                 style="grid-column:${index + 2};grid-row:${block.from + 2}/span ${block.span};${subject ? colorStyle(subject.color) : ""}"
                 aria-label="${esc(dowShort(addDays(mondayOf(shown), day - 1), lang))} ${block.from + 1}${esc(name)}">
-          <span>${esc(subject ? subject.short : "")}</span>
+          <span>${esc(subject ? subject.short : block.pause ? t("timetable.break") : "")}</span>
           ${lab ? `<span class="ag-tt__lab">${esc(t("mode.lab.short"))}</span>` : ""}
         </${tag}>`);
     }
@@ -141,6 +148,9 @@ export function render() {
         <button class="ag-btn ag-btn--secondary" type="button" id="tt-add">
           ${esc(t("settings.timetable.add"))}
         </button>
+        <button class="ag-btn ag-btn--ghost" type="button" id="tt-days">
+          ${esc(t("timetable.days"))}
+        </button>
         <div class="ag-tt__weeks">${weeks(timetable)}</div>
         <p class="ag-group__note">${esc(t("settings.timetable.note"))}</p>
       </div>
@@ -179,6 +189,7 @@ function editCell(day, from, span) {
     const subject = ctx.settings.subjects.find((entry) => entry.id === subjectId);
     if (subject) options.push({ value: current, label: `${subject.name} · ${t("mode.lab")}`, note: subject.short, selected: true });
   }
+  options.push({ value: BREAK, label: t("timetable.break"), selected: current === BREAK });
   options.push({ value: "", label: t("settings.timetable.free"), selected: !current });
 
   chooseSheet(t("settings.timetable.hour", { n: from + 1 }), options, (value) => {
@@ -188,7 +199,41 @@ function editCell(day, from, span) {
   });
 }
 
+/** «Ore per giorno» (A64): prima il giorno, poi quante ore. Due tocchi,
+ *  nessuna tastiera. Vale per la settimana che si sta guardando e per quelle
+ *  che nasceranno copiandola, non per quelle di prima. */
+function editDays() {
+  const timetable = timetableFor(ctx.timetables, weekShown());
+  if (!timetable) return;
+  const { schoolDays, lessonsPerDay } = ctx.settings;
+  const monday = mondayOf(weekShown());
+  const lang = getLang();
+  const dayName = (day) => dowShort(addDays(monday, day - 1), lang);
+  chooseSheet(t("timetable.days"), schoolDays.map((day) => ({
+    value: String(day),
+    label: dayName(day),
+    note: t("timetable.days.n", { n: dayHours(timetable.grid, day, lessonsPerDay) }),
+  })), (picked) => {
+    const day = Number(picked);
+    const current = dayHours(timetable.grid, day, lessonsPerDay);
+    const counts = Array.from({ length: 10 }, (_, i) => i + 1);
+    chooseSheet(t("timetable.days.how", { day: dayName(day) }), counts.map((n) => ({
+      value: String(n), label: t("timetable.days.n", { n }), selected: n === current,
+    })), (value) => {
+      const count = Number(value);
+      const save = () => handlers.onTimetables(ctx.timetables.map((entry) =>
+        entry.weekStart === timetable.weekStart
+          ? { ...entry, grid: setDayHours(timetable.grid, day, count, lessonsPerDay) } : entry));
+      // accorciando si perdono le ultime ore: lo si chiede, coi numeri (regola 4)
+      const lost = lostHours(timetable.grid, day, count);
+      if (lost) confirmSheet(t("timetable.days.lose", { n: lost, day: dayName(day) }), { onConfirm: save });
+      else save();
+    });
+  });
+}
+
 function bind(body) {
+  body.querySelector("#tt-days")?.addEventListener("click", editDays);
   body.querySelector("#tt-add")?.addEventListener("click", () => {
     const created = createNext(ctx.timetables, ctx.settings, todayISO());
     shownWeek = created.weekStart;
