@@ -1,0 +1,257 @@
+/* Agenda — token colore.
+ *
+ * NESSUN COLORE VA SCRITTO A MANO FUORI DA QUESTO FILE.
+ *
+ * ── Come funzionano i due temi ─────────────────────────────────────────────
+ * Il tema non si decide qui ma con l'attributo `data-theme` sull'elemento
+ * radice, che vale SEMPRE "light" o "dark" — mai assente. Lo scrive uno script
+ * inline nel <head>, prima che la pagina si disegni, leggendo la preferenza
+ * salvata e, in mancanza, quella del telefono.
+ *
+ * È una scelta, e ha un motivo: con `@media (prefers-color-scheme)` ogni token
+ * andrebbe dichiarato tre volte (chiaro, scuro-da-sistema, scuro-forzato), e un
+ * colore aggiunto in due posti su tre passerebbe inosservato fino al giorno in
+ * cui qualcuno forza il tema. Così ogni token è dichiarato una volta sola per
+ * tema, e le due liste si leggono affiancate.
+ *
+ * ── I contrasti ────────────────────────────────────────────────────────────
+ * Ogni rapporto scritto qui è CALCOLATO, non stimato (regola 3 di CLAUDE.md).
+ * Soglie: 4.5:1 per il testo, 3:1 per gli elementi non testuali che portano
+ * informazione (pallini, anelli, bordi di stato).
+ *
+ * ── Impianto ───────────────────────────────────────────────────────────────
+ * Superfici piene, non bordi. Un solo colore d'azione. I colori delle materie
+ * sono decorazione informativa, mai l'unico modo di sapere una cosa: accanto al
+ * colore c'è sempre la sigla o il nome della materia.
+ */
+
+/* ══ TEMA CHIARO ═══════════════════════════════════════════════════════════ */
+
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  /* ── Superfici ─────────────────────────────────────────────────── */
+  --ag-bg: #ffffff;
+  --ag-surface: #f1f4f7;         /* righe, campi, giorni senza niente */
+  --ag-surface-strong: #e3e9ef;  /* premuto, tracce */
+  --ag-hairline: #e2e8ee;        /* con parsimonia, solo separatori */
+
+  /* ── Testo — grigi con una punta di blu, non neutri da default ─── */
+  --ag-text: #0d1620;            /* 18.22:1 su --ag-bg · 16.50:1 su --ag-surface */
+  --ag-text-muted: #5a6673;      /*  5.86:1 su --ag-bg ·  5.31:1 su --ag-surface ·
+                                      4.79:1 su --ag-surface-strong */
+  /* 2.67:1 — SOLO cose che non portano informazione: le frecce ›, la tacca
+     spenta del peso, il puntino separatore. Mai testo da leggere, e mai un
+     segnaposto: un segnaposto è testo, e per quello vale `muted`. */
+  --ag-text-faint: #93a0ad;
+
+  /* ── Blu notte — unico colore d'azione ─────────────────────────────
+     Scelto su richiesta dell'utente ("sobria e seria", 21 settembre 2026)
+     invece di copiare il blu della scuola. Tre criteri, in quest'ordine:
+     profondo (un colore d'azione che non grida), freddo (per stare con i
+     grigi freddi delle superfici), e soprattutto LONTANO dagli undici colori
+     delle materie — perché il colore dell'app e il colore di una materia non
+     devono mai sembrare la stessa cosa. Di otto candidati misurati è quello
+     che si confonde meno: 2.67:1 di distanza da `sky`, 2.00:1 da `teal`,
+     i due più vicini. Si cambia qui e in nessun altro posto: nessun file HTML
+     o JS nomina un colore. */
+  --ag-primary: #16405c;         /* 10.93:1 su bianco · il bianco sopra 10.93:1 */
+  --ag-primary-pressed: #0d2b3e; /* 14.66:1 su bianco */
+  --ag-primary-ink: #16405c;     /*  9.25:1 su --ag-primary-soft — qui il primario
+                                      è già così scuro che non serve una variante
+                                      apposta per il testo, e un token in meno è
+                                      un token in meno da tenere allineato */
+  --ag-primary-soft: #e6edf3;    /* chip e righe scelte */
+  --ag-primary-softer: #f4f7fa;
+  --ag-on-primary: #ffffff;
+
+
+  /* ── Semantici ─────────────────────────────────────────────────── */
+  /* Verifica: non è un errore e non è un'azione distruttiva. È la cosa che non
+     si può rimandare, quindi ha un colore suo e non condivide col rosso. */
+  --ag-test: #9a5b00;            /*  5.43:1 su bianco · 4.79:1 su --ag-test-soft */
+  --ag-test-soft: #fbf0d8;
+  --ag-test-ink: #7d4900;        /*  6.55:1 su --ag-test-soft */
+
+  --ag-late: #bd2a20;            /*  5.97:1 su bianco · 5.13:1 su --ag-late-soft */
+  --ag-late-soft: #fbeae8;
+  --ag-late-ink: #9e231b;        /*  6.86:1 su --ag-late-soft */
+
+  --ag-done: #10663a;            /*  7.04:1 su bianco · 6.21:1 su --ag-done-soft */
+  --ag-done-soft: #e6f4ec;
+  --ag-done-ink: #0d5531;        /*  7.32:1 su --ag-done-soft */
+
+  /* Eliminare usa lo stesso rosso del ritardo, di proposito: sono la stessa
+     idea di "qualcosa non va", e due rossi diversi non aggiungerebbero
+     informazione, solo rumore. */
+  --ag-danger: #bd2a20;
+  --ag-danger-soft: #fbeae8;
+
+  /* ── Elementi spenti ──────────────────────────────────────────── */
+  --ag-disabled-bg: #e8edf2;
+  --ag-disabled-text: #7e8b98;
+
+  /* ── Peso del giorno ──────────────────────────────────────────────
+     Sei gradini, dal quasi bianco al blu pieno, in base a quanto pesa un
+     giorno. Sono valori FISSI e non un calcolo a tempo di esecuzione, così il
+     contrasto del testo sopra è garantito per costruzione: accanto a ogni
+     gradino c'è l'inchiostro da usarci, già verificato.
+
+     Il salto dell'inchiostro dal testo scuro al bianco cade fra il gradino 3 e
+     il 4: fra le luminanze in cui il bianco passa e quelle in cui passa il
+     testo scuro c'è una fascia in cui NON passa nessuno dei due, e i gradini
+     vanno messi fuori da quella fascia. Con un primario molto scuro la scala
+     scende più in fretta, e il salto cade prima che nella versione blu.
+
+     Ogni gradino si stacca dal precedente di almeno 1.29:1: la scala si legge
+     anche a colpo d'occhio, non solo confrontando due caselle vicine. */
+  --ag-load-0: #eff4f8;   --ag-load-ink-0: #0d1620;   /* 16.45:1 */
+  --ag-load-1: #cdd9e3;   --ag-load-ink-1: #0d1620;   /* 12.69:1 · stacco 1.30 */
+  --ag-load-2: #a4b8c8;   --ag-load-ink-2: #0d1620;   /*  8.91:1 · stacco 1.42 */
+  --ag-load-3: #7794ab;   --ag-load-ink-3: #0d1620;   /*  5.73:1 · stacco 1.55 */
+  --ag-load-4: #4a6c86;   --ag-load-ink-4: #ffffff;   /*  5.55:1 · stacco 1.75 */
+  --ag-load-5: #16405c;   --ag-load-ink-5: #ffffff;   /* 10.93:1 · stacco 1.97 */
+
+  /* ── Colori delle materie ─────────────────────────────────────────
+     Dodici, e non sono dodici colori diversi: sono SEI tonalità in DUE
+     intensità. È il punto della faccenda.
+
+     La prima versione erano undici colori saturi (saturazione media 73%), e
+     l'utente li ha bocciati con la frase giusta: «sembra un parco giochi per
+     bambini». Aveva ragione: era una tavolozza pensata per i grafici, non per
+     un'app sobria.
+
+     Il problema, misurato: con undici tonalità a saturazione bassa la distanza
+     percettiva fra le due più vicine scende sotto ΔE 6, e diventano undici
+     grigi indistinguibili. Per farle distinguere bisogna tornare saturi.
+     Undici tonalità e sobrietà non stanno insieme, e nessun aggiustamento le
+     fa stare.
+
+     La via d'uscita è prendere la varietà dal VALORE invece che dalla
+     saturazione, come fanno gli inchiostri diluiti: sei tonalità ben
+     distanziate, ognuna in una versione piena e una più chiara. Saturazione
+     (HSL) fra il 27% e il 30% per tutte e dodici.
+
+     Misurato su tutte le 66 coppie: fra tonalità diverse i pallini stanno a
+     ΔE 14.7, che si distinguono senza sforzo. Fra le due intensità della
+     stessa tonalità stanno a ΔE 12.8, e lì è voluto che si assomiglino:
+     devono leggersi come «due blu», non come due colori estranei.
+
+     I chip stanno a ΔE 6.5 fra tonalità diverse, ed è il prezzo di restare
+     desaturati. Rischio noto e accettato, perché un chip non porta mai il
+     colore da solo: dentro c'è sempre la sigla o il nome della materia.
+
+     E nessuna materia sta a meno di ΔE 15 dal colore d'azione, nei due temi:
+     le più vicine sono oltremare (16.9 qui) e petrolio (16.1 nel tema scuro).
+     Il petrolio è stato spostato il 25 settembre 2026 da 217° a 200° di tinta
+     (LCh), con luminosità e intensità invariate: nel tema scuro stava a ΔE
+     10.8 dal colore d'azione, e un chip «Inglese» selezionato sembrava un
+     pulsante. L'utente ha visto il prima e il dopo e ha scelto di correggerlo.
+
+     I due numeri accanto a ogni riga sono: pieno su --ag-surface ·
+     inchiostro sul chip. Soglie: 3:1 per il pieno (elemento non testuale che
+     porta informazione), 4.5:1 per l'inchiostro. */
+  --ag-subj-petrolio: #345a5a;    --ag-subj-petrolio-soft: #d1e2e3;    --ag-subj-petrolio-ink: #274b4b;  /*  6.90:1 ·  7.15:1 */
+  --ag-subj-petrolio-2: #477b7c;  --ag-subj-petrolio-2-soft: #b6d3d3;  --ag-subj-petrolio-2-ink: #274b4b;  /*  4.33:1 ·  6.04:1 */
+  --ag-subj-oltremare: #343560;   --ag-subj-oltremare-soft: #d1d1e6;   --ag-subj-oltremare-ink: #272951;  /* 10.43:1 ·  9.18:1 */
+  --ag-subj-oltremare-2: #474985; --ag-subj-oltremare-2-soft: #b6b7d8; --ag-subj-oltremare-2-ink: #272951;  /*  7.43:1 ·  7.06:1 */
+  --ag-subj-prugna: #5a3460;      --ag-subj-prugna-soft: #e3d1e6;      --ag-subj-prugna-ink: #4b2751;  /*  9.08:1 ·  8.51:1 */
+  --ag-subj-prugna-2: #7c4785;    --ag-subj-prugna-2-soft: #d3b6d8;    --ag-subj-prugna-2-ink: #4b2751;  /*  6.14:1 ·  6.70:1 */
+  --ag-subj-mattone: #5d3f32;     --ag-subj-mattone-soft: #e5d6d0;     --ag-subj-mattone-ink: #513427;  /*  8.56:1 ·  7.95:1 */
+  --ag-subj-mattone-2: #815846;   --ag-subj-mattone-2-soft: #d7bfb5;   --ag-subj-mattone-2-ink: #513427;  /*  5.57:1 ·  6.42:1 */
+  --ag-subj-oliva: #454c29;       --ag-subj-oliva-soft: #dee3cb;       --ag-subj-oliva-ink: #485127;  /*  8.20:1 ·  6.43:1 */
+  --ag-subj-oliva-2: #66713d;     --ag-subj-oliva-2-soft: #cdd5b0;     --ag-subj-oliva-2-ink: #485127;  /*  4.76:1 ·  5.54:1 */
+  --ag-subj-muschio: #2e563c;     --ag-subj-muschio-soft: #cee4d5;     --ag-subj-muschio-ink: #275135;  /*  7.57:1 ·  6.78:1 */
+  --ag-subj-muschio-2: #427b55;   --ag-subj-muschio-2-soft: #b3d6bf;   --ag-subj-muschio-2-ink: #275135;  /*  4.53:1 ·  5.74:1 */
+
+  /* ── Ombre ─────────────────────────────────────────────────────── */
+  --ag-shadow-color: 205 45% 14%;
+  --ag-shadow-a-sm: 0.05;
+  --ag-shadow-a-md: 0.18;
+  --ag-shadow-a-lg: 0.42;
+}
+
+/* ══ TEMA SCURO ════════════════════════════════════════════════════════════
+ * Non è il tema chiaro rovesciato: ha colori suoi. In particolare il primario
+ * schiarisce (un blu notte su fondo scuro non si vede), il "premuto"
+ * schiarisce invece di scurire, e l'inchiostro sopra il primario diventa nero.
+ */
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --ag-bg: #0b1118;
+  --ag-surface: #141c25;
+  --ag-surface-strong: #1e2832;
+  --ag-hairline: #1f2831;        /* è un separatore, non porta informazione:
+                                    di più diventerebbe una riga che grida */
+
+  --ag-text: #eaeff4;            /* 16.39:1 su --ag-bg · 14.85:1 su --ag-surface */
+  --ag-text-muted: #9eabb8;      /*  8.10:1 su --ag-bg ·  7.34:1 su --ag-surface */
+  /* 3.16:1 su --ag-surface-strong — SOLO cose che non portano informazione,
+     come nel tema chiaro: frecce, tacche spente, puntini separatori. */
+  --ag-text-faint: #68757f;
+
+  --ag-primary: #7fb3cf;         /*  8.35:1 su --ag-bg · 7.57:1 su --ag-surface */
+  --ag-primary-pressed: #9bc6dc; /* nel tema scuro il premuto schiarisce */
+  --ag-primary-ink: #a9cde1;     /*  8.90:1 su --ag-primary-soft */
+  --ag-primary-soft: #13293a;
+  --ag-primary-softer: #0f1f2c;
+  --ag-on-primary: #04121c;      /*  8.35:1 sopra --ag-primary */
+
+
+  /* I semantici restano più saturi dei colori delle materie, e va bene: non
+     sono decorazione, sono l'unico modo di sapere che una cosa è una verifica
+     o è in ritardo. È il solo posto dove il colore deve farsi sentire. */
+  --ag-test: #e8b44a;            /*  9.42:1 su --ag-bg */
+  --ag-test-soft: #2b2009;
+  --ag-test-ink: #f0ca7a;        /* 10.23:1 su --ag-test-soft */
+
+  --ag-late: #ef8079;            /*  7.19:1 su --ag-bg */
+  --ag-late-soft: #2c1214;
+  --ag-late-ink: #f5a9a4;        /*  9.24:1 su --ag-late-soft */
+
+  --ag-done: #5cba86;            /*  8.02:1 su --ag-bg */
+  --ag-done-soft: #0f2519;
+  --ag-done-ink: #8ed4ab;        /* 10.14:1 su --ag-done-soft */
+
+  --ag-danger: #ef8079;
+  --ag-danger-soft: #2c1214;
+
+  --ag-disabled-bg: #19212a;
+  --ag-disabled-text: #626e79;
+
+  /* Nel tema scuro la scala del peso cresce verso il chiaro, come nel tema
+     chiaro cresce verso lo scuro: "più pieno" resta "più marcato" in
+     entrambi. Stesso ragionamento sul salto dell'inchiostro, che cade ancora
+     fra il gradino 4 e il 5. */
+  --ag-load-0: #111a23;   --ag-load-ink-0: #eaeff4;   /* 15.18:1 */
+  --ag-load-1: #15252f;   --ag-load-ink-1: #eaeff4;   /* 13.57:1 · stacco 1.12 */
+  --ag-load-2: #1a333f;   --ag-load-ink-2: #eaeff4;   /* 11.42:1 · stacco 1.19 */
+  --ag-load-3: #204553;   --ag-load-ink-3: #eaeff4;   /*  8.91:1 · stacco 1.28 */
+  --ag-load-4: #275a6e;   --ag-load-ink-4: #eaeff4;   /*  6.54:1 · stacco 1.36 */
+  --ag-load-5: #448ba9;   --ag-load-ink-5: #04121c;   /*  4.97:1 · stacco 1.99 */
+
+    /* Le stesse sei tonalità in due intensità, schiarite per il fondo scuro.
+       I due numeri: pieno su --ag-surface · inchiostro sul chip. */
+    --ag-subj-petrolio: #98c5c6;    --ag-subj-petrolio-soft: #172a2b;    --ag-subj-petrolio-ink: #bad9d9;  /*  9.11:1 ·  9.99:1 */
+    --ag-subj-petrolio-2: #68aaac;  --ag-subj-petrolio-2-soft: #213d3e;  --ag-subj-petrolio-2-ink: #9fc9c9;  /*  6.49:1 ·  6.48:1 */
+    --ag-subj-oltremare: #989acd;   --ag-subj-oltremare-soft: #17182e;   --ag-subj-oltremare-ink: #babcde;  /*  6.41:1 ·  9.40:1 */
+    --ag-subj-oltremare-2: #686bb6; --ag-subj-oltremare-2-soft: #212242; --ag-subj-oltremare-2-ink: #9fa1d0;  /*  3.57:1 ·  6.18:1 */
+    --ag-subj-prugna: #c698cd;      --ag-subj-prugna-soft: #2b172e;      --ag-subj-prugna-ink: #d9bade;  /*  7.18:1 ·  9.51:1 */
+    --ag-subj-prugna-2: #ab68b6;    --ag-subj-prugna-2-soft: #3e2142;    --ag-subj-prugna-2-ink: #ca9fd0;  /*  4.41:1 ·  6.25:1 */
+    --ag-subj-mattone: #cea99a;     --ag-subj-mattone-soft: #2e1e17;     --ag-subj-mattone-ink: #dec5ba;  /*  7.99:1 ·  9.74:1 */
+    --ag-subj-mattone-2: #b6816a;   --ag-subj-mattone-2-soft: #422b21;   --ag-subj-mattone-2-ink: #d0ae9f;  /*  5.18:1 ·  6.40:1 */
+    --ag-subj-oliva: #c8d2a2;       --ag-subj-oliva-soft: #292e17;       --ag-subj-oliva-ink: #d7deba;  /* 10.79:1 · 10.05:1 */
+    --ag-subj-oliva-2: #acbb72;     --ag-subj-oliva-2-soft: #3c4221;     --ag-subj-oliva-2-ink: #c6d09f;  /*  8.27:1 ·  6.48:1 */
+    --ag-subj-muschio: #9dcfae;     --ag-subj-muschio-soft: #172e1f;     --ag-subj-muschio-ink: #badec6;  /*  9.79:1 ·  9.92:1 */
+    --ag-subj-muschio-2: #6db886;   --ag-subj-muschio-2-soft: #21422c;   --ag-subj-muschio-2-ink: #9fd0af;  /*  7.24:1 ·  6.44:1 */
+
+  /* Nel tema scuro un'ombra non stacca: quello che stacca è la superficie più
+     chiara. Si tengono quasi nere e solo per i livelli sovrapposti. */
+  --ag-shadow-color: 205 60% 2%;
+  --ag-shadow-a-sm: 0.3;
+  --ag-shadow-a-md: 0.55;
+  --ag-shadow-a-lg: 0.7;
+}

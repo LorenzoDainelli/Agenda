@@ -1,0 +1,43 @@
+/* Agenda — token tipografia.
+ *
+ * Stack di sistema: su iPhone è San Francisco, già installato. Nessun font da
+ * scaricare = nessun rischio offline, nessun peso in più, nessuna riga di
+ * testo che salta quando il font arriva.
+ *
+ * La scala è ampia di proposito. Il contenuto dell'app sono i titoli dei
+ * compiti e i conti ("3 cose oggi", "2 in ritardo"): quelli devono dominare,
+ * il resto sta indietro.
+ */
+
+:root {
+  --ag-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+             Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Per la griglia dell'orario e i conti allineati: le colonne reggono solo a
+     spaziatura fissa. Su iPhone `ui-monospace` è SF Mono, già installato. */
+  --ag-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --ag-size-2xs: 0.6875rem;  /* 11px — solo occhielli maiuscoletti e sigle */
+  --ag-size-xs: 0.8125rem;   /* 13px — righe secondarie, metadati */
+  --ag-size-sm: 0.9375rem;   /* 15px */
+  --ag-size-md: 1.0625rem;   /* 17px — corpo, misura di sistema iOS */
+  --ag-size-lg: 1.25rem;     /* 20px — titoli di sezione */
+  --ag-size-xl: 1.75rem;     /* 28px — titoli di schermata */
+  --ag-size-date: 1.5rem;    /* 24px — la data in cima: su una riga sola anche la più
+                                lunga («Wednesday, September 23», 294px su 361) */
+  --ag-size-2xl: 2.125rem;   /* 34px */
+  --ag-size-3xl: 2.75rem;    /* 44px — il numero nel blocco in cima */
+
+  --ag-weight-regular: 400;
+  --ag-weight-medium: 500;
+  --ag-weight-semibold: 600;
+  --ag-weight-bold: 700;
+
+  --ag-leading-tight: 1.05;
+  --ag-leading-snug: 1.25;
+  --ag-leading-normal: 1.45;
+
+  --ag-tracking-tighter: -0.03em; /* numeri grandi */
+  --ag-tracking-tight: -0.015em;
+  --ag-tracking-wide: 0.08em;     /* occhielli maiuscoletti */
+}
