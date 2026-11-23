@@ -58,6 +58,12 @@ const scenari = [
   // il compito con le parti, così si misurano anche i chip «quando»
   ["pannello compito", async () => { await page.click('[data-close="task-layer"]'); await page.locator("#list .ag-task__main", { hasText: "Compito con parti" }).click(); await page.waitForTimeout(400); }],
   ["archivio", async () => { await page.click('[data-close="task-layer"]'); await page.click("#open-archive"); await page.waitForTimeout(400); }],
+  // i voti, con una materia aperta: medie sopra e sotto il 6, teoria e laboratorio
+  ["voti", async () => { await page.click('[data-close="archive-layer"]'); await page.click("#open-grades"); await page.waitForTimeout(300);
+    await page.click('[data-gr-subject="s-mattone"]'); await page.waitForTimeout(300); }],
+  ["voti, inserire", async () => { await page.click("#gr-add"); await page.waitForTimeout(200);
+    await page.locator('#sheet-body [data-f-subject="s-mattone"]').click(); await page.waitForTimeout(200);
+    await page.locator('#sheet-body [data-f-value="5.5"]').click(); await page.waitForTimeout(200); }],
 ];
 
 let totali = 0, placeholderVisti = 0, falliti = [];
@@ -103,6 +109,10 @@ for (const tema of ["light", "dark"]) {
       grid:{"1":["s-sky","s-sky","s-amber","s-mattone@lab","s-mattone@lab",null],"2":["s-violet",null,null,null,null,null],
             "3":["s-green",null,null,null,null,null],"4":["s-amber","s-sky",null,null,null,null],
             "5":["s-rose",null,null,null,null,null],"6":[null,null,null,null,null,null]}}]));
+    localStorage.setItem("agenda:grades", JSON.stringify({ items: [
+      { id:"g-1", subjectId:"s-mattone", subjectName:"Materia mattone", value:5.5, date:"2026-09-15", lab:true },
+      { id:"g-2", subjectId:"s-mattone", subjectName:"Materia mattone", value:7, date:"2026-09-18", lab:false },
+      { id:"g-3", subjectId:"s-prugna", subjectName:"Materia prugna", value:4, date:"2026-09-19", lab:false } ] }));
     localStorage.setItem("agenda:review", JSON.stringify({lastReviewedOn:"2026-09-21"}));
     localStorage.setItem("agenda:shopping", JSON.stringify({ items: [
       { id:"c-1", name:"latte", qty:"2", addedAt:"2026-09-20", boughtAt:null },

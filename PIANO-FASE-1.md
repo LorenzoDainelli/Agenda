@@ -298,6 +298,29 @@ quelle consigliate, e si cambiano con una riga.
 |---|---|---|
 | A65 | Si sceglie fra i giorni di scuola delle prossime quattro settimane, da oggi (o dal giorno dopo l'inizio dell'ultimo orario, se è nel futuro): mai un giorno passato né uno prima dell'ultimo orario, che lo nasconderebbe. Il giorno può essere a metà settimana: i giorni prima restano all'orario vecchio. Il campo salvato resta `weekStart`, così gli orari già salvati valgono come prima. | `startChoices()` e `timetableFor()` in `timetable.js`, il pulsante `#tt-add` in `timetable-view.js` |
 
+### Chieste dall'utente il 23 novembre 2026, nel decimo giro
+
+| richiesta | decisione |
+|---|---|
+| la app della scuola non mostra più la media: segnare i voti qui | un pannello **Voti** dalla testata (§6.8) |
+| voti dal 2 al 10, di mezzo in mezzo, con materia, teoria o laboratorio e data | si sceglie tutto a tocchi, la data col calendario |
+| primo quadrimestre da settembre a gennaio, secondo da febbraio al 30 giugno (l'utente ha scritto «31 giugno 2026» e ha confermato il 30 giugno 2027) | una regola che vale ogni anno, non due date scritte |
+| media generale del primo, del secondo e dell'anno; per ogni materia, aprendola, teoria, laboratorio e complessiva; chiusa, solo la complessiva a destra | come detto |
+| (domande) media generale | **media delle medie** delle materie |
+| (domande) complessiva di una materia | **tutti i voti insieme**, teoria e laboratorio mescolati |
+| (domande) dove | un **pulsante nuovo in testata** |
+
+**Assunzioni**
+
+| # | assunzione | come si ribalta |
+|---|---|---|
+| A66 | I quadrimestri sono una **regola**, non date: l'anno scolastico comincia il 1° settembre, il primo va fino al 31 gennaio, il secondo dal 1° febbraio al 30 giugno. Così l'anno dopo funziona da sé e nel repo non c'è il calendario di una scuola vera (regola 1). Il pannello mostra l'anno scolastico di oggi; i voti degli anni prima restano salvati e nella copia, non si vedono. | `rangeOf()`, `termOf()`, `schoolYearOf()` in `grades.js` |
+| A67 | I diciassette voti (2, 2,5 … 10) sono **chip** da toccare, scritti all'italiana («6,5»). Niente «+», «−» o «½»: non sono stati chiesti. La data di serie è oggi; il calendario non lascia scegliere un giorno futuro né uno prima del 1° settembre dell'anno. Teoria o laboratorio si chiede solo per una materia che ha il laboratorio (come A45). | `VALUES` in `grades.js`, `formSheet()` in `grades-view.js` |
+| A68 | La media complessiva di una materia è la media di **tutti** i suoi voti; teoria e laboratorio sono le medie dei voti di ciascun tipo, e una che non ha voti mostra «—», non zero. Le medie si scrivono con due decimali al massimo. | `subjectAverages()` in `grades.js` |
+| A69 | La media generale è la media delle medie delle materie **che hanno almeno un voto** nel periodo: una materia senza voti non conta come zero. | `overallAverage()` in `grades.js` |
+| A70 | Una media **sotto il 6** si scrive in rosso (`--ag-late`), come a scuola; il numero c'è sempre, quindi il colore non è l'unico segnale. Il 6 è sufficiente. | `PASS` in `grades.js`, `.ag-grades__avg--low` |
+| A71 | Un voto si corregge o si elimina toccandolo nella materia aperta: il foglio è lo stesso dell'inserimento, con «Elimina» che chiede conferma dicendo materia, voto e data (regola 4). Una materia eliminata non si porta via i voti: restano col nome che aveva, in fondo all'elenco. Il periodo che si apre è il quadrimestre di oggi (d'estate l'anno intero). | `grades-view.js` |
+
 Rimasta aperta e **non** decisa: la forma definitiva dell'ambito privato
 (vedi §6.4). Il nome dell'app non è più in questa lista.
 
@@ -347,6 +370,8 @@ Il progetto sta **alla radice della repo** (decisione dell'utente): la repo
       timetable-view.js         il pannello dell'orario: provvisorio o definitivo
       shopping.js               la lista della spesa: regole pure
       shopping-view.js          il pannello della spesa
+      grades.js                 i voti: quadrimestri e medie, regole pure
+      grades-view.js            il pannello dei voti
       ui.js                     fogli, conferme, notifiche, scelta di un giorno
       backup.js                 esportazione e ripristino
     icons/
@@ -360,6 +385,7 @@ Il progetto sta **alla radice della repo** (decisione dell'utente): la repo
     tasks.mjs                   sezioni, ordinamenti, archivio
     backup.mjs                  quando compare il promemoria della copia
     shopping.mjs                la lista della spesa: aggiungere, spuntare, mezzanotte
+    grades.mjs                  i voti: quadrimestri e medie
     browser/                    prove che guidano l'app in un browser vero
                                 (servono Playwright: vedi test/browser/LEGGIMI.md)
       audit.mjs                 il controllo dei contrasti sulla pagina renderizzata
@@ -781,6 +807,25 @@ Un pannello che si apre dal carrello, il primo pulsante della testata.
 Non ha scadenze, non ha peso, non va nell'archivio e non compare nel
 calendario: non è un compito.
 
+### 6.8 Voti
+
+Un pannello che si apre dal pulsante dei voti in testata, dopo la spesa
+(decimo giro).
+
+- In cima, tre segmenti: **1° quadrimestre**, **2° quadrimestre**, **Anno**.
+  Si apre sul quadrimestre di oggi (A66, A71).
+- Sotto, la **media generale** del periodo, grande, e quanti voti la fanno
+  (A69). Sotto il 6 è rossa (A70).
+- **Aggiungi voto**: un foglio con la materia, teoria o laboratorio se la
+  materia ce l'ha, i diciassette voti a chip e il giorno (A67).
+- **Le materie**: una riga per materia, chiusa mostra il nome e a destra la
+  media complessiva. Toccandola si apre: teoria, laboratorio e complessiva
+  (A68), poi i voti dal più recente. Toccando un voto lo si corregge o lo si
+  elimina (A71).
+
+I voti stanno in `agenda:grades` ed escono nella copia di sicurezza, che li
+rimette per `id` come la spesa.
+
 ---
 
 ## 7. La rassegna degli arretrati
@@ -935,6 +980,18 @@ pannello impostazioni.
   «Copia la lista» mette negli appunti solo le cose da comprare, come
   «Spesa» e sotto «- latte ×2», e l'avviso lo dice; con niente da comprare
   il tasto non c'è.
+
+### Task 11 — Voti
+`src/js/grades.js`, `src/js/grades-view.js`, `test/grades.mjs`, più le
+righe in `index.html`, `app.js`, `storage.js`, `i18n.js`, `ui.js` (il limite
+in avanti del calendario), `service-worker.js` e `components.css`.
+
+- **Accettazione**: un voto si inserisce solo a tocchi; finisce nel
+  quadrimestre giusto secondo la sua data; la riga chiusa della materia
+  mostra la sola media complessiva, aperta anche teoria e laboratorio; la
+  media generale è la media delle medie; sotto il 6 è rossa; correggere un
+  voto lo sposta, eliminarlo chiede conferma; i voti escono nella copia e
+  tornano col ripristino.
 
 ## 9-bis. Cosa si controlla da sé
 

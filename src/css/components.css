@@ -113,7 +113,10 @@ button { cursor: pointer; touch-action: manipulation; }
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  column-gap: var(--ag-space-4);
+  /* space-2 e non space-4 da quando i pulsanti sono sei (voti, §6.8): con
+     4px fra un pulsante e l'altro resta posto per «Da fare» su una riga da
+     375px in su */
+  column-gap: var(--ag-space-2);
   padding: var(--ag-space-5) var(--ag-gutter) var(--ag-space-4);
   padding-top: max(var(--ag-space-5), env(safe-area-inset-top));
 }
@@ -143,7 +146,7 @@ button { cursor: pointer; touch-action: manipulation; }
 
 .ag-header__actions {
   display: flex;
-  gap: var(--ag-space-2);
+  gap: var(--ag-space-1);
   flex: none;
 }
 
@@ -1817,6 +1820,76 @@ button.ag-row { width: 100%; text-align: start; }
 .ag-empty__icon { color: var(--ag-text-faint); }
 .ag-empty__title { font-size: var(--ag-size-md); font-weight: var(--ag-weight-semibold); }
 .ag-empty__note { font-size: var(--ag-size-sm); color: var(--ag-text-muted); line-height: var(--ag-leading-snug); }
+
+/* ── Voti (§6.8) ──────────────────────────────────────────────────── */
+
+/* La media generale, grande in cima: è il numero per cui si apre il
+   pannello. Sta sul fondo del pannello (--ag-bg): --ag-text 18.22:1 nel
+   chiaro e 16.39:1 nello scuro. */
+.ag-grades__total {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ag-space-1);
+  padding-block: var(--ag-space-3);
+}
+
+.ag-grades__avg {
+  font-size: var(--ag-size-md);
+  font-weight: var(--ag-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ag-text);
+}
+
+.ag-grades__avg--big { font-size: var(--ag-size-3xl); font-weight: var(--ag-weight-bold); }
+
+/* Una media o un voto sotto il 6 (A70). Il numero resta: il rosso è in più.
+   --ag-late misurato: su --ag-bg 5.97:1 nel chiaro e 7.25:1 nello scuro, su
+   --ag-surface (righe e dettaglio) 5.41:1 e 6.57:1, su --ag-surface-strong
+   (riga premuta) 4.88:1 e 5.72:1. Sopra i 4.5:1 del testo normale ovunque. */
+.ag-grades__avg--low { color: var(--ag-late); }
+
+/* Il dettaglio di una materia aperta, dentro il riquadro delle righe. */
+.ag-grades__detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ag-space-1);
+  padding: 0 var(--ag-space-4) var(--ag-space-3);
+}
+
+.ag-grades__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+  gap: var(--ag-space-2);
+  padding-block: var(--ag-space-2);
+}
+
+/* Le etichette sono --ag-text-muted su --ag-surface: 5.31:1 e 7.34:1. */
+.ag-grades__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ag-space-1);
+  font-size: var(--ag-size-xs);
+  color: var(--ag-text-muted);
+}
+
+/* Un voto nella materia aperta: tutta la riga si tocca per correggerlo. */
+.ag-grades__grade {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--ag-touch-min);
+  border-radius: var(--ag-radius-sm);
+  padding-inline: var(--ag-space-2);
+  box-shadow: inset 0 1px 0 var(--ag-hairline);
+}
+.ag-grades__grade:active { background: var(--ag-surface-strong); }
+
+.ag-grades__when { font-size: var(--ag-size-sm); color: var(--ag-text-muted); }
+
+/* I diciassette voti: chip tutti uguali, così si leggono come una tastiera. */
+.ag-grades__values .ag-chip { min-width: var(--ag-touch-min); justify-content: center; padding-inline: var(--ag-space-2); }
 
 /* ── 19. Utilità ──────────────────────────────────────────────────── */
 

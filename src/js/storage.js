@@ -19,6 +19,7 @@ const KEY_REVIEW = "agenda:review";
 // vecchia non deve far credere all'app di averne appena fatta una.
 const KEY_BACKUP = "agenda:backup";
 const KEY_SHOPPING = "agenda:shopping";
+const KEY_GRADES = "agenda:grades";
 
 /*
  * Numero di versione del file esportato.
@@ -152,6 +153,18 @@ export function saveShopping(items) {
   return write(KEY_SHOPPING, { items });
 }
 
+/* ── Voti ─────────────────────────────────────────────────────────── */
+
+/** I voti così come sono salvati: le regole stanno in grades.js. */
+export function loadGrades() {
+  const stored = read(KEY_GRADES, null);
+  return Array.isArray(stored?.items) ? stored.items : [];
+}
+
+export function saveGrades(items) {
+  return write(KEY_GRADES, { items });
+}
+
 /* ── Promemoria della copia ───────────────────────────────────────── */
 
 export function loadBackupInfo() {
@@ -181,6 +194,7 @@ export function exportAll(todayISO) {
     // un campo in più, il formato resta alla versione 1: chi non lo conosce
     // lo ignora, chi lo conosce lo rimette dentro (A41)
     shopping: { items: loadShopping() },
+    grades: { items: loadGrades() },
   };
 }
 
@@ -209,6 +223,8 @@ export function readBackup(text) {
     timetables: Array.isArray(data.timetables) ? data.timetables : [],
     // una copia fatta prima che la spesa esistesse non ce l'ha: elenco vuoto
     shopping: Array.isArray(data.shopping?.items) ? data.shopping.items : [],
+    // e una fatta prima dei voti non ha voti
+    grades: Array.isArray(data.grades?.items) ? data.grades.items : [],
   };
 }
 
@@ -238,6 +254,13 @@ export function applyBackup(parsed) {
   }
   saveShopping([...mergedShop.values()]);
 
+  // i voti come la spesa: per id, e quelli che nel file non ci sono restano
+  const mergedGrades = new Map(loadGrades().map((grade) => [grade.id, grade]));
+  for (const grade of parsed.grades || []) {
+    if (grade && typeof grade.id === "string") mergedGrades.set(grade.id, grade);
+  }
+  saveGrades([...mergedGrades.values()]);
+
   // Le materie si uniscono per id: una materia del telefono che nel file non
   // c'è non deve sparire, se no i compiti che la usano perdono il colore.
   const device = loadSettings();
@@ -261,7 +284,7 @@ export function applyBackup(parsed) {
 
 /** Per il pulsante "ricomincia da zero", se un giorno servirà. Oggi non è usato. */
 export function wipe() {
-  for (const key of [KEY_SETTINGS, KEY_TASKS, KEY_TIMETABLES, KEY_REVIEW, KEY_BACKUP, KEY_SHOPPING]) {
+  for (const key of [KEY_SETTINGS, KEY_TASKS, KEY_TIMETABLES, KEY_REVIEW, KEY_BACKUP, KEY_SHOPPING, KEY_GRADES]) {
     try { localStorage.removeItem(key); } catch { /* niente da fare */ }
   }
 }

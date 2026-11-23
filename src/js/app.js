@@ -18,7 +18,7 @@ import {
 import { t, setLang, deviceLang, getLang, apply as applyI18n } from "./i18n.js";
 import {
   loadSettings, saveSettings, loadTasks, saveTasks, loadTimetables, saveTimetables,
-  loadReview, saveReview, loadBackupInfo, loadShopping, saveShopping,
+  loadReview, saveReview, loadBackupInfo, loadShopping, saveShopping, loadGrades, saveGrades,
 } from "./storage.js";
 import {
   markDone, markOpen, isLate, isDone, isDropped, isOpen,
@@ -41,6 +41,8 @@ import * as settings from "./settings.js";
 import * as timetableView from "./timetable-view.js";
 import * as shoppingView from "./shopping-view.js";
 import { normalize as normalizeShopping, countToBuy } from "./shopping.js";
+import * as gradesView from "./grades-view.js";
+import { normalize as normalizeGrades } from "./grades.js";
 import * as backup from "./backup.js";
 
 /* ── Stato ────────────────────────────────────────────────────────── */
@@ -51,6 +53,7 @@ let state = {
   timetables: [],
   review: { lastReviewedOn: null },
   shopping: [],
+  grades: [],
 };
 
 /** L'ambito su cui è puntato il filtro. Non si salva: è una vista, non un dato. */
@@ -86,6 +89,12 @@ function saveSettingsAndRender(next) {
 function saveShoppingAndRender(items) {
   state.shopping = items;
   saveShopping(items);
+  renderAll();
+}
+
+function saveGradesAndRender(list) {
+  state.grades = list;
+  saveGrades(list);
   renderAll();
 }
 
@@ -395,6 +404,7 @@ function renderAll() {
   if (!el("settings-layer").hidden) settings.refresh(ctx());
   if (!el("timetable-layer").hidden) timetableView.refresh(ctx());
   if (!el("shopping-layer").hidden) shoppingView.refresh(state.shopping);
+  if (!el("grades-layer").hidden) gradesView.refresh(state.grades, ctx());
   if (!el("archive-layer").hidden) renderArchive();
 }
 
@@ -575,6 +585,11 @@ function openShopping() {
   shoppingView.open(state.shopping, { onChange: (items) => saveShoppingAndRender(items) });
 }
 
+function openGrades() {
+  openLayer("grades-layer");
+  gradesView.open(state.grades, ctx(), { onChange: (list) => saveGradesAndRender(list) });
+}
+
 function openTimetable() {
   openLayer("timetable-layer");
   timetableView.open(ctx(), {
@@ -613,6 +628,7 @@ function bindChrome() {
   el("open-calendar").addEventListener("click", () => openCalendar());
   el("open-shopping").addEventListener("click", openShopping);
   el("open-timetable").addEventListener("click", openTimetable);
+  el("open-grades").addEventListener("click", openGrades);
   el("open-archive").addEventListener("click", openArchive);
   el("open-settings").addEventListener("click", openSettings);
   el("settings-back").addEventListener("click", () => settings.back());
@@ -668,6 +684,7 @@ function bindChrome() {
       state.tasks = loadTasks();
       state.timetables = loadTimetables();
       state.shopping = normalizeShopping(loadShopping());
+      state.grades = normalizeGrades(loadGrades());
       applyLang();
       applyTheme();
       renderAll();
@@ -727,6 +744,7 @@ function start() {
   state.tasks = loadTasks();
   state.timetables = loadTimetables();
   state.shopping = normalizeShopping(loadShopping());
+  state.grades = normalizeGrades(loadGrades());
   state.review = loadReview();
   day = todayISO();
 

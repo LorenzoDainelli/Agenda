@@ -414,7 +414,7 @@ export function bindSwipe(box, { selector, directions = ["right"], onSwipe }) {
  */
 
 
-export function datePickerSheet(current, { title, min, onPick, allowNone } = {}) {
+export function datePickerSheet(current, { title, min, max, onPick, allowNone } = {}) {
   let month = firstOfMonth(current || todayISO());
   const today = todayISO();
   const lang = getLang();
@@ -427,7 +427,8 @@ export function datePickerSheet(current, { title, min, onPick, allowNone } = {})
     for (let i = 0; i < blanks; i += 1) cells.push('<span class="ag-cal__cell ag-cal__cell--empty"></span>');
     for (let d = 1; d <= total; d += 1) {
       const iso = `${first.slice(0, 8)}${String(d).padStart(2, "0")}`;
-      const disabled = min && iso < min;
+      // `max` serve ai voti: un voto non può essere di un giorno che non c'è ancora
+      const disabled = (min && iso < min) || (max && iso > max);
       const chosen = iso === current;
       cells.push(`
         <button class="ag-cal__cell" type="button" data-pick="${iso}" ${disabled ? "disabled" : ""}
