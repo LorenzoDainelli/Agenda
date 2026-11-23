@@ -437,7 +437,7 @@ const testata = await page.evaluate(() => {
   return { n: btns.length, minW: Math.min(...btns.map((b) => b.width)), titleTop: title.top,
            btnBottom: Math.max(...btns.map((b) => b.bottom)), oneLine: h.scrollWidth <= h.clientWidth && title.height < 40, h: title.height };
 });
-check("in testata ci sono cinque pulsanti, l'orario subito dopo la spesa", testata.n === 5
+check("in testata ci sono sei pulsanti (coi voti), l'orario subito dopo la spesa", testata.n === 6
       && (await page.locator(".ag-header__actions .ag-iconbtn").nth(1).getAttribute("id")) === "open-timetable");
 check("larghi almeno 44px", testata.minW >= 44, `${testata.minW}px`);
 check("la data sta sotto i pulsanti, su una riga intera", testata.titleTop >= testata.btnBottom - 1 && testata.oneLine,
@@ -693,6 +693,51 @@ await page.click("#shop-copy"); await page.waitForTimeout(250);
 check("se non riesce a copiare lo dice", (await all(".ag-toast__text")).includes("Non sono riuscito a copiare la lista"));
 await page.evaluate(() => { delete navigator.clipboard.writeText; delete document.execCommand; });
 await page.click('[data-close="shopping-layer"]'); await page.waitForTimeout(200);
+
+console.log("\n== i voti (§6.8, A66–A71) ==");
+const voti = () => page.evaluate(() => JSON.parse(localStorage.getItem("agenda:grades") || '{"items":[]}').items);
+const aggiungiVoto = async (materia, valore, lab = null) => {
+  await page.click("#gr-add"); await page.waitForTimeout(200);
+  await page.locator(`#sheet-body [data-f-subject="${materia}"]`).click(); await page.waitForTimeout(150);
+  if (lab !== null) { await page.locator(`#sheet-body [data-f-lab="${lab ? 1 : 0}"]`).click(); await page.waitForTimeout(150); }
+  await page.locator(`#sheet-body [data-f-value="${valore}"]`).click(); await page.waitForTimeout(150);
+  await page.locator('#sheet-body [data-f-act="save"]').click(); await page.waitForTimeout(250);
+};
+await page.click("#open-grades"); await page.waitForTimeout(250);
+check("si apre sul quadrimestre di oggi", (await page.getAttribute('#gr-period [data-period="1"]', "aria-pressed")) === "true");
+check("senza voti la media è un trattino", (await txt(".ag-grades__avg--big")) === "—");
+await page.click("#gr-add"); await page.waitForTimeout(200);
+check("i voti sono diciassette chip, dal 2 al 10", await page.locator("#sheet-body [data-f-value]").count() === 17
+      && (await txt('#sheet-body [data-f-value="6.5"]')) === "6,5");
+check("senza materia e voto non si salva", await page.locator('#sheet-body [data-f-act="save"][disabled]').count() === 1);
+await page.locator('#sheet-body [data-f-act="cancel"]').click(); await page.waitForTimeout(200);
+await aggiungiVoto("s-mate", 5.5, true);
+await aggiungiVoto("s-mate", 8, false);
+await aggiungiVoto("s-ingl", 7);
+check("i voti si salvano col giorno di oggi", (await voti()).length === 3 && (await voti()).every((g) => g.date === "2026-09-21"));
+check("il laboratorio resta segnato", (await voti()).some((g) => g.subjectId === "s-mate" && g.lab && g.value === 5.5));
+check("media generale = media delle medie (6,75 e 7)", (await txt(".ag-grades__avg--big")) === "6,88", await txt(".ag-grades__avg--big"));
+// salvando le materie si aprono: le richiudo
+await page.click('[data-gr-subject="s-mate"]'); await page.waitForTimeout(150);
+await page.click('[data-gr-subject="s-ingl"]'); await page.waitForTimeout(150);
+check("chiusa, la materia mostra solo la complessiva", await page.locator(".ag-grades__stats").count() === 0
+      && (await txt('[data-gr-subject="s-mate"] .ag-grades__avg')) === "6,75");
+await page.click('[data-gr-subject="s-mate"]'); await page.waitForTimeout(150);
+check("aperta: teoria, laboratorio e complessiva", (await all(".ag-grades__stat")).join(" | ") === "Teoria8 | Laboratorio5,5 | Complessiva6,75",
+      (await all(".ag-grades__stat")).join(" | "));
+check("sotto il 6 è rossa", await page.locator(".ag-grades__grade .ag-grades__avg--low").count() === 1);
+check("il secondo quadrimestre è vuoto", await (async () => {
+  await page.click('#gr-period [data-period="2"]'); await page.waitForTimeout(150);
+  const vuoto = (await txt(".ag-grades__avg--big")) === "—";
+  await page.click('#gr-period [data-period="1"]'); await page.waitForTimeout(150);
+  return vuoto;
+})());
+await page.locator(".ag-grades__grade").first().click(); await page.waitForTimeout(200);
+await page.locator('#sheet-body [data-f-act="delete"]').click(); await page.waitForTimeout(200);
+check("eliminare chiede conferma, con voto e materia", (await txt("#sheet-body .ag-sheet__title")).includes("Matematica"), await txt("#sheet-body .ag-sheet__title"));
+await page.locator('#sheet-body [data-act="yes"]').click(); await page.waitForTimeout(250);
+check("e poi lo toglie", (await voti()).length === 2);
+await page.click('[data-close="grades-layer"]'); await page.waitForTimeout(200);
 
 console.log("\n== a mezzanotte le cose fatte vanno nell'archivio ==");
 // una riga ancora da fare: quella in cima può essere già fatta (la rassegna qui sopra)

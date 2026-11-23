@@ -31,6 +31,8 @@ const CORE_ASSETS = [
   "./js/calendar.js",
   "./js/compose.js",
   "./js/days.js",
+  "./js/grades.js",
+  "./js/grades-view.js",
   "./js/i18n.js",
   "./js/model.js",
   "./js/planner.js",
