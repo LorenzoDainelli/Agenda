@@ -1233,15 +1233,28 @@ button.ag-row { width: 100%; text-align: start; }
   background: var(--ag-bg);
   display: flex;
   flex-direction: column;
-  animation: ag-layer-in var(--ag-motion-normal) var(--ag-motion-ease);
 }
 
 .ag-layer[hidden] { display: none; }
 .ag-layer > .ag-panel { height: 100%; min-height: 0; }
 
+/* Un livello sale dal basso con la molla dei fogli, come le Impostazioni
+   del Visore, e chiudendosi riscende più in fretta (A76): si apre con
+   calma, si chiude senza far aspettare. Mentre esce non prende i tocchi. */
+.ag-layer--in { animation: ag-layer-in var(--ag-motion-sheet) var(--ag-ease-sheet); }
+.ag-layer--out {
+  animation: ag-layer-out var(--ag-motion-fast) var(--ag-motion-ease) forwards;
+  pointer-events: none;
+}
+
 @keyframes ag-layer-in {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(18%); }
+  40% { opacity: 1; }
   to { opacity: 1; transform: none; }
+}
+
+@keyframes ag-layer-out {
+  to { opacity: 0; transform: translateY(8%); }
 }
 
 .ag-scrim {
@@ -1249,12 +1262,14 @@ button.ag-row { width: 100%; text-align: start; }
   inset: 0;
   z-index: 30;
   background: hsl(var(--ag-shadow-color) / 0.45);
-  animation: ag-fade-in var(--ag-motion-fast) var(--ag-motion-ease);
 }
 
 .ag-scrim[hidden] { display: none; }
+.ag-scrim--in { animation: ag-fade-in var(--ag-motion-normal) var(--ag-motion-ease); }
+.ag-scrim--out { animation: ag-fade-out var(--ag-motion-fast) var(--ag-motion-ease) forwards; pointer-events: none; }
 
 @keyframes ag-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ag-fade-out { to { opacity: 0; } }
 
 /* Il foglio che sale dal basso: scelte brevi e conferme. Non è una finestra
    del browser, e non lo diventerà mai (regola 5 di CLAUDE.md). */
@@ -1273,18 +1288,29 @@ button.ag-row { width: 100%; text-align: start; }
   border-radius: var(--ag-radius-lg) var(--ag-radius-lg) 0 0;
   padding: var(--ag-space-3) var(--ag-gutter) var(--ag-space-5);
   padding-bottom: max(var(--ag-space-5), env(safe-area-inset-bottom));
-  box-shadow: var(--ag-shadow-hero);
+  box-shadow: var(--ag-shadow-float);
   display: flex;
   flex-direction: column;
   gap: var(--ag-space-3);
-  animation: ag-sheet-in var(--ag-motion-normal) var(--ag-motion-ease);
 }
 
 .ag-sheet[hidden] { display: none; }
 
+/* Il foglio sale con la molla dei fogli del Visore e riscende chiudendosi
+   (A76). Il contenuto resta finché non è sceso del tutto (ui.js). */
+.ag-sheet--in { animation: ag-sheet-in var(--ag-motion-sheet) var(--ag-ease-sheet); }
+.ag-sheet--out {
+  animation: ag-sheet-out var(--ag-motion-normal) var(--ag-motion-ease) forwards;
+  pointer-events: none;
+}
+
 @keyframes ag-sheet-in {
   from { transform: translateY(100%); }
   to { transform: none; }
+}
+
+@keyframes ag-sheet-out {
+  to { transform: translateY(100%); }
 }
 
 .ag-sheet__grip {
@@ -1649,6 +1675,12 @@ button.ag-row { width: 100%; text-align: start; }
 .ag-tt__grid {
   display: grid;
   grid-template-columns: 1.6rem repeat(var(--ag-tt-days, 6), 1fr);
+  /* ogni ora alta almeno un tocco: senza, le ore che ha solo un blocco
+     lungo (le ultime del giorno lungo, A64) si schiacciavano a niente */
+  grid-auto-rows: minmax(var(--ag-touch-min), auto);
+  /* la prima riga resta vuota (le ore partono dalla seconda): alta zero,
+     se no la regola qui sopra la farebbe alta un tocco sotto i giorni */
+  grid-template-rows: 0;
   gap: var(--ag-space-1);
 }
 
@@ -1746,7 +1778,9 @@ button.ag-row { width: 100%; text-align: start; }
    DOPO .ag-alert__btn: stessa specificità, vince chi viene dopo. */
 .ag-alert__btn--quiet { background: none; }
 
-/* I toast: confermano quello che è appena successo e offrono l'annulla. */
+/* Gli avvisi: la pillola del Visore (A77). Confermano quello che è appena
+   successo, salgono dal basso e se ne vanno da soli. Stanno in basso al
+   centro, sopra il bordo del telefono. */
 .ag-toasts {
   position: fixed;
   z-index: 50;
@@ -1756,52 +1790,59 @@ button.ag-row { width: 100%; text-align: start; }
   max-width: var(--ag-app-max-width);
   margin-inline: auto;
   padding: var(--ag-space-3) var(--ag-gutter);
-  padding-bottom: calc(max(var(--ag-space-3), env(safe-area-inset-bottom)) + 72px);
+  padding-bottom: calc(max(var(--ag-space-3), env(safe-area-inset-bottom)) + var(--ag-space-5));
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: var(--ag-space-2);
   pointer-events: none;
 }
 
+/* Il fondo resta pieno e non di vetro: il testo deve avere un contrasto
+   misurabile (regola 3). --ag-bg su --ag-text è lo stesso rapporto del testo
+   normale: 18.22:1 nel chiaro e 16.39:1 nello scuro. */
 .ag-toast {
   pointer-events: auto;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: var(--ag-space-3);
-  padding: var(--ag-space-3) var(--ag-space-3) var(--ag-space-3) var(--ag-space-4);
-  border-radius: var(--ag-radius-md);
+  max-width: 100%;
+  padding: var(--ag-space-2) var(--ag-space-5) var(--ag-space-2) var(--ag-space-2);
+  border-radius: var(--ag-radius-pill);
   background: var(--ag-text);
   color: var(--ag-bg);
   font-size: var(--ag-size-sm);
   font-weight: var(--ag-weight-medium);
-  box-shadow: var(--ag-shadow-md);
-  animation: ag-toast-in var(--ag-motion-normal) var(--ag-motion-ease);
+  box-shadow: var(--ag-shadow-float);
+  animation: ag-toast-in var(--ag-motion-sheet) var(--ag-ease-bounce);
 }
 
-.ag-toast__text { flex: 1; min-width: 0; }
-
-.ag-toast__undo {
+/* Il tondo con la spunta a sinistra, come l'icona nell'alone del Visore. È
+   un segno, non testo: --ag-bg sul fondo dell'avviso, sopra i 3:1. */
+.ag-toast__icon {
   flex: none;
-  min-height: var(--ag-touch-min);
-  padding: 0 var(--ag-space-3);
-  color: inherit;
-  font-size: var(--ag-size-sm);
-  font-weight: var(--ag-weight-bold);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--ag-radius-pill);
+  box-shadow: inset 0 0 0 2px currentColor;
 }
+
+.ag-toast__text { min-width: 0; }
 
 @keyframes ag-toast-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(140%) scale(0.92); }
   to { opacity: 1; transform: none; }
 }
 
 .ag-toast--leaving {
-  animation: ag-toast-out var(--ag-motion-fast) var(--ag-motion-ease) forwards;
+  animation: ag-toast-out var(--ag-motion-normal) var(--ag-motion-ease) forwards;
 }
 
 @keyframes ag-toast-out {
-  to { opacity: 0; transform: translateY(8px); }
+  to { opacity: 0; transform: translateY(60%) scale(0.96); }
 }
 
 /* ── 18. Stati vuoti ──────────────────────────────────────────────── */
@@ -1890,6 +1931,95 @@ button.ag-row { width: 100%; text-align: start; }
 
 /* I diciassette voti: chip tutti uguali, così si leggono come una tastiera. */
 .ag-grades__values .ag-chip { min-width: var(--ag-touch-min); justify-content: center; padding-inline: var(--ag-space-2); }
+
+/* ── Movimento del Visore (A76–A79) ─────────────────────────────────
+ *
+ * Tutto quello che si tocca risponde stringendosi un poco, e torna con la
+ * molla piccola. Le cose compaiono sfumando o scivolando, mai di colpo.
+ * Durate e curve sono token: con «Riduci movimento» valgono zero e niente
+ * si muove (tokens/space.css).
+ */
+
+/* Premere: i pulsanti piccoli si stringono a 0,96, quelli larghi a 0,98,
+   come `Premuto` e `TastoPieno` del Visore. Tornano con la molla piccola. */
+.ag-iconbtn, .ag-chip, .ag-seg__opt, .ag-sheet__option, .ag-cal__cell,
+.ag-row--tap, .ag-grades__grade, .ag-tt__cell[data-cell], .ag-alert__btn {
+  transition: transform var(--ag-motion-bounce) var(--ag-ease-bounce),
+              background-color var(--ag-motion-fast) var(--ag-motion-ease);
+}
+.ag-btn {
+  transition: transform var(--ag-motion-bounce) var(--ag-ease-bounce),
+              background-color var(--ag-motion-fast) var(--ag-motion-ease);
+}
+.ag-iconbtn:active, .ag-chip:active, .ag-seg__opt:active, .ag-cal__cell:active,
+.ag-tt__cell[data-cell]:active, .ag-alert__btn:active {
+  transform: scale(var(--ag-press));
+  transition-duration: var(--ag-motion-fast);
+  transition-timing-function: var(--ag-motion-ease);
+}
+.ag-btn:active, .ag-row--tap:active, .ag-sheet__option:active, .ag-grades__grade:active {
+  transform: scale(var(--ag-press-wide));
+  transition-duration: var(--ag-motion-fast);
+  transition-timing-function: var(--ag-motion-ease);
+}
+
+/* Il chip appena scelto fa il piccolo rimbalzo della `molla`: solo lui, non
+   tutti quelli accesi ogni volta che il foglio si ridisegna. */
+.ag-chip--pop { animation: ag-pop var(--ag-motion-bounce) var(--ag-ease-bounce); }
+@keyframes ag-pop { from { transform: scale(0.9); } to { transform: none; } }
+
+/* Le carte del Visore hanno un'ombra morbida sotto (A78): i riquadri di
+   righe, la griglia dell'orario e gli avvisi sulla pagina. */
+.ag-rows, .ag-alert { box-shadow: var(--ag-shadow-card); }
+
+/* A cascata: entrando in una pagina le righe arrivano una dopo l'altra,
+   scivolando su (`enter()` in ui.js mette `.ag-enter` e la posizione `--i`).
+   Solo entrando: un tocco che ridisegna la pagina non la fa ripartire. */
+.ag-enter .ag-cascade > *, .ag-enter .ag-rows > *, .ag-sheet .ag-cascade > * {
+  animation: ag-rise var(--ag-motion-scene) var(--ag-motion-ease) both;
+  animation-delay: calc(var(--i, 0) * var(--ag-stagger));
+}
+@keyframes ag-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* L'orario sfuma quando si passa a un'altra settimana. */
+.ag-tt__grid--enter { animation: ag-fade-in var(--ag-motion-scene) var(--ag-motion-ease); }
+
+/* Il selettore a segmenti: la macchia è una sola e scivola sulla scelta
+   nuova, come nella barra in basso del Visore (A79). Il testo acceso resta
+   --ag-text, che sulla macchia (--ag-bg) sta a 18.22:1 e 16.39:1, e sul
+   fondo del selettore a 16.50:1 e 14.85:1. */
+.ag-seg--slide { position: relative; }
+.ag-seg--slide::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px - (var(--seg-n) - 1) * 2px) / var(--seg-n));
+  border-radius: var(--ag-radius-pill);
+  background: var(--ag-bg);
+  box-shadow: var(--ag-shadow-sm);
+  transform: translateX(calc(var(--seg-i) * (100% + 2px)));
+  transition: transform var(--ag-motion-sheet) var(--ag-ease-bounce);
+}
+.ag-seg--still::before { transition: none; }
+.ag-seg--slide > .ag-seg__opt { position: relative; z-index: 1; }
+.ag-seg--slide > .ag-seg__opt[aria-pressed="true"] { background: none; box-shadow: none; }
+
+/* Il dettaglio di una materia aperta scende scivolando. */
+.ag-grades__detail { animation: ag-open var(--ag-motion-normal) var(--ag-motion-ease); }
+@keyframes ag-open {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* La media generale, cambiando periodo, corre verso il numero nuovo
+   (`runNumber()`) e rimbalza con la molla, come il volto grande del Visore. */
+.ag-grades__avg--big { display: inline-block; }
+.ag-grades__avg--big.ag-chip--pop { animation-duration: var(--ag-motion-sheet); }
 
 /* ── 19. Utilità ──────────────────────────────────────────────────── */
 

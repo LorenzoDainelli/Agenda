@@ -8,6 +8,10 @@
  *
  * Tutto vive sul telefono. Nessun server, nessun account, nessuna
  * sincronizzazione: due telefoni sono due mondi separati.
+ *
+ * I compiti, la rassegna e la spesa non si vedono più dall'undicesimo giro
+ * (A73), ma le loro funzioni restano qui: la copia di sicurezza li porta
+ * ancora fuori e il ripristino li rimette, così niente si perde in silenzio.
  */
 
 const KEY_SETTINGS = "agenda:settings";
@@ -279,7 +283,8 @@ export function applyBackup(parsed) {
     areas: [...areas.values()],
   });
 
-  return { tasks: parsed.tasks.length, total: merged.size };
+  // l'avviso dice quanti voti sono tornati
+  return { tasks: parsed.tasks.length, total: merged.size, grades: (parsed.grades || []).length, timetables: parsed.timetables.length };
 }
 
 /** Per il pulsante "ricomincia da zero", se un giorno servirà. Oggi non è usato. */

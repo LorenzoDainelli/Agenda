@@ -252,13 +252,12 @@ def pagina(pezzi, css_token, nomi_materie, autonomo):
   <div class="ag-app">
     {pezzi['intestazione']}
     <div class="ag-app__body">{pezzi['corpo']}</div>
-    {pezzi['barra']}
   </div>
 </div>
 
-<p class="cf-titolo">La settimana</p>
+<p class="cf-titolo">I voti</p>
 <div class="cf-schermo">
-  <div class="cf-pannello">{pezzi['settimana']}</div>
+  <div class="cf-pannello">{pezzi['voti']}</div>
 </div>
 
 <p class="cf-titolo">I dodici colori delle materie</p>

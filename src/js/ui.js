@@ -1,8 +1,8 @@
 /* Agenda — i mattoni dell'interfaccia.
  *
- * Quattro cose che servono a tutte le schermate: costruire un pezzo di
- * pagina, far salire un foglio dal basso, chiedere una conferma, far
- * comparire una notifica.
+ * Le cose che servono a tutte le schermate: costruire un pezzo di pagina,
+ * far entrare e uscire livelli e fogli, chiedere una conferma, far comparire
+ * un avviso, far muovere i pezzi come nel Visore.
  *
  * Nessuna di queste usa `alert`, `confirm` o `prompt`: una finestra del
  * browser in un'app aggiunta alla home ha l'aria di un errore di sistema, e
@@ -10,12 +10,9 @@
  */
 
 import {
-  today as todayISO, addMonths, addDays, daysInMonth, dow, firstOfMonth,
-  monthYear, weekdayInitials, dayNumber, dowShort,
+  today as todayISO, addMonths, daysInMonth, dow, firstOfMonth, monthYear, weekdayInitials,
 } from "./days.js";
 import { t, getLang } from "./i18n.js";
-import { partDay, isPartDone } from "./model.js";
-import { subjectLabel } from "./subjects.js";
 
 export const el = (id) => document.getElementById(id);
 
@@ -36,15 +33,62 @@ export function node(html) {
   return box.firstElementChild;
 }
 
-export function clear(parent) {
-  parent.replaceChildren();
-}
-
 /** Scorciatoia per attaccare un ascoltatore a tutti i figli con un attributo. */
 export function onEach(root, selector, event, handler) {
   for (const target of root.querySelectorAll(selector)) {
     target.addEventListener(event, handler);
   }
+}
+
+/* ── Entrare e uscire ─────────────────────────────────────────────────
+ *
+ * Come nel Visore, niente compare o sparisce di colpo (A76, A79): un livello
+ * o un foglio entra con la sua animazione e, chiudendosi, esce con la sua
+ * prima di diventare `hidden`. Mentre esce non prende più i tocchi, così chi
+ * tocca subito dopo tocca quello che c'è sotto.
+ *
+ * L'animazione la sceglie il CSS con due classi, `--in` e `--out`: qui si
+ * decide solo quando. Con «Riduci movimento» le durate sono zero e l'uscita
+ * è immediata.
+ */
+
+/** Il tempo dell'uscita, letto dal token: è il CSS a decidere quanto dura. */
+function leaveMs(node) {
+  const value = getComputedStyle(node).animationDuration || "0s";
+  const ms = value.endsWith("ms") ? parseFloat(value) : parseFloat(value) * 1000;
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+const leaving = new WeakMap();
+
+function show(node, base) {
+  const pending = leaving.get(node);
+  if (pending) {
+    // stava uscendo e lo si riapre: si ferma dov'è, senza rientrare da capo
+    clearTimeout(pending);
+    leaving.delete(node);
+    node.classList.remove(`${base}--out`);
+    return;
+  }
+  if (!node.hidden) return;
+  node.classList.remove(`${base}--out`);
+  node.classList.add(`${base}--in`);
+  node.hidden = false;
+}
+
+function hide(node, base, done) {
+  if (node.hidden || leaving.has(node)) return;
+  node.classList.remove(`${base}--in`);
+  node.classList.add(`${base}--out`);
+  const finish = () => {
+    leaving.delete(node);
+    node.classList.remove(`${base}--out`);
+    node.hidden = true;
+    if (done) done();
+  };
+  const ms = leaveMs(node);
+  if (!ms) { finish(); return; }
+  leaving.set(node, setTimeout(finish, ms));
 }
 
 /* ── Livelli ──────────────────────────────────────────────────────── */
@@ -53,17 +97,23 @@ const layerStack = [];
 
 export function openLayer(id) {
   const layer = el(id);
-  if (!layer || !layer.hidden) return;
-  layer.hidden = false;
-  layerStack.push(id);
+  if (!layer || (!layer.hidden && !leaving.has(layer))) return;
+  show(layer, "ag-layer");
+  if (!layerStack.includes(id)) layerStack.push(id);
 }
 
 export function closeLayer(id) {
   const layer = el(id);
   if (!layer) return;
-  layer.hidden = true;
   const index = layerStack.lastIndexOf(id);
   if (index !== -1) layerStack.splice(index, 1);
+  hide(layer, "ag-layer");
+}
+
+/** Se un livello è aperto davvero: uno che sta uscendo conta già come chiuso. */
+export function isLayerOpen(id) {
+  const layer = el(id);
+  return Boolean(layer) && !layer.hidden && !leaving.has(layer);
 }
 
 export function topLayer() {
@@ -75,35 +125,38 @@ export function topLayer() {
 let sheetOnClose = null;
 
 /**
- * Fa salire il foglio dal basso col contenuto dato.
+ * Fa salire il foglio dal basso col contenuto dato, con la molla dei fogli.
+ * Se il foglio è già su, cambia solo il contenuto: passare dal voto al
+ * calendario non deve far ridiscendere e risalire tutto.
  * Toccando lo sfondo si chiude: è il gesto che tutti si aspettano, e non è
  * l'unico modo (ogni foglio ha anche il suo pulsante).
  */
 export function openSheet(html, { onClose } = {}) {
   el("sheet-body").innerHTML = html;
-  el("scrim").hidden = false;
-  el("sheet").hidden = false;
+  show(el("scrim"), "ag-scrim");
+  show(el("sheet"), "ag-sheet");
   sheetOnClose = onClose || null;
   return el("sheet-body");
 }
 
 export function closeSheet() {
-  el("sheet").hidden = true;
-  el("scrim").hidden = true;
-  el("sheet-body").replaceChildren();
+  hide(el("scrim"), "ag-scrim");
+  // il contenuto resta finché il foglio non è sceso: sparirebbe a metà strada
+  hide(el("sheet"), "ag-sheet", () => el("sheet-body").replaceChildren());
   const fn = sheetOnClose;
   sheetOnClose = null;
   if (fn) fn();
 }
 
 export function isSheetOpen() {
-  return !el("sheet").hidden;
+  const sheet = el("sheet");
+  return !sheet.hidden && !leaving.has(sheet);
 }
 
 /**
  * Una conferma. Il messaggio dice cosa sta per succedere, coi numeri dentro:
- * "Elimino «Inglese»? I 4 compiti che la usano restano." Mai un "Sei sicuro?",
- * che non dà nessuna informazione a chi deve decidere.
+ * "Elimino «Inglese»? I 4 voti restano." Mai un "Sei sicuro?", che non dà
+ * nessuna informazione a chi deve decidere.
  */
 export function confirmSheet(message, { confirmLabel, danger = true, onConfirm }) {
   const body = openSheet(`
@@ -127,9 +180,9 @@ export function confirmSheet(message, { confirmLabel, danger = true, onConfirm }
 export function chooseSheet(title, options, onPick) {
   const body = openSheet(`
     ${title ? `<p class="ag-sheet__title">${esc(title)}</p>` : ""}
-    <div class="ag-group">
-      ${options.map((opt) => `
-        <button class="ag-sheet__option" type="button" data-value="${esc(opt.value)}"
+    <div class="ag-group ag-cascade">
+      ${options.map((opt, i) => `
+        <button class="ag-sheet__option" type="button" data-value="${esc(opt.value)}" style="--i:${i}"
                 aria-selected="${opt.selected ? "true" : "false"}">
           <span>${esc(opt.label)}</span>
           ${opt.note ? `<span class="ag-row__value">${esc(opt.note)}</span>` : ""}
@@ -144,22 +197,24 @@ export function chooseSheet(title, options, onPick) {
   });
 }
 
-/* ── Notifiche ────────────────────────────────────────────────────── */
+/* ── Avvisi ───────────────────────────────────────────────────────── */
 
-const TOAST_MS = 5000;
+/** Quanto resta un avviso: circa due secondi e mezzo, come i messaggini a
+ *  pillola del Visore (A77). Era cinque per dare il tempo dell'annulla, che
+ *  apparteneva ai compiti e alla spesa e non c'è più. */
+const TOAST_MS = 2500;
 
 /**
- * Una notifica in basso, che se ne va da sé. Con `onUndo` porta anche
- * l'annulla — ed è il motivo per cui sta aperta cinque secondi e non due:
- * cinque secondi sono il tempo di accorgersi di aver spuntato la riga
- * sbagliata e rimediare.
+ * Un avviso a pillola che sale dal basso e se ne va da sé. Uno solo alla
+ * volta: un avviso nuovo spinge via quello di prima, come nel Visore.
  */
-export function toast(message, { onUndo } = {}) {
+export function toast(message) {
   const box = el("toasts");
+  for (const old of box.querySelectorAll(".ag-toast:not(.ag-toast--leaving)")) old.dispatchEvent(new Event("ag-dismiss"));
   const item = node(`
-    <div class="ag-toast">
+    <div class="ag-toast" role="status">
+      <span class="ag-toast__icon" aria-hidden="true">${checkIcon()}</span>
       <span class="ag-toast__text">${esc(message)}</span>
-      ${onUndo ? `<button class="ag-toast__undo" type="button">${esc(t("common.undo"))}</button>` : ""}
     </div>
   `);
   box.append(item);
@@ -167,113 +222,100 @@ export function toast(message, { onUndo } = {}) {
   let timer = null;
   const dismiss = () => {
     if (timer) clearTimeout(timer);
+    if (item.classList.contains("ag-toast--leaving")) return;
     item.classList.add("ag-toast--leaving");
-    setTimeout(() => item.remove(), 200);
+    setTimeout(() => item.remove(), leaveMs(item));
   };
-
-  if (onUndo) {
-    item.querySelector(".ag-toast__undo").addEventListener("click", () => {
-      dismiss();
-      onUndo();
-    });
-  }
+  item.addEventListener("ag-dismiss", dismiss);
   timer = setTimeout(dismiss, TOAST_MS);
   return dismiss;
+}
+
+/* ── Movimento dei pezzi ──────────────────────────────────────────── */
+
+/* L'ultima scelta di ogni selettore a segmenti, per id: la pagina si
+   ridisegna da capo a ogni tocco, e senza ricordarla la macchia non saprebbe
+   da dove partire. */
+const segmentAt = new Map();
+
+/**
+ * Nel selettore a segmenti la macchia scivola sulla scelta nuova, come nella
+ * barra in basso del Visore (A79). La macchia è un `::before` del selettore:
+ * qui si dice solo quanti segmenti ci sono e quale è acceso. Va chiamata dopo
+ * ogni disegno; un selettore senza id si accende al suo posto, senza viaggio.
+ */
+export function slideSegments(root) {
+  for (const seg of root.querySelectorAll(".ag-seg")) {
+    const options = [...seg.querySelectorAll(".ag-seg__opt")];
+    const index = options.findIndex((opt) => opt.getAttribute("aria-pressed") === "true");
+    if (index < 0) continue;
+    seg.style.setProperty("--seg-n", String(options.length));
+    seg.classList.add("ag-seg--slide");
+    const before = seg.id ? segmentAt.get(seg.id) : undefined;
+    if (seg.id) segmentAt.set(seg.id, index);
+    if (before === undefined || before === index) {
+      seg.style.setProperty("--seg-i", String(index));
+      continue;
+    }
+    // parte da dov'era, e al disegno dopo va dove deve: è il salto di
+    // posizione che il CSS trasforma in uno scivolamento
+    seg.style.setProperty("--seg-i", String(before));
+    seg.classList.add("ag-seg--still");
+    requestAnimationFrame(() => {
+      seg.classList.remove("ag-seg--still");
+      requestAnimationFrame(() => seg.style.setProperty("--seg-i", String(index)));
+    });
+  }
+}
+
+/**
+ * L'entrata a cascata di una pagina (A79): le righe dei riquadri e dei
+ * gruppi `.ag-cascade` arrivano una dopo l'altra. Si chiama quando una pagina
+ * si apre, non a ogni disegno; la classe se ne va da sola a cascata finita,
+ * così i disegni dopo un tocco non ripartono da capo.
+ */
+export function enter(root) {
+  const rows = root.querySelectorAll(".ag-rows > *, .ag-cascade > *");
+  rows.forEach((row, i) => row.style.setProperty("--i", String(Math.min(i, 12))));
+  root.classList.add("ag-enter");
+  clearTimeout(enterTimers.get(root));
+  // finisce quando l'ultima riga è arrivata: i tempi sono quelli dei token
+  const css = getComputedStyle(document.documentElement);
+  const ms = (parseFloat(css.getPropertyValue("--ag-motion-scene")) || 0)
+    + 12 * (parseFloat(css.getPropertyValue("--ag-stagger")) || 0);
+  enterTimers.set(root, setTimeout(() => root.classList.remove("ag-enter"), ms));
+}
+const enterTimers = new WeakMap();
+
+/**
+ * Un numero che corre verso quello nuovo invece di cambiare di colpo, come il
+ * conto degli scatti nel Visore (A79). `format` lo scrive; con «Riduci
+ * movimento» si scrive subito quello finale.
+ */
+export function runNumber(target, from, to, format) {
+  const quiet = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  if (quiet || from === null || to === null || from === to) {
+    target.textContent = format(to);
+    return;
+  }
+  // dura quanto la molla piccola: il tempo è un token, non un numero qui
+  const ms = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ag-motion-bounce")) || 0;
+  const start = performance.now();
+  const step = (now) => {
+    const k = Math.min(1, (now - start) / ms);
+    // la stessa curva del resto: parte svelto e rallenta arrivando
+    const eased = 1 - (1 - k) ** 3;
+    target.textContent = format(k < 1 ? from + (to - from) * eased : to);
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
 }
 
 /* ── Pezzi ricorrenti ─────────────────────────────────────────────── */
 
 /** Il pallino colorato di una materia. */
-/**
- * Il nome di un compito come si legge. Un compito di scuola senza nome si
- * chiama come la sua materia, o «Verifica di …» (assunzione A26). Si calcola
- * qui e non si salva: se la materia cambia nome, cambia anche il compito.
- */
-export function taskTitle(subjects, task) {
-  if (task.title?.trim()) return task.title;
-  const subject = subjectLabel(subjects, task);
-  if (!subject) return "…";
-  return task.kind === "test" ? t("task.title.test", { subject }) : subject;
-}
-
 export function dot(colorStyle) {
   return `<span class="ag-dot" style="${colorStyle}" aria-hidden="true"></span>`;
-}
-
-/** Le tre tacche del peso. Portano anche un nome accessibile: il peso non è
- *  leggibile da una forma se non si vede la forma. */
-export function weightTicks(weight) {
-  const ticks = [1, 2, 3]
-    .map((n) => `<span class="ag-weight__tick ${n <= weight ? "ag-weight__tick--on" : ""}"></span>`)
-    .join("");
-  return `<span class="ag-weight" role="img" aria-label="${esc(t(`weight.${weight}`))}">${ticks}</span>`;
-}
-
-/** Un giorno detto come si dice a voce: "oggi", "domani", "ieri", "mer 23". */
-export function relativeDay(day, today = todayISO()) {
-  if (day === today) return t("common.today").toLowerCase();
-  if (day === addDays(today, 1)) return t("common.tomorrow").toLowerCase();
-  if (day === addDays(today, -1)) return t("common.yesterday").toLowerCase();
-  return `${dowShort(day, getLang())} ${dayNumber(day)}`;
-}
-
-/** Il giorno e il momento di una parte, uguali nell'elenco e nel pannello:
- *  "oggi · sera", "mer 23 · pomerig.". */
-export function whenLabel(day, slot, today = todayISO()) {
-  return `${relativeDay(day, today)} · ${t(`slot.${slot}.short`)}`;
-}
-
-/**
- * Una parte sotto la riga del suo compito, col suo cerchio. La usano
- * l'elenco (app.js) e la rassegna (review.js): la stessa riga, così una parte
- * si spunta nello stesso modo dovunque la si incontri. Nella rassegna il nome
- * non apre niente (`openable` falso): lì si risponde, non si modifica.
- *
- * Il nome apre il compito, come il titolo sopra: una riga dove solo il
- * cerchio risponde sembrerebbe rotta a chi tocca il nome.
- */
-export function partItem(task, part, today = todayISO(), { openable = true } = {}) {
-  const done = isPartDone(part);
-  // il suo giorno, se ne ha uno (§6.1): è quello che dice perché il compito
-  // sta in questa sezione e non in un'altra
-  const giorno = partDay(part);
-  const quando = giorno ? whenLabel(giorno, part.pick[giorno], today) : "";
-  // il suo giorno è passato e non è fatta: in rosso, come una scadenza
-  // passata (§6.1)
-  const inRitardo = Boolean(giorno) && giorno < today && !done;
-  return `
-    <li class="ag-subpart ${done ? "ag-subpart--done" : ""}">
-      <${openable ? `button type="button" data-open="${esc(task.id)}"` : "span"} class="ag-subpart__title">
-        <span class="ag-subpart__name">${esc(part.title)}</span>
-        ${quando ? `<span class="ag-subpart__when ${inRitardo ? "ag-subpart__when--late" : ""}">${esc(quando)}</span>` : ""}
-      </${openable ? "button" : "span"}>
-      ${partCheck(task, part)}
-    </li>`;
-}
-
-/**
- * Il cerchio di una parte. Sta sotto la riga del compito (partItem) o, se la
- * parte è una sola, al posto del cerchio del compito (A49): lo stesso
- * pulsante, così si tocca e risponde nello stesso modo dovunque sia.
- *
- * Una parte con un numero porta il conto dentro il cerchio (3/5) finché non
- * è piena, poi la spunta come le altre: il numero è l'unica cosa che dice
- * quanto manca, e fuori dal cerchio sarebbe una terza colonna su una riga già
- * stretta.
- */
-export function partCheck(task, part) {
-  const done = isPartDone(part);
-  const counted = Number(part.total) > 1;
-  const label = counted
-    ? t("part.count", { title: part.title, done: part.done, total: part.total })
-    : t("part.check", { title: part.title });
-  return `
-      <button class="ag-check ${counted && !done ? "ag-check--count" : ""}" type="button"
-              data-part="${esc(task.id)}" data-part-id="${esc(part.id)}"
-              aria-pressed="${done ? "true" : "false"}"
-              aria-label="${esc(label)}">${counted && !done
-                ? `<span class="ag-check__count">${esc(`${part.done}/${part.total}`)}</span>`
-                : checkIcon()}</button>`;
 }
 
 /** La freccia che apre e chiude qualcosa sotto di sé: punta in giù da chiusa,
@@ -293,116 +335,6 @@ export function chevron() {
   return `<svg class="ag-row__chevron" width="18" height="18" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>`;
-}
-
-export function emptyState(title, note) {
-  return `
-    <div class="ag-empty">
-      <span class="ag-empty__icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="3.5" y="4.5" width="17" height="16" rx="3"/><path d="M8 9.5h8M8 14h5"/></svg>
-      </span>
-      <span class="ag-empty__title">${esc(title)}</span>
-      <span class="ag-empty__note">${esc(note)}</span>
-    </div>`;
-}
-
-/* ── Far scorrere una riga (A22, A54) ─────────────────────────────────
- *
- * Trascinando una riga di lato succede qualcosa: nell'elenco verso destra si
- * spunta, nella spesa verso destra si toglie e verso sinistra si corregge.
- * Chi chiama dice in quali direzioni la riga si muove e cosa fare; qui c'è
- * solo il gesto, uguale dovunque.
- *
- * Mentre si trascina la riga porta `data-armed` con la direzione quando,
- * rilasciando, il gesto scatterebbe: è il modo di sapere in anticipo cosa
- * succede, e di tornare indietro col dito se non era quello che si voleva. Il
- * CSS lo fa vedere (il cerchio che si riempie, il contorno colorato).
- */
-
-/** Prima di così è un tocco un po' mosso, non uno scorrimento. */
-const SWIPE_START_PX = 12;
-/** Oltre questa parte della riga, rilasciando il gesto scatta. */
-const SWIPE_FRACTION = 1 / 3;
-/** Per quanto dopo uno scorrimento si ignora il click che il browser manda
- *  comunque all'elemento sotto il dito, e che aprirebbe il compito. */
-const SWIPE_CLICK_MS = 400;
-
-/**
- * `selector` trova la riga dentro `box`; `directions` è un elenco fra
- * "right" e "left"; `onSwipe(riga, direzione)` arriva al rilascio, solo se il
- * gesto è scattato. Si chiama una volta per contenitore: gli ascoltatori
- * stanno sul contenitore, che resta, e non sulle righe, che si ridisegnano.
- */
-export function bindSwipe(box, { selector, directions = ["right"], onSwipe }) {
-  let row = null;
-  let startX = 0;
-  let startY = 0;
-  let swiping = false;
-  let armed = null;
-  let quietUntil = 0;
-  const canRight = directions.includes("right");
-  const canLeft = directions.includes("left");
-
-  const reset = () => {
-    if (row) {
-      row.style.transform = "";
-      row.classList.remove("ag-swipe--moving");
-      delete row.dataset.armed;
-    }
-    row = null;
-    swiping = false;
-    armed = null;
-  };
-
-  box.addEventListener("pointerdown", (event) => {
-    const target = event.target.closest?.(selector);
-    if (!target || event.button > 0) return;
-    row = target;
-    startX = event.clientX;
-    startY = event.clientY;
-  });
-
-  box.addEventListener("pointermove", (event) => {
-    if (!row) return;
-    const dx = event.clientX - startX;
-    const dy = event.clientY - startY;
-    if (!swiping) {
-      // in verticale è l'elenco che scorre: la riga non c'entra
-      if (Math.abs(dy) > SWIPE_START_PX && Math.abs(dy) >= Math.abs(dx)) { reset(); return; }
-      if (Math.abs(dx) <= SWIPE_START_PX || Math.abs(dx) < Math.abs(dy)) return;
-      if (dx > 0 ? !canRight : !canLeft) return;
-      swiping = true;
-      row.classList.add("ag-swipe--moving");
-      row.setPointerCapture?.(event.pointerId);
-    }
-    // la riga va solo dalle parti in cui il gesto significa qualcosa
-    let clamped = dx;
-    if (!canRight) clamped = Math.min(clamped, 0);
-    if (!canLeft) clamped = Math.max(clamped, 0);
-    row.style.transform = `translateX(${clamped}px)`;
-    armed = Math.abs(clamped) > row.offsetWidth * SWIPE_FRACTION ? (clamped > 0 ? "right" : "left") : null;
-    if (armed) row.dataset.armed = armed;
-    else delete row.dataset.armed;
-  });
-
-  box.addEventListener("pointerup", () => {
-    if (!row) return;
-    const target = row;
-    const direction = swiping ? armed : null;
-    if (swiping) quietUntil = performance.now() + SWIPE_CLICK_MS;
-    reset();
-    if (direction) onSwipe(target, direction);
-  });
-  box.addEventListener("pointercancel", reset);
-
-  box.addEventListener("click", (event) => {
-    if (performance.now() < quietUntil) {
-      event.stopPropagation();
-      event.preventDefault();
-    }
-  }, true);
 }
 
 /* ── Scelta di un giorno ──────────────────────────────────────────────
@@ -465,12 +397,4 @@ export function datePickerSheet(current, { title, min, max, onPick, allowNone } 
   };
 
   draw();
-}
-
-/** Le date proposte come chip: domani, dopodomani e le prossime lezioni. */
-export function dayChipLabel(iso) {
-  const today = todayISO();
-  if (iso === today) return null;   // il chip "oggi" lo mette chi chiama, con il suo testo
-  if (iso === addDays(today, 1)) return null;
-  return String(dayNumber(iso));
 }

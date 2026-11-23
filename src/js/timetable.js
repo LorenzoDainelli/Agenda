@@ -45,15 +45,6 @@ export function readCell(value) {
     : { subjectId: value, lab: false };
 }
 
-/**
- * Se un'ora è di quella materia. `lab` null = teoria o laboratorio, non
- * importa; true o false = solo quella.
- */
-function isLesson(value, subjectId, lab = null) {
-  const cell = readCell(value);
-  return cell.subjectId === subjectId && (lab === null || cell.lab === lab);
-}
-
 export function emptyGrid(schoolDays, lessonsPerDay) {
   const grid = {};
   for (const day of schoolDays) grid[String(day)] = new Array(lessonsPerDay).fill(null);
@@ -124,54 +115,6 @@ export function createNext(list, settings, today = todayISO(), start = null) {
   const weekStart = start || nextWeekStart(list, today);
   const source = list[0]?.grid || emptyGrid(settings.schoolDays, settings.lessonsPerDay);
   return newTimetable(weekStart, source);
-}
-
-/** I giorni della settimana (1..7) in cui quella materia c'è, secondo una griglia. */
-export function daysWithSubject(timetable, subjectId) {
-  if (!timetable || !subjectId) return [];
-  return Object.entries(timetable.grid)
-    .filter(([, hours]) => Array.isArray(hours) && hours.some((value) => isLesson(value, subjectId)))
-    .map(([day]) => Number(day))
-    .sort((a, b) => a - b);
-}
-
-/**
- * Le prossime date in cui c'è quella materia, a partire dal giorno DOPO
- * `from` — perché la lezione di oggi è quella in cui il compito è stato dato,
- * e la scadenza è la prossima.
- *
- * Cerca fino a quattro settimane avanti e usa, per ogni giorno, l'orario
- * valido per quel giorno: se fra due settimane l'orario cambia, la seconda
- * proposta tiene conto della griglia nuova.
- *
- * `lab` sceglie fra le ore di teoria (false) e quelle di laboratorio (true);
- * null le prende tutte (A45).
- */
-export function nextLessons(list, subjectId, from = todayISO(), howMany = 2, lab = null) {
-  if (!subjectId || !list.length) return [];
-  const out = [];
-  for (let i = 1; i <= 28 && out.length < howMany; i += 1) {
-    const day = addDays(from, i);
-    const timetable = timetableFor(list, day);
-    if (!timetable) continue;
-    const hours = timetable.grid[String(dow(day))];
-    if (Array.isArray(hours) && hours.some((value) => isLesson(value, subjectId, lab))) out.push(day);
-  }
-  return out;
-}
-
-/** Le materie che ha avuto in un certo giorno, senza ripetizioni e in ordine di ora. */
-export function subjectsOn(list, date) {
-  const timetable = timetableFor(list, date);
-  if (!timetable) return [];
-  const hours = timetable.grid[String(dow(date))] || [];
-  const seen = new Set();
-  const out = [];
-  for (const value of hours) {
-    const id = readCell(value).subjectId;
-    if (id && !seen.has(id)) { seen.add(id); out.push(id); }
-  }
-  return out;
 }
 
 /**
