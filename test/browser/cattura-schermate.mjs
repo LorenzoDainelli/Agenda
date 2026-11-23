@@ -22,18 +22,15 @@ const ctx = await browser.newContext({
   locale: "it-IT", timezoneId: "Europe/Rome",
 });
 // Le prove sono scritte per lunedì 21 settembre 2026, alle dieci: l'orologio
-// del browser si ferma lì. Senza, dal giorno dopo le date dei dati finti
-// scivolano nel passato, parte la rassegna degli arretrati e la prova fallisce
-// per colpa del calendario, non dell'app. Si ferma solo la data: i timer
-// (i toast, le animazioni) continuano a scorrere.
+// del browser si ferma lì, così la settimana dell'orario è sempre quella.
 await ctx.clock.setFixedTime(new Date("2026-09-21T10:00:00+02:00"));
 const page = await ctx.newPage();
 await page.goto("http://localhost:8099/index.html", { waitUntil: "networkidle" });
 
 // Dati inventati, come negli altri driver: nel repo non entra mai un dato
 // vero (regola 1 di CLAUDE.md). Servono solo a far comparire tutti gli stati
-// che una palette deve reggere: un arretrato, una verifica, un compito a
-// parti, una cosa privata, giorni con pesi diversi.
+// che una palette deve reggere: tutte le materie nell'orario, voti sopra e
+// sotto il 6, teoria e laboratorio.
 await page.evaluate(() => {
   const S = (n, short, color) => ({ id: "s-" + short.toLowerCase(), name: n, short, color });
   localStorage.setItem("agenda:settings", JSON.stringify({
@@ -48,26 +45,11 @@ await page.evaluate(() => {
             "3": ["s-scie", "s-scie", "s-mate", null, null, null], "4": ["s-mate", "s-ingl", "s-ital", null, null, null],
             "5": ["s-stor", "s-geog", null, null, null, null], "6": [null, null, null, null, null, null] },
   }]));
-  const base = (over) => ({
-    id: "t-" + Math.random().toString(36).slice(2, 8), area: "school", subjectId: null, subjectName: null,
-    kind: "homework", title: "x", due: null, weight: 1, createdAt: "2026-09-21", doneAt: null,
-    droppedAt: null, plan: { skip: [], pick: {} }, parts: [], ...over,
-  });
-  localStorage.setItem("agenda:tasks", JSON.stringify([
-    base({ title: "Schede di inglese", subjectId: "s-ingl", subjectName: "Inglese", due: "2026-09-18", weight: 2 }),
-    base({ title: "Compiti di inglese", subjectId: "s-ingl", subjectName: "Inglese", due: "2026-09-24", weight: 2,
-           plan: { skip: ["2026-09-23"], pick: { "2026-09-22": "evening" } },
-           parts: [{ id: "p1", title: "frasi da tradurre", total: 5, done: 5 },
-                   { id: "p2", title: "esercizi sul libro", total: 2, done: 0 }] }),
-    base({ title: "Verifica di storia", kind: "test", subjectId: "s-stor", subjectName: "Storia",
-           due: "2026-09-25", weight: 3, plan: { skip: [], pick: { "2026-09-23": "afternoon", "2026-09-24": "evening" } } }),
-    base({ title: "Esercizi di matematica", subjectId: "s-mate", subjectName: "Matematica", due: "2026-09-24", weight: 3,
-           plan: { skip: [], pick: { "2026-09-22": "afternoon" } } }),
-    base({ title: "Relazione di scienze", subjectId: "s-scie", subjectName: "Scienze", due: "2026-10-05", weight: 3 }),
-    base({ title: "Riassunto di italiano", subjectId: "s-ital", subjectName: "Italiano", due: "2026-09-22", weight: 1 }),
-    base({ title: "Comprare le cuffie", area: "private", kind: "todo", due: null }),
-  ]));
-  localStorage.setItem("agenda:review", JSON.stringify({ lastReviewedOn: "2026-09-21" }));
+  localStorage.setItem("agenda:grades", JSON.stringify({ items: [
+    { id: "g-1", subjectId: "s-ingl", subjectName: "Inglese", value: 7.5, date: "2026-09-15", lab: false },
+    { id: "g-2", subjectId: "s-mate", subjectName: "Matematica", value: 5, date: "2026-09-16", lab: false },
+    { id: "g-3", subjectId: "s-stor", subjectName: "Storia", value: 8, date: "2026-09-18", lab: false },
+  ] }));
 });
 await page.reload({ waitUntil: "networkidle" });
 
@@ -79,12 +61,13 @@ const dentro = async (s) => await page.locator(s).first().evaluate((el) => el.in
 const pezzi = {
   intestazione: await html(".ag-header"),
   corpo: await dentro(".ag-app__body"),
-  barra: await html(".ag-actionbar"),
 };
 
-await page.click("#open-calendar");
+await page.click("#open-grades");
+await page.waitForTimeout(600);
+await page.click('[data-gr-subject="s-mate"]');
 await page.waitForTimeout(400);
-pezzi.settimana = await dentro("#calendar-body");
+pezzi.voti = await dentro("#grades-body");
 
 writeFileSync(USCITA, JSON.stringify(pezzi, null, 1));
 console.log(`catturate ${Object.keys(pezzi).length} parti in ${USCITA}`);

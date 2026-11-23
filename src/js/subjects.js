@@ -112,39 +112,3 @@ export function findSubject(subjects, id) {
   return subjects.find((s) => s.id === id) || null;
 }
 
-/**
- * Il nome da mostrare per la materia di un compito.
- *
- * Vince la materia che esiste ancora; se è stata eliminata resta il nome
- * congelato dentro il compito. Così eliminare una materia non rende
- * illeggibili i compiti che la usavano (regola 4: mai perdere dati in
- * silenzio, nemmeno un nome).
- */
-export function subjectLabel(subjects, task) {
-  const found = task.subjectId ? findSubject(subjects, task.subjectId) : null;
-  return found?.name ?? task.subjectName ?? null;
-}
-
-/**
- * Teoria o laboratorio, per un compito (A44–A47): "lab", "theory", oppure
- * null quando la cosa non si pone.
- *
- * Si pone se la materia ha il laboratorio, o se il compito è segnato di
- * laboratorio: togliere il laboratorio a una materia non deve far dimenticare
- * che quel compito era di laboratorio (A47).
- */
-export function modeOf(subjects, task) {
-  if (task.lab) return "lab";
-  const found = task.subjectId ? findSubject(subjects, task.subjectId) : null;
-  return found?.lab ? "theory" : null;
-}
-
-export function subjectColor(subjects, task) {
-  const found = task.subjectId ? findSubject(subjects, task.subjectId) : null;
-  return found?.color ?? SUGGESTED[0];
-}
-
-/** Quanti compiti usano una materia: serve a dirlo nella conferma di eliminazione. */
-export function countUsing(tasks, subjectId) {
-  return tasks.filter((task) => task.subjectId === subjectId).length;
-}

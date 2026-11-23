@@ -117,6 +117,11 @@ export const AUDIT = () => {
     if (r.width === 0 || r.height === 0) continue;
     const st = getComputedStyle(el);
     if (st.visibility === "hidden" || st.opacity === "0") continue;
+    // un pulsante disattivato non deve contrasto: lo dice la WCAG stessa
+    // (1.4.3, «inactive user interface component»). Sono i giorni che non si
+    // possono scegliere nel calendario, spenti apposta (i giorni futuri di un
+    // voto, A67): se si leggessero come gli altri, sembrerebbero toccabili.
+    if (el.closest("button[disabled]")) continue;
     const fg = parse(st.color);
     if (!fg) continue;
     const bg0 = bgOf(el, lum(fg.rgb));

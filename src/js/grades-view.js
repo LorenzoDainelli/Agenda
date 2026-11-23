@@ -16,6 +16,7 @@ import {
 } from "./grades.js";
 import {
   el, esc, onEach, toast, confirmSheet, openSheet, closeSheet, datePickerSheet, dot, expandIcon,
+  enter, slideSegments, runNumber,
 } from "./ui.js";
 
 let grades = [];
@@ -25,6 +26,9 @@ let period = 1;
 /* Le materie aperte restano aperte mentre si aggiungono voti: ogni salvataggio
    ridisegna il pannello, e richiuderle farebbe perdere il segno. */
 const opened = new Set();
+/* La media generale mostrata l'ultima volta: cambiando periodo il numero
+   corre da lì a quello nuovo (A79). */
+let lastOverall = null;
 
 export function open(list, context, callbacks) {
   grades = list;
@@ -32,7 +36,9 @@ export function open(list, context, callbacks) {
   handlers = callbacks;
   period = defaultPeriod(todayISO());
   opened.clear();
+  lastOverall = null;
   render();
+  enter(el("grades-body"));
 }
 
 export function refresh(list, context) {
@@ -123,6 +129,16 @@ export function render() {
       </div>` : ""}
   `;
   bind(body);
+  slideSegments(body);
+  // la media generale corre verso il numero nuovo e rimbalza, ma solo se è
+  // cambiata: aprire una materia non la deve far saltare
+  const overall = overallAverage(shown);
+  const big = body.querySelector(".ag-grades__avg--big");
+  if (lastOverall !== null && overall !== null && overall !== lastOverall) {
+    big.classList.add("ag-chip--pop");
+    runNumber(big, lastOverall, overall, (v) => formatNumber(v, getLang()));
+  }
+  lastOverall = overall;
 }
 
 function bind(body) {
@@ -149,7 +165,7 @@ function bind(body) {
  * calendario, che prende il posto del foglio: per questo la bozza vive fuori
  * e il foglio si riapre com'era.
  */
-function formSheet(existing, draft = null) {
+function formSheet(existing, draft = null, picked = null) {
   const today = todayISO();
   const year = schoolYearOf(today);
   const lastDay = rangeOf(year, "year").to;
@@ -176,7 +192,7 @@ function formSheet(existing, draft = null) {
           </button>`).join("")}
       </div>
       ${subject?.lab || d.lab ? `
-        <div class="ag-seg">
+        <div class="ag-seg" id="gr-form-lab">
           ${[false, true].map((lab) => `
             <button class="ag-seg__opt" type="button" data-f-lab="${lab ? "1" : "0"}"
                     aria-pressed="${Boolean(d.lab) === lab ? "true" : "false"}">${esc(t(lab ? "grades.lab" : "grades.theory"))}</button>`).join("")}
@@ -201,12 +217,15 @@ function formSheet(existing, draft = null) {
     <button class="ag-btn ag-btn--ghost" type="button" data-f-act="cancel">${esc(t("common.cancel"))}</button>
   `);
 
-  const again = () => formSheet(existing, d);
+  // il chip appena toccato rimbalza; gli altri accesi restano fermi
+  if (picked) sheet.querySelector(picked)?.classList.add("ag-chip--pop");
+  slideSegments(sheet);
+  const again = (key = null) => formSheet(existing, d, key);
   onEach(sheet, "[data-f-subject]", "click", (event) => {
     d.subjectId = event.currentTarget.dataset.fSubject;
     // una materia senza laboratorio non può avere un voto di laboratorio
     if (!findSubject(ctx.settings.subjects, d.subjectId)?.lab) d.lab = false;
-    again();
+    again(`[data-f-subject="${d.subjectId}"]`);
   });
   onEach(sheet, "[data-f-lab]", "click", (event) => {
     d.lab = event.currentTarget.dataset.fLab === "1";
@@ -214,7 +233,7 @@ function formSheet(existing, draft = null) {
   });
   onEach(sheet, "[data-f-value]", "click", (event) => {
     d.value = Number(event.currentTarget.dataset.fValue);
-    again();
+    again(`[data-f-value="${d.value}"]`);
   });
   sheet.querySelector("[data-f-date]").addEventListener("click", () => {
     datePickerSheet(d.date, {

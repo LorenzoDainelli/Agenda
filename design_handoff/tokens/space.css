@@ -25,6 +25,11 @@
   --ag-shadow-md: 0 6px 20px -6px hsl(var(--ag-shadow-color) / var(--ag-shadow-a-md));
   --ag-shadow-hero: 0 12px 28px -12px hsl(var(--ag-shadow-color) / var(--ag-shadow-a-lg));
   --ag-shadow-bar: 0 -8px 24px -12px hsl(var(--ag-shadow-color) / var(--ag-shadow-a-md));
+  /* Le due ombre del Visore (A78): `ombra` delle carte (raggio 10, giù 4)
+     e quella di ciò che galleggia, fogli e avvisi (raggio 16, giù 7). Un
+     raggio di SwiftUI è circa metà della sfocatura del CSS. */
+  --ag-shadow-card: 0 4px 20px -4px hsl(var(--ag-shadow-color) / var(--ag-shadow-a-md));
+  --ag-shadow-float: 0 7px 32px -6px hsl(var(--ag-shadow-color) / var(--ag-shadow-a-lg));
 
   /* Target di tocco — minimo iOS, mai scendere sotto */
   --ag-touch-min: 44px;
@@ -37,15 +42,44 @@
   --ag-app-max-width: 460px;
   --ag-gutter: var(--ag-space-5);
 
-  /* Movimento — breve, mai vistoso */
-  --ag-motion-fast: 140ms;
-  --ag-motion-normal: 240ms;
-  --ag-motion-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Movimento — i tempi del Visore (`Moto` in Stile.swift, A76): gesto,
+     passo e scena, sempre con la stessa curva. */
+  --ag-motion-fast: 180ms;      /* gesto: un tocco che risponde */
+  --ag-motion-normal: 260ms;    /* passo: una cosa che compare o si apre */
+  --ag-motion-scene: 360ms;     /* scena: un pannello intero */
+  --ag-motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Le due molle: `foglio` (0,42 s, rimbalzo 0,12) per quello che sale dal
+     basso, `molla` (0,34 s, rimbalzo 0,28) per i rimbalzi piccoli. Sono la
+     stessa formula di SwiftUI campionata in 25 punti; durano quanto serve a
+     fermarsi. Un browser senza `linear()` resta sulla curva normale. */
+  --ag-motion-sheet: 420ms;
+  --ag-ease-sheet: var(--ag-motion-ease);
+  --ag-motion-bounce: 400ms;
+  --ag-ease-bounce: var(--ag-motion-ease);
+  /* Quanto si stringe un pulsante premuto: 0,96 i piccoli, 0,98 i larghi. */
+  --ag-press: 0.96;
+  --ag-press-wide: 0.98;
+  /* Il ritardo fra una riga e la successiva quando entrano a cascata. */
+  --ag-stagger: 28ms;
 }
 
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --ag-ease-sheet: linear(0, 0.029, 0.101, 0.195, 0.299, 0.402, 0.5, 0.589, 0.668, 0.735, 0.793, 0.84, 0.879, 0.91, 0.934, 0.953, 0.968, 0.979, 0.987, 0.993, 0.997, 0.999, 1.001, 1.002, 1);
+    --ag-ease-bounce: linear(0, 0.041, 0.14, 0.269, 0.407, 0.541, 0.662, 0.765, 0.849, 0.915, 0.963, 0.997, 1.019, 1.032, 1.037, 1.038, 1.036, 1.032, 1.026, 1.021, 1.016, 1.012, 1.008, 1.005, 1);
+  }
+}
+
+/* «Riduci movimento» del telefono: niente si muove, niente si stringe. */
 @media (prefers-reduced-motion: reduce) {
   :root {
     --ag-motion-fast: 0ms;
     --ag-motion-normal: 0ms;
+    --ag-motion-scene: 0ms;
+    --ag-motion-sheet: 0ms;
+    --ag-motion-bounce: 0ms;
+    --ag-press: 1;
+    --ag-press-wide: 1;
+    --ag-stagger: 0ms;
   }
 }

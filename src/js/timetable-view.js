@@ -1,16 +1,13 @@
-/* Agenda — il pannello dell'orario (§6.6).
+/* Agenda — l'orario (§6.6), la schermata principale (A72).
  *
- * Stava nelle impostazioni, ed è uscito da lì per due motivi. Il primo: a
- * inizio anno l'orario cambia di settimana in settimana, e andarlo a cercare in
- * fondo alle impostazioni ogni volta era un giro lungo. Il secondo: finito
- * quel periodo lo si guarda e basta, e una cosa che si guarda sta in testata,
- * accanto al calendario.
+ * Stava nelle impostazioni, poi in un pannello dalla testata, e
+ * dall'undicesimo giro è la pagina che si apre: è l'unica cosa per cui l'app
+ * si usa ogni giorno.
  *
  * Per questo ha due stati. Provvisorio: si tocca una casella e si cambia la
  * materia, si crea la settimana nuova. Definitivo: si guarda e basta. Da
  * definitivo si torna indietro solo dalle impostazioni (A31–A32), perché un
- * orario giusto che cambia per un tocco sbagliato è peggio di nessun orario:
- * è da lì che l'app propone le scadenze.
+ * orario giusto che cambia per un tocco sbagliato è peggio di nessun orario.
  *
  * Il modello (un elenco di griglie, ognuna con la settimana da cui vale) è in
  * timetable.js, insieme al perché.
@@ -29,6 +26,9 @@ let ctx = null;
 let handlers = null;
 /** Quale settimana dell'orario si sta guardando. `null` = quella di oggi. */
 let shownWeek = null;
+/* L'orario disegnato l'ultima volta: passando a un altro, la griglia sfuma
+   (A79); ridisegnando lo stesso dopo un tocco, no. */
+let lastDrawn = null;
 
 export function open(context, callbacks) {
   ctx = context;
@@ -95,7 +95,7 @@ function grid(timetable, shown) {
   return `
     <div class="ag-tt" style="--ag-tt-days:${days.length}">
       <div class="ag-tt__head"><span></span>${heads}</div>
-      <div class="ag-tt__grid">${cells.join("")}</div>
+      <div class="ag-tt__grid ${timetable.weekStart !== lastDrawn ? "ag-tt__grid--enter" : ""}">${cells.join("")}</div>
     </div>`;
 }
 
@@ -162,6 +162,7 @@ export function render() {
   }
 
   bind(body);
+  lastDrawn = timetable?.weekStart ?? null;
 }
 
 /** Tocco su una casella: scegli la materia, o liberala. Una materia col

@@ -1,7 +1,8 @@
 # Agenda — Regole sempre attive
 
-Questa repo contiene **un solo progetto**: un'agenda dei compiti scolastici e
-delle cose da fare, per uso personale, che gira sul telefono di chi la scrive.
+Questa repo contiene **un solo progetto**: un'app per l'orario scolastico e i
+voti (nata come agenda dei compiti, sfoltita nell'undicesimo giro), per uso
+personale, che gira sul telefono di chi la scrive.
 Ogni sessione che lavora qui legge questo file prima di qualunque task.
 
 Il contratto completo del progetto è in [`PIANO-FASE-1.md`](PIANO-FASE-1.md):

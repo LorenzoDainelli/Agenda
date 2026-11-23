@@ -321,6 +321,27 @@ quelle consigliate, e si cambiano con una riga.
 | A70 | Una media **sotto il 6** si scrive in rosso (`--ag-late`), come a scuola; il numero c'è sempre, quindi il colore non è l'unico segnale. Il 6 è sufficiente. | `PASS` in `grades.js`, `.ag-grades__avg--low` |
 | A71 | Un voto si corregge o si elimina toccandolo nella materia aperta: il foglio è lo stesso dell'inserimento, con «Elimina» che chiede conferma dicendo materia, voto e data (regola 4). Una materia eliminata non si porta via i voti: restano col nome che aveva, in fondo all'elenco. Il periodo che si apre è il quadrimestre di oggi (d'estate l'anno intero). | `grades-view.js` |
 
+### Chieste dall'utente il 23 novembre 2026, nell'undicesimo giro
+
+| richiesta | decisione |
+|---|---|
+| togliere tutto quello che non usa: spesa, compiti, calendario «eccetera»; l'app serve per vedere l'orario | restano **l'orario**, **i voti** (confermato nelle domande) e le **impostazioni sfoltite** |
+| (domande) i dati già salvati di compiti, spesa ecc. | **restano dove sono**: non si vedono, non si cancellano, escono ancora nella copia |
+| prendere animazioni, ombre e pop-up dal progetto iPhone dell'utente («Visore», confermato nelle domande), restando una web app | i tempi, le curve, le molle, la pressione, gli avvisi a pillola e le ombre del Visore, tradotti in CSS |
+
+**Assunzioni**
+
+| # | assunzione | come si ribalta |
+|---|---|---|
+| A72 | La schermata che si apre è **l'orario**: quello che era il pannello dell'orario diventa la pagina principale, con sopra la data di oggi. In testata restano due pulsanti: **Voti** e **Impostazioni**. | `index.html`, `app.js` |
+| A73 | Spariscono dall'app: l'elenco dei compiti e il pannello del compito (parti, scadenze proposte, peso), la striscia dei prossimi giorni, i filtri, il calendario, l'archivio, la rassegna degli arretrati, la lista della spesa, gli ambiti e l'impostazione delle parti. I file che servivano solo a loro si tolgono dal repo (la storia di git li conserva); gli stili dei componenti tolti restano per ora in `components.css`, che non è codice che gira e serve anche alla pagina di riferimento. **I dati restano in `localStorage`**: la copia di sicurezza li porta ancora fuori e il ripristino li rimette, così niente si perde in silenzio (regola 4). | la storia di git: si ripristinano i file e le righe tolte |
+| A74 | Il **promemoria mensile della copia** resta, sopra l'orario: i voti e l'orario stanno solo sul telefono. | `renderBackupAlert()` in `app.js` |
+| A75 | Eliminando una materia, la conferma dice quanti **voti** ha (prima diceva i compiti). I voti restano col nome che aveva (A71). | `editSubject()` in `settings.js` |
+| A76 | Il movimento è quello del Visore (`Stile.swift`, «Moto»): **180, 260 e 360 ms** con la curva (.2, .8, .2, 1); la **molla dei fogli** (0,42 s, poco rimbalzo) per i fogli e i pannelli che salgono dal basso e ridiscendono chiudendosi; la **molla piccola** (0,34 s, più rimbalzo) per i chip scelti e i numeri nuovi; ogni pulsante premuto **si stringe** un poco (0,96, i tasti larghi 0,98). Le molle sono scritte con `linear()`: un Safari che non lo conosce usa la curva normale. Con «Riduci movimento» del telefono non si muove niente. | `tokens/space.css`, `components.css` |
+| A77 | Gli **avvisi** diventano la pillola del Visore: salgono dal basso sfumando, galleggiano con un'ombra e se ne vanno da soli dopo **circa 2,5 s** (nessuno ha più l'annulla). Il fondo resta pieno e non di vetro, perché il contrasto del testo deve restare misurabile (regola 3). | `toast()` in `ui.js`, `.ag-toast` |
+| A78 | Le **ombre** sono quelle del Visore: le carte (le righe a riquadro, la griglia dell'orario) un'ombra morbida in basso (raggio 10, giù 4); quello che galleggia (fogli, avvisi) una più larga (raggio 16, giù 7). Il colore resta il token d'ombra dell'Agenda. | `--ag-shadow-*` in `tokens/space.css` |
+| A79 | Come nel Visore le cose **compaiono sfumando o scivolando, mai di colpo**: le righe di voti e impostazioni entrano a cascata, il dettaglio di una materia si apre scivolando, l'orario sfuma cambiando settimana, nel selettore a segmenti **la macchia scivola** sulla scelta nuova, e la media generale **corre** verso il numero nuovo cambiando periodo. Niente vibrazione: Safari su iPhone non la permette a una pagina web. | `components.css`, `slideSegments()` in `ui.js`, `grades-view.js` |
+
 Rimasta aperta e **non** decisa: la forma definitiva dell'ambito privato
 (vedi §6.4). Il nome dell'app non è più in questa lista.
 
@@ -354,25 +375,18 @@ Il progetto sta **alla radice della repo** (decisione dell'utente): la repo
       components.css            COPIA da design_handoff/
       tokens/*.css              COPIE da design_handoff/tokens/
     js/
-      app.js                    orchestrazione, avvio, schermata «Da fare»
+      app.js                    orchestrazione, avvio, testata (A72)
       i18n.js                   dizionario e sostituzione dei testi
       days.js                   date: ISO, settimane, formati, nomi dei giorni
       storage.js                unica porta verso la persistenza
-      model.js                  modello dei compiti: stato, finestra dei giorni
+      model.js                  gli id (il modello dei compiti è stato tolto, A73)
       subjects.js               materie e loro colori
-      timetable.js              orari settimanali e proposta della scadenza
-      tasks.js                  query sui compiti: raggruppamenti, ordinamenti
-      compose.js                pannello di inserimento e modifica
-      planner.js                selettore dei giorni e dei momenti
-      calendar.js               viste settimana e mese
-      review.js                 rassegna degli arretrati
+      timetable.js              orari nel tempo, ore per giorno, pausa
+      timetable-view.js         l'orario, schermata principale: provvisorio o definitivo
       settings.js               impostazioni, divise in pagine
-      timetable-view.js         il pannello dell'orario: provvisorio o definitivo
-      shopping.js               la lista della spesa: regole pure
-      shopping-view.js          il pannello della spesa
       grades.js                 i voti: quadrimestri e medie, regole pure
       grades-view.js            il pannello dei voti
-      ui.js                     fogli, conferme, notifiche, scelta di un giorno
+      ui.js                     livelli, fogli, conferme, avvisi e il loro movimento
       backup.js                 esportazione e ripristino
     icons/
       icon-192.png
@@ -380,20 +394,17 @@ Il progetto sta **alla radice della repo** (decisione dell'utente): la repo
   test/                         prove delle regole pure, senza browser
     tutti.mjs                   le esegue tutte: `node test/tutti.mjs`
     days.mjs                    date e casi limite di calendario
-    model.mjs                   la finestra, lo stato, le parti, il peso
-    timetable.mjs               orari nel tempo, blocchi, proposta scadenza
-    tasks.mjs                   sezioni, ordinamenti, archivio
+    timetable.mjs               orari nel tempo, blocchi, ore per giorno, pausa
     backup.mjs                  quando compare il promemoria della copia
-    shopping.mjs                la lista della spesa: aggiungere, spuntare, mezzanotte
     grades.mjs                  i voti: quadrimestri e medie
     browser/                    prove che guidano l'app in un browser vero
                                 (servono Playwright: vedi test/browser/LEGGIMI.md)
       audit.mjs                 il controllo dei contrasti sulla pagina renderizzata
-      contrasti.mjs             lo passa su sedici schermate dell'app, nei due temi
+      contrasti.mjs             lo passa su quindici schermate dell'app, nei due temi
       cattura-schermate.mjs     salva il markup vero dell'app, per il confronto palette
       confronto-palette.mjs     guarda le palette candidate e le verifica
-      percorso-base.mjs         il giro completo: creare, pianificare, spuntare
-      archivio-copia-offline.mjs  archivio, copia di sicurezza, funzionamento offline
+      percorso-base.mjs         il giro completo: orario, impostazioni, voti, movimento
+      copia-offline.mjs         copia di sicurezza, funzionamento offline
       riferimento.mjs           la pagina di riferimento dei componenti
   tools/                        strumenti di progetto, non finiscono nell'app
     colore.py                   matematica del colore: contrasti WCAG, CIELAB, ΔE
@@ -610,6 +621,11 @@ fatto. La regola vale sia dall'elenco sia dal pannello del compito.
 ---
 
 ## 6. Schermate
+
+> **Dall'undicesimo giro** (A72–A73) l'app ha solo l'orario (§6.6), che è la
+> schermata principale, i voti (§6.8) e le impostazioni (§6.4) senza ambiti e
+> senza parti. Le sezioni 6.1, 6.2, 6.3, 6.5, 6.7 e il §7 descrivono cose
+> tolte: restano qui come storia, e per rimetterle se un giorno servono.
 
 Sette in tutto, e solo la prima è una vera schermata: le altre sono pannelli
 che si aprono sopra e si chiudono con una ✕, come in Shift Hours.
@@ -992,6 +1008,21 @@ in avanti del calendario), `service-worker.js` e `components.css`.
   media generale è la media delle medie; sotto il 6 è rossa; correggere un
   voto lo sposta, eliminarlo chiede conferma; i voti escono nella copia e
   tornano col ripristino.
+
+### Task 12 — Solo orario e voti, col movimento del Visore
+Tolti `compose.js`, `calendar.js`, `review.js`, `planner.js`, `tasks.js`,
+`shopping.js`, `shopping-view.js` e le loro prove (`model.mjs`, `tasks.mjs`,
+`shopping.mjs`); `archivio-copia-offline.mjs` diventa `copia-offline.mjs`;
+sfoltiti `app.js`,
+`index.html`, `settings.js`, `model.js`, `ui.js`, `storage.js`, `i18n.js`;
+movimento in `tokens/space.css` e `components.css`.
+
+- **Accettazione**: l'app si apre sull'orario con la data di oggi; in testata
+  ci sono solo Voti e Impostazioni; i compiti e la spesa salvati prima
+  restano in `localStorage`, escono nella copia e tornano col ripristino; un
+  foglio sale con la molla e ridiscende chiudendosi; un pulsante premuto si
+  stringe; l'avviso sale a pillola e se ne va da solo; con «Riduci movimento»
+  niente si muove; i contrasti restano a norma nei due temi.
 
 ## 9-bis. Cosa si controlla da sé
 

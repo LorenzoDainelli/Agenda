@@ -1,6 +1,6 @@
 /* Verifica dei contrasti sulla pagina renderizzata, non sui numeri dei token.
  *
- * Guida l'app nei due temi e su sedici schermate, e su ognuna passa il
+ * Guida l'app nei due temi e su quindici schermate, e su ognuna passa il
  * controllo di audit.mjs. Quello che trova qui e non nei token è la differenza
  * fra un numero scritto in un commento e un pixel disegnato davvero.
  */
@@ -10,60 +10,48 @@ const CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 const browser = await chromium.launch({ executablePath: CHROME });
 const ctx = await browser.newContext({ ...devices["iPhone 15"], hasTouch: true, isMobile: true, locale: "it-IT", timezoneId: "Europe/Rome" });
 // Le prove sono scritte per lunedì 21 settembre 2026, alle dieci: l'orologio
-// del browser si ferma lì. Senza, dal giorno dopo le date dei dati finti
-// scivolano nel passato, parte la rassegna degli arretrati e la prova fallisce
-// per colpa del calendario, non dell'app. Si ferma solo la data: i timer
-// (i toast, le animazioni) continuano a scorrere.
+// del browser si ferma lì. Si ferma solo la data: i timer (gli avvisi, le
+// animazioni) continuano a scorrere.
 await ctx.clock.setFixedTime(new Date("2026-09-21T10:00:00+02:00"));
 const page = await ctx.newPage();
 
-// Trascina una riga verso sinistra: nella spesa apre la correzione (A54).
-const versoSinistra = async (loc) => {
-  const box = await loc.boundingBox();
-  const y = box.y + 18, x0 = box.x + box.width - 30;
-  await page.mouse.move(x0, y); await page.mouse.down();
-  for (let i = 1; i <= 12; i++) await page.mouse.move(x0 - 18 * i, y);
-  await page.mouse.up(); await page.waitForTimeout(400);
-};
+// Si aspetta che un foglio o un livello sia fermo: salgono con la molla
+// (A76), e a metà strada una parte del testo starebbe ancora sul fondo sotto.
+const fermo = () => page.waitForTimeout(600);
 
 const scenari = [
-  ["elenco", async () => {}],
-  // le righe con due o più parti partono chiuse (A50): si aprono tutte, così
-  // si misurano anche le parti e i loro giorni
-  ["elenco, parti aperte", async () => {
-    for (const freccia of await page.locator("#list [data-expand]").all()) await freccia.click();
-    await page.waitForTimeout(300); }],
-  ["calendario settimana", async () => { await page.click("#open-calendar"); await page.waitForTimeout(400); }],
-  ["calendario mese", async () => { await page.locator('#cal-mode [data-mode="month"]').click(); await page.waitForTimeout(400); }],
-  ["impostazioni", async () => { await page.click('[data-close="calendar-layer"]'); await page.click("#open-settings"); await page.waitForTimeout(400); }],
+  // la schermata principale è l'orario (A72), con il promemoria della copia
+  ["orario", async () => {}],
+  ["orario, una casella", async () => { await page.locator('#timetable-body [data-cell^="1:0:"]').click(); await fermo(); }],
+  ["orario, ore per giorno", async () => { await page.keyboard.press("Escape"); await page.waitForTimeout(400);
+    await page.click("#tt-days"); await fermo(); }],
+  ["impostazioni", async () => { await page.keyboard.press("Escape"); await page.waitForTimeout(400); await page.click("#open-settings"); await fermo(); }],
   // le pagine delle impostazioni: le righe in un riquadro solo e i segmenti
-  ["impostazioni materie", async () => { await page.click('[data-page="subjects"]'); await page.waitForTimeout(300); }],
+  ["impostazioni materie", async () => { await page.click('[data-page="subjects"]'); await fermo(); }],
   // la tabella dei colori (A57–A59), col campione acceso su una casella del
   // fondo, la più chiara; salvando, da qui in poi una materia ha un colore
   // della tabella e si misura anche quello
-  ["materia, tabella colori", async () => { await page.click('#settings-body [data-subject="s-petrolio"]'); await page.waitForTimeout(300);
+  ["materia, tabella colori", async () => { await page.click('#settings-body [data-subject="s-petrolio"]'); await fermo();
     await page.locator('#sheet [data-color="t-9-9"]').click(); await page.waitForTimeout(200); }],
-  ["impostazioni, dopo", async () => { await page.click('#sheet [data-act="save"]'); await page.waitForTimeout(300); }],
-  ["impostazioni aspetto", async () => { await page.click("#settings-back"); await page.click('[data-page="look"]'); await page.waitForTimeout(300); }],
-  ["impostazioni dati", async () => { await page.click("#settings-back"); await page.click('[data-page="data"]'); await page.waitForTimeout(300); }],
-  ["orario", async () => { await page.click('[data-close="settings-layer"]'); await page.click("#open-timetable"); await page.waitForTimeout(400); }],
-  // una cosa da comprare, una comprata oggi (barrata) e le «Già comprate»
-  ["spesa", async () => { await page.click('[data-close="timetable-layer"]'); await page.click("#open-shopping"); await page.waitForTimeout(400); }],
-  ["spesa, correggere", async () => { await versoSinistra(page.locator("#shopping-body .ag-shop").first()); }],
-  // il compito nuovo, con una materia col laboratorio: il nome vuoto la
-  // mostra, e ci sono Teoria/Laboratorio e le parti consigliate
-  ["compito nuovo", async () => { await page.click('#sheet [data-act="cancel"]'); await page.click('[data-close="shopping-layer"]');
-    await page.click("#add"); await page.waitForTimeout(300);
-    await page.locator('#subject-chips [data-subject="s-mattone"]').click(); await page.waitForTimeout(300); }],
-  // il compito con le parti, così si misurano anche i chip «quando»
-  ["pannello compito", async () => { await page.click('[data-close="task-layer"]'); await page.locator("#list .ag-task__main", { hasText: "Compito con parti" }).click(); await page.waitForTimeout(400); }],
-  ["archivio", async () => { await page.click('[data-close="task-layer"]'); await page.click("#open-archive"); await page.waitForTimeout(400); }],
+  ["impostazioni, dopo", async () => { await page.click('#sheet [data-act="save"]'); await fermo(); }],
+  ["impostazioni aspetto", async () => { await page.click("#settings-back"); await page.click('[data-page="look"]'); await fermo(); }],
+  ["impostazioni orario", async () => { await page.click("#settings-back"); await page.click('[data-page="timetable"]'); await fermo(); }],
+  ["impostazioni dati", async () => { await page.click("#settings-back"); await page.click('[data-page="data"]'); await fermo(); }],
   // i voti, con una materia aperta: medie sopra e sotto il 6, teoria e laboratorio
-  ["voti", async () => { await page.click('[data-close="archive-layer"]'); await page.click("#open-grades"); await page.waitForTimeout(300);
-    await page.click('[data-gr-subject="s-mattone"]'); await page.waitForTimeout(300); }],
-  ["voti, inserire", async () => { await page.click("#gr-add"); await page.waitForTimeout(200);
+  ["voti", async () => { await page.click('[data-close="settings-layer"]'); await page.waitForTimeout(300);
+    await page.click("#open-grades"); await fermo();
+    await page.click('[data-gr-subject="s-mattone"]'); await fermo(); }],
+  ["voti, inserire", async () => { await page.click("#gr-add"); await fermo();
     await page.locator('#sheet-body [data-f-subject="s-mattone"]').click(); await page.waitForTimeout(200);
-    await page.locator('#sheet-body [data-f-value="5.5"]').click(); await page.waitForTimeout(200); }],
+    await page.locator('#sheet-body [data-f-value="5.5"]').click(); await fermo(); }],
+  ["voti, il giorno", async () => { await page.locator("#sheet-body [data-f-date]").click(); await fermo(); }],
+  // l'avviso a pillola (A77), sopra l'orario
+  ["avviso", async () => { await page.keyboard.press("Escape"); await page.waitForTimeout(400);
+    await page.click('[data-close="grades-layer"]'); await page.waitForTimeout(400);
+    await page.evaluate(async () => (await import("./js/ui.js")).toast("Voto salvato")); await fermo(); }],
+  // l'orario definitivo, che si guarda e basta
+  ["orario definitivo", async () => { await page.click("#tt-final"); await fermo();
+    await page.click('#sheet [data-act="yes"]'); await fermo(); }],
 ];
 
 let totali = 0, placeholderVisti = 0, falliti = [];
@@ -72,52 +60,17 @@ for (const tema of ["light", "dark"]) {
   await page.evaluate((tema) => {
     const subjects = ["petrolio","oltremare","muschio","oliva-2","mattone","mattone-2","oliva","prugna-2","prugna","oltremare-2","petrolio-2"]
       .map((c,i) => ({ id:"s-"+c, name:"Materia "+c, short:c.slice(0,4).toUpperCase(), color:c, lab: c === "mattone" }));
-    localStorage.setItem("agenda:settings", JSON.stringify({version:1,lang:"it",theme:tema,subjects,areas:[{id:"a-1",name:"Palestra",color:"oliva-2"}],lessonsPerDay:6,schoolDays:[1,2,3,4,5,6]}));
-    const base = o => ({ id:"t-"+Math.random().toString(36).slice(2,8), area:"school", subjectId:null, subjectName:null,
-      kind:"homework", title:"x", due:null, weight:1, createdAt:"2026-09-21", doneAt:null, droppedAt:null,
-      plan:{skip:[],pick:{}}, parts:[], ...o });
-    localStorage.setItem("agenda:tasks", JSON.stringify([
-      base({title:"Verifica di storia", kind:"test", subjectId:"s-violet", subjectName:"Materia violet", due:"2026-09-25", weight:3, plan:{skip:[],pick:{"2026-09-22":"evening","2026-09-23":"afternoon"}}}),
-      base({title:"Compito in ritardo", subjectId:"s-sky", subjectName:"Materia sky", due:"2026-09-18", weight:2}),
-      base({title:"Compito con parti", subjectId:"s-amber", subjectName:"Materia amber", due:"2026-09-24", weight:3,
-            parts:[{id:"p1",title:"cinque frasi",total:5,done:2,pick:{"2026-09-22":"morning"}},{id:"p2",title:"due esercizi",total:2,done:0,pick:{}},
-                   {id:"p5",title:"rimasta indietro",total:1,done:0,pick:{"2026-09-20":"evening"}}],
-            plan:{skip:[],pick:{"2026-09-22":"morning","2026-09-23":"evening"}}}),
-      // senza nome: si chiama come la materia, col pallino davanti (A27)
-      base({title:"", subjectId:"s-oliva", subjectName:"Materia oliva", due:"2026-09-24", weight:2}),
-      // una parte sola, rimasta indietro: il nome e il giorno rosso stanno
-      // nella riga sotto il titolo (A49); di laboratorio, con la pillola (A46)
-      base({title:"", subjectId:"s-mattone", subjectName:"Materia mattone", lab:true, due:"2026-09-24", weight:2,
-            parts:[{id:"p6",title:"relazione",total:1,done:0,pick:{"2026-09-20":"afternoon"}}]}),
-      base({title:"", subjectId:"s-mattone", subjectName:"Materia mattone", kind:"test", due:"2026-10-09", weight:3,
-            parts:[{id:"p7",title:"primo capitolo",total:3,done:1,pick:{}}]}),
-      base({title:"Giornata pesante", subjectId:"s-rose", subjectName:"Materia rose", due:"2026-09-26", weight:3, plan:{skip:[],pick:{"2026-09-22":"afternoon"}}}),
-      // creata a luglio e nessuna copia mai scaricata: compare il promemoria
-      base({title:"Cosa privata", area:"private", kind:"todo", createdAt:"2026-07-01"}),
-      // fatte oggi: restano nell'elenco barrate, ed è il caso che prima non si
-      // guardava perché sparivano subito
-      base({title:"Fatto stamattina", subjectId:"s-petrolio", subjectName:"Materia petrolio", due:"2026-09-23", weight:2,
-            doneAt:"2026-09-21", parts:[{id:"p3",title:"scheda",total:1,done:1,pick:{}},{id:"p4",title:"otto righe",total:8,done:8,pick:{}}],
-            plan:{skip:[],pick:{"2026-09-21":"afternoon"}}}),
-      base({title:"Verifica ripassata", kind:"test", subjectId:"s-prugna", subjectName:"Materia prugna", due:"2026-09-21", weight:2,
-            doneAt:"2026-09-21"}),
-      // nell'archivio: una fatta e una lasciata cadere
-      base({title:"Fatto la settimana scorsa", subjectId:"s-muschio", subjectName:"Materia muschio", due:"2026-09-16", doneAt:"2026-09-15"}),
-      base({title:"Lasciato cadere", due:"2026-09-17", droppedAt:"2026-09-17"}),
-    ]));
-    localStorage.setItem("agenda:timetables", JSON.stringify([{weekStart:"2026-09-21",
-      grid:{"1":["s-sky","s-sky","s-amber","s-mattone@lab","s-mattone@lab",null],"2":["s-violet",null,null,null,null,null],
-            "3":["s-green",null,null,null,null,null],"4":["s-amber","s-sky",null,null,null,null],
-            "5":["s-rose",null,null,null,null,null],"6":[null,null,null,null,null,null]}}]));
+    localStorage.setItem("agenda:settings", JSON.stringify({version:1,lang:"it",theme:tema,subjects,areas:[],lessonsPerDay:6,schoolDays:[1,2,3,4,5,6]}));
+    // due orari: il primo di agosto, così senza nessuna copia scaricata
+    // compare il promemoria (A74)
+    const grid = {"1":["s-petrolio","s-petrolio","s-oliva","s-mattone@lab","s-mattone@lab",null],"2":["s-prugna",null,null,null,null,null],
+            "3":["s-muschio",null,null,null,null,null],"4":["s-oliva","s-petrolio","s-prugna","@break","s-mattone","s-oltremare","s-muschio","s-muschio"],
+            "5":["s-prugna-2",null,null,null,null,null],"6":[null,null,null,null,null,null]};
+    localStorage.setItem("agenda:timetables", JSON.stringify([{weekStart:"2026-09-21", grid}, {weekStart:"2026-08-17", grid}]));
     localStorage.setItem("agenda:grades", JSON.stringify({ items: [
       { id:"g-1", subjectId:"s-mattone", subjectName:"Materia mattone", value:5.5, date:"2026-09-15", lab:true },
       { id:"g-2", subjectId:"s-mattone", subjectName:"Materia mattone", value:7, date:"2026-09-18", lab:false },
       { id:"g-3", subjectId:"s-prugna", subjectName:"Materia prugna", value:4, date:"2026-09-19", lab:false } ] }));
-    localStorage.setItem("agenda:review", JSON.stringify({lastReviewedOn:"2026-09-21"}));
-    localStorage.setItem("agenda:shopping", JSON.stringify({ items: [
-      { id:"c-1", name:"latte", qty:"2", addedAt:"2026-09-20", boughtAt:null },
-      { id:"c-2", name:"pane", addedAt:"2026-09-20", boughtAt:"2026-09-21" },
-      { id:"c-3", name:"uova", qty:"6", addedAt:"2026-09-10", boughtAt:"2026-09-15" } ] }));
   }, tema);
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(500);

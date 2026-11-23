@@ -21,15 +21,15 @@ export const SNOOZE_DAYS = 7;
  * Se oggi va ricordata la copia (assunzione A18).
  *
  * Si conta dall'ultima copia scaricata da questo telefono; se non ce n'è mai
- * stata una, dal compito più vecchio — nei primi giorni d'uso non c'è ancora
- * niente che valga un avviso. Senza compiti non c'è niente da perdere, e
- * l'avviso non compare.
+ * stata una, dalla cosa più vecchia che c'è (`dates`: i giorni dei voti e
+ * degli orari) — nei primi giorni d'uso non c'è ancora niente che valga un
+ * avviso. Senza niente non c'è niente da perdere, e l'avviso non compare.
  */
-export function isDue(tasks, info, today = todayISO()) {
-  if (!tasks.length) return false;
+export function isDue(dates, info, today = todayISO()) {
+  const known = dates.filter(Boolean);
+  if (!known.length) return false;
   if (info.snoozedUntil && today < info.snoozedUntil) return false;
-  const since = info.lastSavedOn
-    ?? tasks.map((task) => task.createdAt).filter(Boolean).sort()[0];
+  const since = info.lastSavedOn ?? [...known].sort()[0];
   return Boolean(since) && diffDays(since, today) >= BACKUP_EVERY_DAYS;
 }
 

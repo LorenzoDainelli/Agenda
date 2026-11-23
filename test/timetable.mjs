@@ -38,17 +38,6 @@ eq("la settimana dopo → il secondo", T.timetableFor(list, "2026-09-30").weekSt
 eq("fra un mese → ancora il secondo", T.timetableFor(list, "2026-10-26").weekStart, "2026-09-28");
 eq("prima che esistessero → il più vecchio", T.timetableFor(list, "2026-09-10").weekStart, "2026-09-21");
 
-console.log("proposta della scadenza");
-eq("inglese da lunedì → giovedì, poi lunedì dopo", T.nextLessons(list, "s-ingl", OGGI, 2), ["2026-09-24","2026-09-28"]);
-eq("matematica da lunedì → giovedì", T.nextLessons(list, "s-mate", OGGI, 1), ["2026-09-24"]);
-eq("una materia che non c'è → niente", T.nextLessons(list, "s-boh", OGGI, 2), []);
-eq("materia non scelta → niente", T.nextLessons(list, null, OGGI, 2), []);
-
-console.log("materie di un giorno");
-eq("lunedì (ore doppie contate una volta)", T.subjectsOn(list, OGGI), ["s-ingl"]);
-eq("giovedì, in ordine di ora", T.subjectsOn(list, "2026-09-24"), ["s-mate","s-ingl"]);
-eq("domenica, niente", T.subjectsOn(list, "2026-09-27"), []);
-
 console.log("blocchi di ore consecutive");
 eq("due ore di fila = un blocco alto 2", T.blocksOf(["s-a","s-a",null,null,null,null], 6),
    [{subjectId:"s-a",lab:false,from:0,span:2},{subjectId:null,lab:false,from:2,span:1},{subjectId:null,lab:false,from:3,span:1},{subjectId:null,lab:false,from:4,span:1},{subjectId:null,lab:false,from:5,span:1}]);
@@ -78,11 +67,6 @@ const conLab = T.newTimetable("2026-09-21", {
   "3": ["s-x@lab", "s-x@lab", null, null, null, null],
   "4": ["s-x", null, null, null, null, null],
 });
-eq("prossima lezione, qualunque", T.nextLessons([conLab], "s-x", OGGI, 2), ["2026-09-23", "2026-09-24"]);
-eq("prossima lezione di laboratorio", T.nextLessons([conLab], "s-x", OGGI, 2, true), ["2026-09-23", "2026-09-30"]);
-eq("prossima lezione di teoria", T.nextLessons([conLab], "s-x", OGGI, 2, false), ["2026-09-24", "2026-09-28"]);
-eq("il laboratorio conta fra le materie del giorno", T.subjectsOn([conLab], "2026-09-23"), ["s-x"]);
-eq("e fra i giorni della materia", T.daysWithSubject(conLab, "s-x"), [1, 3, 4]);
 eq("e fra le ore", T.countHours(conLab), 5);
 
 console.log("materie: sigle e colori");
@@ -110,10 +94,6 @@ eq("nome di una casella", S.paletteColor(9, 11), "t-9-11");
 eq("e ritorno", S.palettePos("t-9-11"), { row: 9, col: 11 });
 eq("un colore di prima non ha una casella", S.palettePos("petrolio"), null);
 eq("dodici colori di prima, sempre validi", S.COLORS.every(S.isColor) && S.COLORS.length === 12, true);
-eq("materia eliminata: resta il nome congelato",
-   S.subjectLabel([], { subjectId: "s-x", subjectName: "Inglese" }), "Inglese");
-eq("materia esistente: vince il nome attuale",
-   S.subjectLabel([{id:"s-x",name:"Inglese 2"}], { subjectId: "s-x", subjectName: "Inglese" }), "Inglese 2");
 
 console.log("ore diverse per giorno e pausa (A64)");
 {
